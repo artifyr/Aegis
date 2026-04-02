@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GEOINT COMMAND - Tactical War Room</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "background": "#121317",
+              "on-background": "#e3e2e8",
+              "surface-container-low": "#1a1b20",
+              "on-secondary-container": "#a1fcf7",
+              "surface-variant": "#343439",
+              "surface-container": "#1f1f24",
+              "on-secondary": "#003735",
+              "tertiary-fixed-dim": "#ffb3ae",
+              "surface-container-high": "#292a2e",
+              "on-surface-variant": "#bacac7",
+              "on-tertiary": "#68000b",
+              "error-container": "#93000a",
+              "on-error": "#690005",
+              "secondary-fixed-dim": "#7bd6d1",
+              "on-primary-fixed": "#00201e",
+              "surface-container-highest": "#343439",
+              "primary-container": "#62f9ee",
+              "tertiary": "#ffffff",
+              "primary-fixed-dim": "#3cdcd1",
+              "inverse-surface": "#e3e2e8",
+              "primary": "#ffffff",
+              "surface": "#121317",
+              "on-tertiary-container": "#c31f29",
+              "outline-variant": "#3c4948",
+              "error": "#ffb4ab",
+              "tertiary-fixed": "#ffdad7",
+              "inverse-on-surface": "#2f3035",
+              "secondary-fixed": "#98f2ed",
+              "inverse-primary": "#006a64",
+              "outline": "#859491",
+              "surface-bright": "#38393e",
+              "on-primary-fixed-variant": "#00504b",
+              "on-secondary-fixed-variant": "#00504d",
+              "secondary-container": "#007774",
+              "surface-dim": "#121317",
+              "on-error-container": "#ffdad6",
+              "on-surface": "#e3e2e8",
+              "on-primary-container": "#00716b",
+              "surface-container-lowest": "#0d0e12",
+              "on-secondary-fixed": "#00201f",
+              "tertiary-container": "#ffdad7",
+              "primary-fixed": "#62f9ee",
+              "on-tertiary-fixed-variant": "#930014",
+              "secondary": "#7bd6d1",
+              "surface-tint": "#3cdcd1",
+              "on-tertiary-fixed": "#410004",
+              "on-primary": "#003734"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Inter"],
+              "label": ["Space Grotesk"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .inner-glow-primary {
+            box-shadow: inset 0 0 8px 0 rgba(102, 252, 241, 0.1);
+        }
+        .tactical-grid {
+            background-image: linear-gradient(rgba(60, 73, 72, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(60, 73, 72, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        .bezel-glow {
+            border: 1px solid rgba(133, 148, 145, 0.1);
+            border-top: 1px solid rgba(133, 148, 145, 0.2);
+            border-left: 1px solid rgba(133, 148, 145, 0.2);
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0d0e12;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3c4948;
+        }
+    </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body selection:bg-secondary/30 overflow-hidden">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center w-full px-6 h-16 bg-[#0d0e12] dark:bg-slate-950 fixed top-0 z-50 border-b-0 inner-glow-primary">
+<div class="flex items-center gap-8">
+<h1 class="text-xl font-black tracking-widest text-white uppercase font-headline">GEOINT COMMAND</h1>
+<nav class="hidden md:flex gap-6 items-center">
+<a class="text-white border-b-2 border-[#66FCF1] pb-1 font-headline tracking-tighter uppercase text-sm" href="#">MAP</a>
+<a class="text-slate-500 font-mono text-sm hover:text-[#66FCF1] hover:bg-white/5 transition-colors uppercase" href="#">ANALYTICS</a>
+<a class="text-slate-500 font-mono text-sm hover:text-[#66FCF1] hover:bg-white/5 transition-colors uppercase" href="#">ARCHIVE</a>
+<a class="text-slate-500 font-mono text-sm hover:text-[#66FCF1] hover:bg-white/5 transition-colors uppercase" href="#">MISSIONS</a>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden lg:flex flex-col items-end font-mono text-[10px] tracking-widest">
+<span class="text-[#66FCF1]">ZULU: 14:22:05</span>
+<span class="text-on-surface-variant/60">SYST_HEALTH: OPTIMAL</span>
+</div>
+<div class="flex items-center gap-4 text-on-surface-variant">
+<span class="material-symbols-outlined cursor-pointer hover:text-white transition-colors">settings</span>
+<div class="relative">
+<span class="material-symbols-outlined cursor-pointer hover:text-white transition-colors">notifications</span>
+<span class="absolute -top-1 -right-1 w-2 h-2 bg-on-tertiary-container"></span>
+</div>
+<span class="material-symbols-outlined cursor-pointer hover:text-white transition-colors">account_circle</span>
+</div>
+</div>
+</header>
+<div class="flex pt-16 h-screen overflow-hidden">
+<!-- SideNavBar / Left Panel -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-72 flex flex-col justify-between py-4 bg-[#1f1f24] dark:bg-slate-900 z-40 bezel-glow">
+<div class="flex flex-col h-full overflow-y-auto px-4 gap-6">
+<!-- Header Section -->
+<div class="flex items-center gap-3 border-b border-outline-variant/10 pb-4">
+<div class="w-10 h-10 bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-[#66FCF1]">radar</span>
+</div>
+<div>
+<h2 class="text-[#66FCF1] font-bold text-sm font-headline">ASSETS &amp; TARGETS</h2>
+<p class="text-[10px] text-on-surface-variant font-mono">SECTOR_7_GEOINT</p>
+</div>
+</div>
+<!-- Watchlist Input -->
+<div class="flex flex-col gap-2">
+<label class="font-label text-[10px] text-on-surface-variant uppercase tracking-widest">Target Watchlist</label>
+<div class="relative">
+<input class="w-full bg-surface-container-lowest border-0 border-b border-outline-variant focus:border-[#66FCF1] focus:ring-0 text-xs font-mono py-2 pl-2 pr-8 placeholder:text-outline-variant/50" placeholder="ENTER ID / COORDINATES" type="text"/>
+<span class="material-symbols-outlined absolute right-2 top-1.5 text-sm text-on-surface-variant">search</span>
+</div>
+</div>
+<!-- Asset Categories -->
+<div class="flex flex-col gap-3">
+<div class="group flex items-center justify-between p-2 bg-white/5 border-l-4 border-[#66FCF1] cursor-pointer">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-xs">directions_boat</span>
+<span class="text-xs font-headline font-medium">NAVAL VESSELS</span>
+</div>
+<span class="text-[10px] font-mono text-secondary">08</span>
+</div>
+<!-- Asset List Item -->
+<div class="flex flex-col gap-1 pl-2">
+<div class="flex items-center justify-between p-2 hover:bg-white/5 transition-all cursor-pointer group">
+<div class="flex flex-col">
+<span class="text-[10px] font-mono text-white">X-RAY 492</span>
+<span class="text-[9px] text-on-surface-variant uppercase">Carrier Strike Group</span>
+</div>
+<div class="text-right">
+<span class="text-[10px] font-mono text-[#66FCF1]">98% CONF</span>
+<p class="text-[8px] text-on-surface-variant">14:19:00 Z</p>
+</div>
+</div>
+<div class="flex items-center justify-between p-2 hover:bg-white/5 transition-all cursor-pointer group">
+<div class="flex flex-col">
+<span class="text-[10px] font-mono text-white">YANKEE 102</span>
+<span class="text-[9px] text-on-surface-variant uppercase">Subsurface Contact</span>
+</div>
+<div class="text-right">
+<span class="text-[10px] font-mono text-[#66FCF1]">92% CONF</span>
+<p class="text-[8px] text-on-surface-variant">14:18:22 Z</p>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between p-2 hover:bg-white/5 transition-all cursor-pointer group text-slate-400">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-xs">flight</span>
+<span class="text-xs font-headline">AIRCRAFT</span>
+</div>
+<span class="text-[10px] font-mono">14</span>
+</div>
+<div class="flex items-center justify-between p-2 hover:bg-white/5 transition-all cursor-pointer group text-slate-400">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-xs">local_shipping</span>
+<span class="text-xs font-headline">GROUND VEHICLES</span>
+</div>
+<span class="text-[10px] font-mono">31</span>
+</div>
+</div>
+<!-- AOI Hierarchy -->
+<div class="flex flex-col gap-2 mt-4">
+<label class="font-label text-[10px] text-on-surface-variant uppercase tracking-widest">Area of Interest</label>
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 py-1 px-2 hover:bg-white/5 cursor-pointer">
+<span class="material-symbols-outlined text-xs text-secondary">folder_open</span>
+<span class="text-[11px] font-mono">NORTH_PACIFIC_S3</span>
+</div>
+<div class="flex items-center gap-2 py-1 px-4 hover:bg-white/5 cursor-pointer text-on-surface-variant">
+<span class="material-symbols-outlined text-xs">layers</span>
+<span class="text-[10px] font-mono">SUB_GRID_ALPHA</span>
+</div>
+</div>
+</div>
+</div>
+<div class="px-4 pt-4 border-t border-outline-variant/10">
+<button class="w-full bg-white text-on-primary font-headline font-bold text-xs py-3 flex items-center justify-center gap-2 hover:bg-secondary-fixed transition-colors">
+<span class="material-symbols-outlined text-sm">satellite_alt</span>
+                    DEPLOY SENSOR
+                </button>
+</div>
+</aside>
+<!-- Main Content Area: Map -->
+<main class="flex-1 ml-72 mr-80 relative bg-surface-container-lowest h-full tactical-grid overflow-hidden">
+<!-- 3D Earth Visualization Overlay -->
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<div class="relative w-[600px] h-[600px]">
+<!-- Holographic Globe Simulation -->
+<div class="absolute inset-0 rounded-full border border-secondary/20 bg-gradient-to-tr from-secondary/10 to-transparent shadow-[0_0_100px_rgba(102,252,241,0.05)]"></div>
+<img class="w-full h-full object-contain mix-blend-screen opacity-40 rounded-full" data-alt="digital 3D globe visualization with blue glowing continents tactical data overlays and pulsing point clouds on a black background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFUYOXClXp8fnLfaIi65IB9umz9xazcjljlOybsxb3E0OqgtkqYIBzjBduu29nskZyNuNJgvkUDLeYY3sS4kRrcRUwCSj8MENyoe1ZN44kndH1XLVHb-AoaURVK_7IOl9OT-Ysf-yOLd4mxlKP26TSxrUBbzEYD9MzsPh4jN7tQm5gjkJySleM8qaPjcRaZ7zr6TDgsYV2Gu2JLdcRmkfIDj65Qd5lBAMLobdQImgs2zPzoMqlAgjnhG2AWW3jLwWKGwUKd4N8i25D"/>
+<!-- HUD Elements -->
+<div class="absolute top-1/4 left-1/4 animate-pulse">
+<span class="material-symbols-outlined text-secondary text-lg" style="font-variation-settings: 'FILL' 1;">gps_fixed</span>
+<div class="bg-black/80 backdrop-blur-md px-2 py-1 border-l-2 border-secondary text-[8px] font-mono mt-1">
+                            TARGET_ALPHA_1<br/>
+                            COORD: 34.05, -118.24
+                        </div>
+</div>
+<div class="absolute bottom-1/3 right-1/3 animate-pulse" style="animation-delay: 1s">
+<span class="material-symbols-outlined text-on-tertiary-container text-lg" style="font-variation-settings: 'FILL' 1;">warning</span>
+<div class="bg-black/80 backdrop-blur-md px-2 py-1 border-l-2 border-on-tertiary-container text-[8px] font-mono mt-1">
+                            UNIDENTIFIED_VESSEL<br/>
+                            SPEED: 24 KTS
+                        </div>
+</div>
+</div>
+</div>
+<!-- Coordinate HUD corners -->
+<div class="absolute top-6 left-6 border-t-2 border-l-2 border-secondary w-8 h-8 opacity-50"></div>
+<div class="absolute top-6 right-6 border-t-2 border-r-2 border-secondary w-8 h-8 opacity-50"></div>
+<div class="absolute bottom-24 left-6 border-b-2 border-l-2 border-secondary w-8 h-8 opacity-50"></div>
+<div class="absolute bottom-24 right-6 border-b-2 border-r-2 border-secondary w-8 h-8 opacity-50"></div>
+<div class="absolute top-8 left-12 font-mono text-[10px] text-secondary tracking-widest bg-surface-container-lowest/50 px-3 py-1 border border-outline-variant/30">
+                LOCKED: SECTOR_7 // OVERRIDE_DISABLED
+            </div>
+<!-- Time Travel Slider -->
+<div class="absolute bottom-6 left-1/2 -translate-x-1/2 w-3/4 max-w-2xl bg-surface-container-high/80 backdrop-blur-xl bezel-glow p-4 z-30">
+<div class="flex justify-between items-center mb-3 px-2">
+<span class="text-[10px] font-mono text-on-surface-variant">SCRUB TIMELINE</span>
+<span class="text-xs font-headline font-bold text-white uppercase tracking-tighter">OCT 24, 2023 - 14:22 Z</span>
+</div>
+<div class="relative h-1.5 bg-surface-container-lowest mb-2">
+<div class="absolute top-0 left-0 w-3/4 h-full bg-secondary shadow-[0_0_10px_rgba(102,252,241,0.5)]"></div>
+<div class="absolute top-1/2 left-3/4 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-4 border-secondary pointer-events-auto cursor-pointer"></div>
+</div>
+<div class="flex justify-between text-[9px] font-mono text-on-surface-variant px-1">
+<span>30 DAYS AGO</span>
+<span>7 DAYS AGO</span>
+<span>24H</span>
+<span class="text-secondary font-bold">LIVE_FEED</span>
+</div>
+</div>
+</main>
+<!-- Right Sidebar / Analytics Panel -->
+<aside class="fixed right-0 top-16 h-[calc(100vh-64px)] w-80 flex flex-col bg-surface-container bezel-glow z-40 overflow-hidden">
+<!-- Header -->
+<div class="px-5 py-4 border-b border-outline-variant/10 flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary">analytics</span>
+<h2 class="font-headline font-bold text-sm tracking-tight">DATA ANALYTICS &amp; ALERTS</h2>
+</div>
+<!-- Change Detection Section -->
+<div class="p-5 flex flex-col gap-4 border-b border-outline-variant/10">
+<div class="flex items-center justify-between">
+<h3 class="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">Change Detection</h3>
+<span class="text-[9px] font-mono text-secondary">30D TREND</span>
+</div>
+<!-- Micro Histograms -->
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-4">
+<span class="w-16 text-[9px] font-mono text-on-surface-variant">NAVAL</span>
+<div class="flex-1 flex items-end gap-1 h-8">
+<div class="bg-outline-variant w-1 h-3"></div>
+<div class="bg-outline-variant w-1 h-5"></div>
+<div class="bg-secondary w-1 h-8"></div>
+<div class="bg-secondary w-1 h-6"></div>
+<div class="bg-outline-variant w-1 h-4"></div>
+<div class="bg-outline-variant w-1 h-2"></div>
+<div class="bg-secondary w-1 h-7"></div>
+<div class="bg-secondary w-1 h-5"></div>
+<div class="bg-outline-variant w-1 h-3"></div>
+<div class="bg-outline-variant w-1 h-4"></div>
+</div>
+<span class="text-[10px] font-mono text-white">+12%</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="w-16 text-[9px] font-mono text-on-surface-variant">AERIAL</span>
+<div class="flex-1 flex items-end gap-1 h-8">
+<div class="bg-secondary w-1 h-4"></div>
+<div class="bg-secondary w-1 h-3"></div>
+<div class="bg-outline-variant w-1 h-6"></div>
+<div class="bg-outline-variant w-1 h-8"></div>
+<div class="bg-secondary w-1 h-5"></div>
+<div class="bg-secondary w-1 h-4"></div>
+<div class="bg-outline-variant w-1 h-3"></div>
+<div class="bg-outline-variant w-1 h-2"></div>
+<div class="bg-secondary w-1 h-6"></div>
+<div class="bg-secondary w-1 h-7"></div>
+</div>
+<span class="text-[10px] font-mono text-on-tertiary-container">-04%</span>
+</div>
+</div>
+</div>
+<!-- Alerts Feed -->
+<div class="flex-1 flex flex-col p-5 overflow-hidden">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">System Alerts</h3>
+<div class="w-2 h-2 rounded-full bg-secondary animate-pulse"></div>
+</div>
+<div class="flex flex-col gap-3 overflow-y-auto">
+<!-- Alert Item -->
+<div class="p-3 bg-surface-container-high border-l-2 border-on-tertiary-container">
+<div class="flex justify-between mb-1">
+<span class="text-[10px] font-bold text-white uppercase">Critical Detection</span>
+<span class="text-[9px] font-mono text-on-surface-variant">14:12 Z</span>
+</div>
+<p class="text-[10px] font-mono text-on-surface-variant leading-tight">NEW OBJECT DETECTED - BBOX 4. UNKNOWN SIGNATURE DETECTED IN FORBIDDEN_ZONE_A.</p>
+</div>
+<div class="p-3 bg-surface-container-high border-l-2 border-secondary">
+<div class="flex justify-between mb-1">
+<span class="text-[10px] font-bold text-white uppercase">Asset Sync</span>
+<span class="text-[9px] font-mono text-on-surface-variant">14:05 Z</span>
+</div>
+<p class="text-[10px] font-mono text-on-surface-variant leading-tight">SENTINEL-2 HANDOVER COMPLETE. REFRESH RATE OPTIMIZED TO 500MS.</p>
+</div>
+<div class="p-3 bg-surface-container-high border-l-2 border-outline">
+<div class="flex justify-between mb-1">
+<span class="text-[10px] font-bold text-white uppercase">System Log</span>
+<span class="text-[9px] font-mono text-on-surface-variant">13:58 Z</span>
+</div>
+<p class="text-[10px] font-mono text-on-surface-variant leading-tight">USER_ADMIN INITIATED BROADCAST SCAN ON SECTOR_7. COMPLIANCE OK.</p>
+</div>
+<div class="p-3 bg-surface-container-high border-l-2 border-on-tertiary-container">
+<div class="flex justify-between mb-1">
+<span class="text-[10px] font-bold text-white uppercase">Confidence Drop</span>
+<span class="text-[9px] font-mono text-on-surface-variant">13:42 Z</span>
+</div>
+<p class="text-[10px] font-mono text-on-surface-variant leading-tight">CLOUDS OBSTRUCTING AOI_KAPPA. SAR IMAGERY REQUESTED.</p>
+</div>
+</div>
+</div>
+<!-- Footer Stats -->
+<div class="p-4 bg-surface-container-lowest font-mono text-[9px] text-on-surface-variant grid grid-cols-2 gap-2">
+<div class="flex justify-between">
+<span>UPTIME:</span>
+<span class="text-secondary">99.9%</span>
+</div>
+<div class="flex justify-between">
+<span>LATENCY:</span>
+<span class="text-secondary">12ms</span>
+</div>
+<div class="flex justify-between">
+<span>API_ST:</span>
+<span class="text-secondary">ACTIVE</span>
+</div>
+<div class="flex justify-between">
+<span>LOAD:</span>
+<span class="text-secondary">1.43%</span>
+</div>
+</div>
+</aside>
+</div>
+<!-- Mobile Bottom Navigation (Hidden on desktop) -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#0d0e12] border-t border-outline-variant/10 flex justify-around items-center z-50">
+<button class="flex flex-col items-center gap-1 text-secondary">
+<span class="material-symbols-outlined">map</span>
+<span class="text-[8px] font-mono">MAP</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-symbols-outlined">radar</span>
+<span class="text-[8px] font-mono">ASSETS</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-[8px] font-mono">DATA</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-symbols-outlined">notifications</span>
+<span class="text-[8px] font-mono">ALERTS</span>
+</button>
+</nav>
+</body></html>

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ARCHIVE - GEOINT COMMAND</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-high": "#292a2e",
+                        "secondary-fixed": "#98f2ed",
+                        "surface-tint": "#3cdcd1",
+                        "primary": "#ffffff",
+                        "surface-container-low": "#1a1b20",
+                        "on-tertiary": "#68000b",
+                        "on-primary-fixed-variant": "#00504b",
+                        "surface-dim": "#121317",
+                        "inverse-primary": "#006a64",
+                        "secondary-container": "#007774",
+                        "background": "#121317",
+                        "error": "#ffb4ab",
+                        "surface-container-highest": "#343439",
+                        "outline-variant": "#3c4948",
+                        "on-background": "#e3e2e8",
+                        "on-secondary-fixed": "#00201f",
+                        "error-container": "#93000a",
+                        "on-secondary-container": "#a1fcf7",
+                        "surface-variant": "#343439",
+                        "on-surface-variant": "#bacac7",
+                        "tertiary-fixed": "#ffdad7",
+                        "tertiary-container": "#ffdad7",
+                        "secondary": "#3cdcd1",
+                        "tertiary-fixed-dim": "#ffb3ae",
+                        "on-primary-container": "#00716b",
+                        "on-secondary-fixed-variant": "#00504d",
+                        "primary-fixed": "#62f9ee",
+                        "secondary-fixed-dim": "#7bd6d1",
+                        "primary-container": "#62f9ee",
+                        "on-error": "#690005",
+                        "surface-container-lowest": "#0d0e12",
+                        "inverse-surface": "#e3e2e8",
+                        "surface": "#121317",
+                        "on-error-container": "#ffdad6",
+                        "surface-bright": "#38393e",
+                        "inverse-on-surface": "#2f3035",
+                        "on-tertiary-fixed": "#410004",
+                        "on-secondary": "#003735",
+                        "primary-fixed-dim": "#3cdcd1",
+                        "on-surface": "#e3e2e8",
+                        "on-tertiary-fixed-variant": "#930014",
+                        "surface-container": "#1f1f24",
+                        "outline": "#859491",
+                        "tertiary": "#ffffff",
+                        "on-tertiary-container": "#c31f29",
+                        "on-primary": "#003734",
+                        "on-primary-fixed": "#00201e"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Space Grotesk"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    },
+                    borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #0d0e12; }
+        ::-webkit-scrollbar-thumb { background: #38393e; }
+        .bezel-top-left { border-top: 2px solid #3cdcd1; border-left: 2px solid #3cdcd1; }
+        .glass-panel { backdrop-filter: blur(12px); background: rgba(52, 52, 57, 0.4); }
+        
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 2px;
+            cursor: pointer;
+            background: #1f1f24;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 12px;
+            width: 12px;
+            background: #3cdcd1;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -5px;
+        }
+    </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body selection:bg-secondary-container selection:text-white">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center w-full px-6 h-16 bg-[#0d0e12] dark:bg-slate-950 sticky top-0 z-50 border-b border-white/5">
+<div class="flex items-center gap-8">
+<span class="text-xl font-black tracking-widest text-white uppercase font-headline">GEOINT COMMAND</span>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-slate-500 font-mono text-sm uppercase hover:text-[#66FCF1] hover:bg-white/5 transition-colors duration-150 ease-in-out px-2 py-1" href="#">MAP</a>
+<a class="text-slate-500 font-mono text-sm uppercase hover:text-[#66FCF1] hover:bg-white/5 transition-colors duration-150 ease-in-out px-2 py-1" href="#">ANALYTICS</a>
+<a class="text-white border-b-2 border-[#66FCF1] pb-1 font-headline tracking-tighter uppercase" href="#">ARCHIVE</a>
+<a class="text-slate-500 font-mono text-sm uppercase hover:text-[#66FCF1] hover:bg-white/5 transition-colors duration-150 ease-in-out px-2 py-1" href="#">MISSIONS</a>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden lg:flex flex-col items-end font-mono text-[10px] tracking-widest">
+<span class="text-[#66FCF1]">ZULU: 14:22:05</span>
+<span class="text-slate-400">SYST_HEALTH: OPTIMAL</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-400 hover:text-white cursor-pointer" data-icon="settings">settings</span>
+<span class="material-symbols-outlined text-slate-400 hover:text-white cursor-pointer" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined text-slate-400 hover:text-white cursor-pointer" data-icon="account_circle">account_circle</span>
+</div>
+</div>
+</header>
+<div class="flex">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] flex flex-col justify-between py-4 bg-[#1f1f24] dark:bg-slate-900 w-64 z-40 border-r border-white/5">
+<div class="px-4 space-y-6">
+<div class="flex items-center gap-3 px-2">
+<div class="w-8 h-8 bg-surface-container-high flex items-center justify-center border border-outline-variant/20">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="radar">radar</span>
+</div>
+<div>
+<div class="text-[#66FCF1] font-bold text-lg font-headline">ASSETS &amp; TARGETS</div>
+<div class="text-slate-500 text-[10px] font-mono">SECTOR_7_GEOINT</div>
+</div>
+</div>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white hover:bg-[#38393e] transition-all font-mono text-xs uppercase" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="radar">radar</span> ASSETS
+                    </a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white hover:bg-[#38393e] transition-all font-mono text-xs uppercase" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="gps_fixed">gps_fixed</span> TARGETS
+                    </a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white hover:bg-[#38393e] transition-all font-mono text-xs uppercase" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="visibility">visibility</span> WATCHLIST
+                    </a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white hover:bg-[#38393e] transition-all font-mono text-xs uppercase" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="layers">layers</span> AOI
+                    </a>
+</nav>
+<!-- Granular Sidebar Filters -->
+<div class="pt-4 border-t border-outline-variant/10 space-y-6">
+<div class="space-y-3">
+<label class="block text-[10px] font-mono text-on-surface-variant uppercase tracking-widest">Region / AOI</label>
+<select class="w-full bg-surface-container-lowest border border-outline-variant/20 text-on-surface font-mono text-[10px] focus:ring-1 focus:ring-secondary py-2">
+<option>GLOBAL_VIEW</option>
+<option>PACIFIC_RIM</option>
+<option>MIDDLE_EAST_QUAD</option>
+<option>NORTH_ATLANTIC</option>
+<option>SOUTH_CHINA_SEA</option>
+</select>
+</div>
+<div class="space-y-3">
+<label class="block text-[10px] font-mono text-on-surface-variant uppercase tracking-widest">Sensor Type</label>
+<div class="space-y-2">
+<label class="flex items-center gap-2 cursor-pointer group">
+<input checked="" class="w-3 h-3 bg-surface-container border-outline-variant/30 text-secondary focus:ring-0 rounded-none" type="checkbox"/>
+<span class="text-[10px] font-mono text-slate-400 group-hover:text-white uppercase">SAR (Radar)</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer group">
+<input checked="" class="w-3 h-3 bg-surface-container border-outline-variant/30 text-secondary focus:ring-0 rounded-none" type="checkbox"/>
+<span class="text-[10px] font-mono text-slate-400 group-hover:text-white uppercase">Optical (RGB)</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer group">
+<input class="w-3 h-3 bg-surface-container border-outline-variant/30 text-secondary focus:ring-0 rounded-none" type="checkbox"/>
+<span class="text-[10px] font-mono text-slate-400 group-hover:text-white uppercase">Infrared (Thermal)</span>
+</label>
+</div>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between items-center">
+<label class="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest">Max Cloud Cover</label>
+<span class="text-[10px] font-mono text-secondary">25%</span>
+</div>
+<input class="w-full h-1 bg-surface-container appearance-none cursor-pointer" max="100" min="0" type="range" value="25"/>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between items-center">
+<label class="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest">Conf. Threshold</label>
+<span class="text-[10px] font-mono text-secondary">85%</span>
+</div>
+<input class="w-full h-1 bg-surface-container appearance-none cursor-pointer" max="100" min="0" type="range" value="85"/>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-bold py-3 text-xs tracking-widest uppercase hover:shadow-[0_0_12px_rgba(255,255,255,0.2)] transition-all">
+                    DEPLOY SENSOR
+                </button>
+</div>
+<div class="px-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white transition-all font-mono text-xs uppercase" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="terminal">terminal</span> SYSTEM_LOGS
+                </a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white transition-all font-mono text-xs uppercase" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="help_outline">help_outline</span> SUPPORT
+                </a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 w-full p-6 space-y-6 overflow-y-auto">
+<!-- Dashboard Header Area -->
+<div class="flex justify-between items-end">
+<div>
+<h1 class="font-headline text-4xl font-bold tracking-tighter text-white">HISTORICAL_IMAGERY_ARCHIVE</h1>
+<p class="font-mono text-xs text-secondary mt-1 tracking-widest">QUERYING: GLOBAL_SATELLITE_REGISTRY // RECENT_PASSES</p>
+</div>
+<div class="flex gap-4">
+<div class="flex flex-col items-end">
+<span class="font-mono text-[10px] text-on-surface-variant uppercase">Storage Capacity</span>
+<div class="w-48 h-1 bg-surface-container mt-1">
+<div class="h-full bg-secondary" style="width: 74%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Filter Hub (Primary Filters) -->
+<div class="grid grid-cols-12 gap-1 bg-surface-container border border-outline-variant/10">
+<div class="col-span-12 lg:col-span-3 p-4 border-r border-outline-variant/10 bg-surface-container-low">
+<label class="block text-[10px] font-mono text-on-surface-variant mb-2 uppercase tracking-tighter">Object Classification</label>
+<select class="w-full bg-surface-container-lowest border-none text-on-surface font-mono text-xs focus:ring-1 focus:ring-secondary py-3">
+<option>ALL_SIGNATURES</option>
+<option>FRIGATES_&amp;_DESTROYERS</option>
+<option>CARRIER_STRIKE_GROUPS</option>
+<option>CARGO_VESSELS</option>
+<option>AIRCRAFT_LOGISTICS</option>
+</select>
+</div>
+<div class="col-span-12 lg:col-span-4 p-4 border-r border-outline-variant/10">
+<label class="block text-[10px] font-mono text-on-surface-variant mb-2 uppercase tracking-tighter">Date Range (ZULU)</label>
+<div class="flex gap-2">
+<input class="w-1/2 bg-surface-container-lowest border-none text-on-surface font-mono text-xs focus:ring-1 focus:ring-secondary py-3" type="date"/>
+<input class="w-1/2 bg-surface-container-lowest border-none text-on-surface font-mono text-xs focus:ring-1 focus:ring-secondary py-3" type="date"/>
+</div>
+</div>
+<div class="col-span-12 lg:col-span-3 p-4 border-r border-outline-variant/10">
+<label class="block text-[10px] font-mono text-on-surface-variant mb-2 uppercase tracking-tighter">Coordinate Query</label>
+<input class="w-full bg-surface-container-lowest border-none text-on-surface font-mono text-xs focus:ring-1 focus:ring-secondary py-3" placeholder="0.0000, 0.0000" type="text"/>
+</div>
+<div class="col-span-12 lg:col-span-2 flex items-center justify-center bg-secondary-container/10 hover:bg-secondary-container/20 cursor-pointer transition-colors">
+<button class="font-headline font-bold text-xs uppercase text-secondary flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="search">search</span> RUN_QUERY
+                    </button>
+</div>
+</div>
+<!-- Data Table & Preview Grid -->
+<div class="grid grid-cols-12 gap-6">
+<!-- Archive Table -->
+<div class="col-span-12 xl:col-span-8 bg-surface-container-low border border-outline-variant/5">
+<div class="p-4 border-b border-outline-variant/10 flex justify-between items-center">
+<div class="flex items-center gap-4">
+<h2 class="text-xs font-mono font-bold tracking-[0.2em] text-on-surface">RECORDS: 1,402_HITS</h2>
+<div class="flex gap-2">
+<span class="bg-secondary/10 text-secondary text-[8px] font-mono px-2 py-0.5 border border-secondary/20 uppercase tracking-widest">Filter_Active: SAR_ONLY</span>
+<span class="bg-secondary/10 text-secondary text-[8px] font-mono px-2 py-0.5 border border-secondary/20 uppercase tracking-widest">Conf: &gt;85%</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-sm text-slate-500 cursor-pointer hover:text-secondary" data-icon="refresh">refresh</span>
+<span class="material-symbols-outlined text-sm text-slate-500 cursor-pointer hover:text-white" data-icon="download">download</span>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left font-mono text-xs border-separate border-spacing-0">
+<thead>
+<tr class="bg-surface-container text-on-surface-variant border-b border-outline-variant/10">
+<th class="px-4 py-3 font-medium uppercase">Timestamp (UTC)</th>
+<th class="px-4 py-3 font-medium uppercase">Coordinates</th>
+<th class="px-4 py-3 font-medium uppercase text-center">Obj_Count</th>
+<th class="px-4 py-3 font-medium uppercase text-right">Confidence</th>
+<th class="px-4 py-3 w-10"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5">
+<tr class="group hover:bg-surface-bright cursor-pointer transition-colors bg-surface-container-low">
+<td class="px-4 py-4 text-white">2023-11-24 08:12:44</td>
+<td class="px-4 py-4 text-secondary">35.6895° N, 139.6917° E</td>
+<td class="px-4 py-4 text-center">14</td>
+<td class="px-4 py-4 text-right">98.4%</td>
+<td class="px-4 py-4 text-center">
+<span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 transition-opacity" data-icon="chevron_right">chevron_right</span>
+</td>
+</tr>
+<tr class="group hover:bg-surface-bright cursor-pointer transition-colors bg-surface-container">
+<td class="px-4 py-4 text-white">2023-11-24 07:55:12</td>
+<td class="px-4 py-4 text-secondary">1.2902° N, 103.8519° E</td>
+<td class="px-4 py-4 text-center">08</td>
+<td class="px-4 py-4 text-right">96.2%</td>
+<td class="px-4 py-4 text-center">
+<span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 transition-opacity" data-icon="chevron_right">chevron_right</span>
+</td>
+</tr>
+<tr class="group hover:bg-surface-bright cursor-pointer transition-colors bg-surface-container-low">
+<td class="px-4 py-4 text-white">2023-11-24 06:22:01</td>
+<td class="px-4 py-4 text-secondary">22.3193° N, 114.1694° E</td>
+<td class="px-4 py-4 text-center">31</td>
+<td class="px-4 py-4 text-right">99.1%</td>
+<td class="px-4 py-4 text-center">
+<span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 transition-opacity" data-icon="chevron_right">chevron_right</span>
+</td>
+</tr>
+<tr class="group hover:bg-surface-bright cursor-pointer transition-colors bg-surface-container">
+<td class="px-4 py-4 text-white">2023-11-24 04:48:33</td>
+<td class="px-4 py-4 text-secondary">25.2048° N, 55.2708° E</td>
+<td class="px-4 py-4 text-center">12</td>
+<td class="px-4 py-4 text-right">88.5%</td>
+<td class="px-4 py-4 text-center">
+<span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 transition-opacity" data-icon="chevron_right">chevron_right</span>
+</td>
+</tr>
+<tr class="group hover:bg-surface-bright cursor-pointer transition-colors bg-surface-container-low">
+<td class="px-4 py-4 text-white">2023-11-23 23:30:19</td>
+<td class="px-4 py-4 text-secondary">31.2304° N, 121.4737° E</td>
+<td class="px-4 py-4 text-center">22</td>
+<td class="px-4 py-4 text-right">94.7%</td>
+<td class="px-4 py-4 text-center">
+<span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 transition-opacity" data-icon="chevron_right">chevron_right</span>
+</td>
+</tr>
+<tr class="group hover:bg-surface-bright cursor-pointer transition-colors bg-surface-container">
+<td class="px-4 py-4 text-white">2023-11-23 21:05:45</td>
+<td class="px-4 py-4 text-secondary">37.7749° N, 122.4194° W</td>
+<td class="px-4 py-4 text-center">05</td>
+<td class="px-4 py-4 text-right">99.8%</td>
+<td class="px-4 py-4 text-center">
+<span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 transition-opacity" data-icon="chevron_right">chevron_right</span>
+</td>
+</tr>
+<tr class="group hover:bg-surface-bright cursor-pointer transition-colors bg-surface-container-low">
+<td class="px-4 py-4 text-white">2023-11-23 18:44:11</td>
+<td class="px-4 py-4 text-secondary">40.7128° N, 74.0060° W</td>
+<td class="px-4 py-4 text-center">02</td>
+<td class="px-4 py-4 text-right">82.1%</td>
+<td class="px-4 py-4 text-center">
+<span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 transition-opacity" data-icon="chevron_right">chevron_right</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Active Selection Preview (Snapshot) -->
+<div class="col-span-12 xl:col-span-4 space-y-6">
+<div class="bg-surface-container p-1 relative group">
+<div class="bezel-top-left absolute -top-1 -left-1 w-6 h-6 z-10 pointer-events-none"></div>
+<div class="aspect-square bg-surface-container-highest overflow-hidden relative">
+<img alt="High altitude satellite imagery crop showing a coastal naval port with multiple large grey naval vessels docked in clear deep blue water" class="w-full h-full object-cover opacity-60 mix-blend-screen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpzhdbXZAUDNVnrBf02oFJCcBvijZF1uZUX5Gj3d1CX_eSrOhhO5f-J_QKTCSPQ6Yd9y1izAnmUqd8oHoG3-ObVCNHo_VBe8f2GG8XCFGt7kG3KZeLIb_SRRHg3iK4-KpIKzOJjeJd4BGyyu_Id3pqnt2aJ2T645Ra-qN4FvBw8p_Fd9lQE8N_rdIkLikMny19WItfKzrjG3bd_sTuSI7xoO0V4epj9Nzjp74WzV_PR6h5U30bPqEHF6zRDPQ15hALypXgqBDIfSdt"/>
+<div class="absolute inset-0 border-[20px] border-surface-container/30 pointer-events-none"></div>
+<!-- HUD Overlays -->
+<div class="absolute top-4 left-4 font-mono text-[10px] text-secondary bg-surface-container-lowest/80 px-2 py-1">
+                                SENS: SAR-3A // POL: VH
+                            </div>
+<div class="absolute bottom-4 right-4 font-mono text-[10px] text-white bg-error-container/80 px-2 py-1 uppercase">
+                                TARGET_LOCKED: CSG-74
+                            </div>
+<!-- Crosshair -->
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
+<div class="w-20 h-20 border border-secondary/50 rounded-full"></div>
+<div class="absolute w-px h-24 bg-secondary/50"></div>
+<div class="absolute w-24 h-px bg-secondary/50"></div>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-low p-5 space-y-4 border border-outline-variant/10">
+<div class="flex justify-between items-center">
+<h3 class="text-xs font-mono font-bold tracking-widest text-on-surface-variant uppercase">Analysis Details</h3>
+<span class="text-[10px] font-mono bg-on-tertiary-container text-white px-2 py-0.5">CRITICAL_INTEL</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-1">
+<span class="block text-[10px] text-slate-500 font-mono uppercase">Primary Signal</span>
+<span class="block text-sm font-headline text-white">REFLECTIVE_METAL</span>
+</div>
+<div class="space-y-1">
+<span class="block text-[10px] text-slate-500 font-mono uppercase">Resolution</span>
+<span class="block text-sm font-headline text-white">0.3M / PX</span>
+</div>
+<div class="space-y-1">
+<span class="block text-[10px] text-slate-500 font-mono uppercase">Cloud Cover</span>
+<span class="block text-sm font-headline text-white">0.02%</span>
+</div>
+<div class="space-y-1">
+<span class="block text-[10px] text-slate-500 font-mono uppercase">Sensor ID</span>
+<span class="block text-sm font-headline text-white">VOID-9_LEO</span>
+</div>
+</div>
+<div class="pt-4 border-t border-outline-variant/10">
+<button class="w-full flex items-center justify-center gap-2 border border-secondary text-secondary hover:bg-secondary hover:text-on-secondary transition-all font-mono text-[10px] font-bold py-2 uppercase">
+<span class="material-symbols-outlined text-sm" data-icon="open_in_full">open_in_full</span> EXPORT_FULL_GEOTIFF
+                            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Asset History Carousel / Multi-Shot Grid -->
+<div class="space-y-3">
+<h3 class="text-xs font-mono font-bold tracking-[0.2em] text-on-surface-variant">TEMPORAL_SEQUENCE_PREVIEWS</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+<div class="bg-surface-container-low aspect-video border border-outline-variant/10 overflow-hidden relative group cursor-pointer">
+<img alt="Earth from space showing city lights at night over the coast of Japan with atmospheric glow" class="w-full h-full object-cover opacity-40 grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhdi09sR6eMISAvieRTHwPSaGQBHDebKW0E7WzPVpxXm5THb4GheLK04-NVpuNmd7bxCPzW3-8kqJCI8z74uswCvCVu6Xf-z8GADpOpZhPxCAfnwQE3TVc6kKXQVWIADrtq0Zq8PYOy07drbeGm1opcMpLazxH0clBuNw4CoYoEwpGTllybcdcYMhBsY8nICUPlZh9LSA0zinhKsWx3gLKhMf1_GV71Tb5ccCI4VtWVOv-373TCkk5fwhOT5FxjZNbeoDNi1-KNIeO"/>
+<div class="absolute bottom-0 left-0 right-0 bg-surface-container-lowest/80 p-2 border-t border-outline-variant/20">
+<p class="text-[9px] font-mono text-on-surface">T-24_HRS</p>
+</div>
+</div>
+<div class="bg-surface-container-low aspect-video border border-outline-variant/10 overflow-hidden relative group cursor-pointer">
+<img alt="Atmospheric view of clouds over the ocean from orbit with sharp horizon line" class="w-full h-full object-cover opacity-40 grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXzpwjrBt9THR4ZvmBkCf0AL9TwrfKBnQTrfYjvs4vvAoKtBn26Hc9SzTE8L-dkXUjSJ_k8Z-ponyUfWyWLJPaYLtcONP0Nyaz5nAiNHUFP6ISMOMRHUX8qRj66yINfvT1-dAwFaHgWdE7ga9Pr0iiO-yua4jn2E6iRZgXj3FVZMiztegD30eCDGRdeNT888tBHvHYX0towua5vfNw26m3sWTL_kXCaaiNsK1U_dvajXzZdmzyz--llWOpJlM1gYnPQN2gsiEpoBTS"/>
+<div class="absolute bottom-0 left-0 right-0 bg-surface-container-lowest/80 p-2 border-t border-outline-variant/20">
+<p class="text-[9px] font-mono text-on-surface">T-48_HRS</p>
+</div>
+</div>
+<div class="bg-surface-container-low aspect-video border border-outline-variant/10 overflow-hidden relative group cursor-pointer">
+<img alt="Star field and galactic center viewed from above the Earth's atmosphere" class="w-full h-full object-cover opacity-40 grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6UB2pPu4oMCW8gAz3Eh49OKalUeiow6i0oRURKEaEBuazwm_eqlFTKikF0G7Dddjdsw300t1CjgW9maZ0frzzBAraEJsYdVKiShgoKoUwUgS1KhLSXQrChWgigQaXvS-wDe7atbbmXpq_nJ0MT46uJT0q6hZoTbx521LkqXwAkFnJutrVamdW3FT9xSkvOjBARMk5vTgbZvHpZR33n3OVb7eeiYB8wy7klN7T0WhXWP4UBdx_i56qsrNAKgmXFKBui10X6YxmGUiN"/>
+<div class="absolute bottom-0 left-0 right-0 bg-surface-container-lowest/80 p-2 border-t border-outline-variant/20">
+<p class="text-[9px] font-mono text-on-surface">T-72_HRS</p>
+</div>
+</div>
+<!-- Empty/Loading slots -->
+<div class="bg-surface-container-low aspect-video border border-dashed border-outline-variant/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-outline-variant" data-icon="cloud_download">cloud_download</span>
+</div>
+<div class="bg-surface-container-low aspect-video border border-dashed border-outline-variant/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-outline-variant" data-icon="cloud_download">cloud_download</span>
+</div>
+<div class="bg-surface-container-low aspect-video border border-dashed border-outline-variant/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-outline-variant" data-icon="cloud_download">cloud_download</span>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Snapshot Preview Modal (Mockup overlay - hidden) -->
+<div class="fixed inset-0 z-50 flex items-center justify-center hidden pointer-events-none">
+<div class="absolute inset-0 bg-surface-container-lowest/90 backdrop-blur-md"></div>
+<div class="relative w-[80vw] h-[819px] bg-surface-container flex flex-col border border-outline-variant/20">
+<div class="h-12 border-b border-outline-variant/10 flex items-center justify-between px-6">
+<span class="font-headline font-bold text-sm tracking-widest text-white uppercase">GEOTIFF_INSPECTOR // SNAPSHOT_001924</span>
+<button class="text-on-surface-variant hover:text-white">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+<div class="flex-grow flex">
+<div class="flex-grow bg-surface-container-lowest p-8 relative">
+<div class="w-full h-full bg-[#121317] relative">
+<img alt="Detailed top-down thermal satellite view of a busy industrial shipping port showing heat signatures of active machinery" class="w-full h-full object-contain opacity-80" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAasTa5PIEGzd4qY5GujvtcWyHVab58k6muFIB22aRuGq72Rjx7fsRTXuB-vDNNCLgR-EgQcF62cnLvUuhayCSYdq68ygr31lBLXFqg3CXeZxJaexWyxOv7jkwlZxvNnkNd8XgQzJJpS-jIUO5cPvH3-0lWpIyCqGs6dmScMO7iwNpQ21JCY6I2pH0YalJoFZ55AcPtjzAaByZ7009cE9RiKXWgUz9k63lg9zPnfOGsYTqeoqWgelFo7hg4RDRWJfhltI19iq3SX-4f"/>
+<div class="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-secondary"></div>
+<div class="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-secondary"></div>
+<div class="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-secondary"></div>
+<div class="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-secondary"></div>
+</div>
+</div>
+<div class="w-80 border-l border-outline-variant/10 p-6 space-y-6">
+<div>
+<label class="text-[10px] font-mono text-secondary">METADATA_EXTRACT</label>
+<div class="mt-2 space-y-3">
+<div class="flex justify-between font-mono text-[11px]">
+<span class="text-on-surface-variant">LAT:</span>
+<span class="text-white">35.6895</span>
+</div>
+<div class="flex justify-between font-mono text-[11px]">
+<span class="text-on-surface-variant">LONG:</span>
+<span class="text-white">139.6917</span>
+</div>
+<div class="flex justify-between font-mono text-[11px]">
+<span class="text-on-surface-variant">SUN_ELEV:</span>
+<span class="text-white">42.4°</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

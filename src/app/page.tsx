@@ -1,65 +1,87 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import dynamic from 'next/dynamic';
+import { useState } from 'react';
+import { AnalyticsPanel } from '@/components/AnalyticsPanel';
+import { useInference } from '@/hooks/use-inference';
+
+// Dynamic import to prevent SSR of Mapbox GL (requires window/document)
+const TacticalMap = dynamic(
+  () => import('@/components/TacticalMap').then((mod) => mod.TacticalMap),
+  { ssr: false },
+);
+
+interface TrackedAsset {
+  id: string;
+  classification: string;
+  velocity: number;
+  altitude: number;
+  lat: number;
+  lng: number;
+  last_updated: string;
+}
+
+export default function GlobalSurveillanceHub() {
+  const { alerts, latestScan, changeReport, isScanning, fetchTimelineImagery } = useInference();
+  const [selectedAsset, setSelectedAsset] = useState<TrackedAsset | null>(null);
+
+  const handleTimelineScrub = (dateStr: string) => {
+    fetchTimelineImagery(dateStr);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <>
+      <main className="flex-1 relative bg-surface-container-lowest h-full overflow-hidden">
+        {/* Tactical Map with live WebSocket data */}
+        <TacticalMap
+          onAssetSelect={(asset) => setSelectedAsset(asset)}
+          selectedAssetId={selectedAsset?.id ?? null}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+
+        {/* Coordinate HUD corners */}
+        <div className="absolute top-6 left-6 border-t-2 border-l-2 border-secondary w-8 h-8 opacity-50 z-20 pointer-events-none"></div>
+        <div className="absolute top-6 right-6 border-t-2 border-r-2 border-secondary w-8 h-8 opacity-50 z-20 pointer-events-none"></div>
+        <div className="absolute bottom-24 left-6 border-b-2 border-l-2 border-secondary w-8 h-8 opacity-50 z-20 pointer-events-none"></div>
+        <div className="absolute bottom-24 right-6 border-b-2 border-r-2 border-secondary w-8 h-8 opacity-50 z-20 pointer-events-none"></div>
+
+        {/* Lock Status */}
+        <div className="absolute top-8 left-12 font-mono text-[10px] text-secondary tracking-widest bg-surface-container-lowest/50 px-3 py-1 border border-outline-variant/30 z-20 pointer-events-none">
+          LOCKED: SECTOR_7 // OVERRIDE_DISABLED
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Time Travel Slider — wired to inference */}
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-3/4 max-w-2xl bg-[rgba(68,71,78,0.30)] backdrop-blur-xl p-4 z-30 bezel-glow">
+          <div className="flex justify-between items-center mb-3 px-2">
+            <span className="text-[10px] font-mono text-on-surface-variant">SCRUB TIMELINE</span>
+            <div className="flex items-center gap-3">
+              {isScanning && (
+                <span className="text-[8px] font-mono text-secondary animate-pulse tracking-wider">
+                  NEURAL_OBSERVER: PROCESSING...
+                </span>
+              )}
+              <span className="text-xs font-headline font-bold text-white uppercase tracking-tighter">OCT 24, 2023 — 14:22 Z</span>
+            </div>
+          </div>
+          <div className="relative h-1.5 bg-surface-container-lowest mb-2">
+            <div className="absolute top-0 left-0 w-3/4 h-full bg-secondary shadow-[0_0_10px_rgba(102,252,241,0.5)]"></div>
+            <div className="absolute top-1/2 left-3/4 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-4 border-secondary pointer-events-auto cursor-pointer hover:scale-110 transition-transform"></div>
+          </div>
+          <div className="flex justify-between text-[9px] font-mono text-on-surface-variant px-1">
+            <button onClick={() => handleTimelineScrub('2023-09-24')} className="hover:text-secondary transition-colors cursor-pointer">30 DAYS AGO</button>
+            <button onClick={() => handleTimelineScrub('2023-10-17')} className="hover:text-secondary transition-colors cursor-pointer">7 DAYS AGO</button>
+            <button onClick={() => handleTimelineScrub('2023-10-23')} className="hover:text-secondary transition-colors cursor-pointer">24H</button>
+            <button onClick={() => handleTimelineScrub('2023-10-24')} className="text-secondary font-bold hover:text-white transition-colors cursor-pointer">LIVE_FEED</button>
+          </div>
         </div>
       </main>
-    </div>
+
+      {/* Right Sidebar — wired to inference */}
+      <AnalyticsPanel
+        alerts={alerts}
+        latestScan={latestScan}
+        changeReport={changeReport}
+        isScanning={isScanning}
+      />
+    </>
   );
 }
