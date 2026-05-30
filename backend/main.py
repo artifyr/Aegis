@@ -25,6 +25,18 @@ app.include_router(inference_router)
 from routers.analytics import router as analytics_router
 app.include_router(analytics_router)
 
+# --- Camera Router ---
+from routers.camera import router as camera_router
+app.include_router(camera_router)
+
+# --- Aviation Router ---
+from routers.aviation import router as aviation_router
+app.include_router(aviation_router)
+
+# --- Maritime Router ---
+from routers.maritime import router as maritime_router
+app.include_router(maritime_router)
+
 # In-memory session tracking for assets as a proxy for the 'Heartbeat' service
 # In production, this would be a specialized background worker updating PostgreSQL via SQLAlchemy/PostGIS.
 # Here we'll simulate real-time movement for the high-performance WebSocket stream.
