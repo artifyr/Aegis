@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import Map, { NavigationControl, Marker, type MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useTacticalStore, SurveillanceNode } from '@/store/tactical-store';
@@ -238,6 +238,35 @@ export function TacticalMap({
   const [isDived, setIsDived] = useState(false);
   const [activeEntityId, setActiveEntityId] = useState<string | null>(null);
   const [mapStyle, setMapStyle] = useState(DARK_STYLE);
+  const [bounds, setBounds] = useState<{sw: {lat: number, lng: number}, ne: {lat: number, lng: number}} | null>(null);
+
+  // Optimize rendering by filtering entities to current viewport and capping limits
+  const visibleFlights = useMemo(() => {
+    let filtered = flights;
+    if (bounds) {
+      filtered = flights.filter(f => 
+        f.lat >= bounds.sw.lat && f.lat <= bounds.ne.lat &&
+        f.lng >= bounds.sw.lng && f.lng <= bounds.ne.lng
+      );
+    }
+    return filtered.slice(0, 300); // strict DOM limit to prevent lag
+  }, [flights, bounds]);
+
+  const visiblePorts = useMemo(() => {
+    if (!bounds) return ports;
+    return ports.filter(p => 
+      p.lat >= bounds.sw.lat && p.lat <= bounds.ne.lat &&
+      p.lng >= bounds.sw.lng && p.lng <= bounds.ne.lng
+    );
+  }, [ports, bounds]);
+
+  const visibleChokepoints = useMemo(() => {
+    if (!bounds) return chokepoints;
+    return chokepoints.filter(c => 
+      c.lat >= bounds.sw.lat && c.lat <= bounds.ne.lat &&
+      c.lng >= bounds.sw.lng && c.lng <= bounds.ne.lng
+    );
+  }, [chokepoints, bounds]);
 
   // Overpass fetch hook triggering onIdle
   const fetchCamerasInView = useCallback(() => {
@@ -414,6 +443,14 @@ export function TacticalMap({
         ref={mapRef}
         initialViewState={INITIAL_VIEW}
         onIdle={fetchCamerasInView}
+        onMove={(e) => {
+          const b = e.target.getBounds();
+          if (b) setBounds({ sw: b.getSouthWest(), ne: b.getNorthEast() });
+        }}
+        onLoad={(e) => {
+          const b = e.target.getBounds();
+          if (b) setBounds({ sw: b.getSouthWest(), ne: b.getNorthEast() });
+        }}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle={mapStyle}
         projection={{ name: 'globe' }}
@@ -444,7 +481,7 @@ export function TacticalMap({
           </Marker>
         ))}
 
-        {!isDived && flights.map((flight) => {
+        {!isDived && visibleFlights.map((flight) => {
           if (flight.category === 'commercial' && !layers.aviation_commercial) return null;
           if (flight.category === 'private' && !layers.aviation_private) return null;
           if (flight.category === 'jet' && !layers.aviation_jets) return null;
@@ -513,7 +550,7 @@ export function TacticalMap({
           );
         })}
 
-        {!isDived && layers.maritime && ports.map((port) => (
+        {!isDived && layers.maritime && visiblePorts.map((port) => (
           <Marker key={`port-${port.id || port.name}`} longitude={port.lng} latitude={port.lat} anchor="center">
             <div 
               className={`w-3 h-3 rounded-full border border-black cursor-pointer shadow-[0_0_8px_currentColor] ${port.congestion === 'SEVERE' ? 'bg-red-500 text-red-500' : port.congestion === 'CONGESTED' ? 'bg-orange-500 text-orange-500' : 'bg-cyan-500 text-cyan-500'}`} 
@@ -539,7 +576,7 @@ export function TacticalMap({
           </Marker>
         ))}
 
-        {!isDived && layers.maritime && chokepoints.map((chokepoint) => (
+        {!isDived && layers.maritime && visibleChokepoints.map((chokepoint) => (
           <Marker key={`chokepoint-${chokepoint.name}`} longitude={chokepoint.lng} latitude={chokepoint.lat} anchor="center">
             <div 
               className={`w-3 h-3 rotate-45 border border-black cursor-pointer shadow-[0_0_8px_currentColor] ${chokepoint.risk === 'CRITICAL' ? 'bg-red-600 text-red-600' : chokepoint.risk === 'HIGH' ? 'bg-orange-500 text-orange-500' : 'bg-yellow-500 text-yellow-500'}`} 
