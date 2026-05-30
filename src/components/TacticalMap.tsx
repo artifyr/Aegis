@@ -446,7 +446,7 @@ export function TacticalMap({
           bearing: 0,
         }}
         onIdle={fetchCamerasInView}
-        onMove={(e) => {
+        onMoveEnd={(e) => {
           const b = e.target.getBounds();
           if (b) setBounds({ sw: b.getSouthWest(), ne: b.getNorthEast() });
         }}
