@@ -3,7 +3,7 @@ from typing import List, Dict
 
 router = APIRouter(prefix="/api/v1/maritime", tags=["Maritime"])
 
-# Static Naval Intel - OSIRIS Style
+# Static Naval Intel - AEGIS Style
 # 39 Global Ports and 10 Chokepoints
 GLOBAL_PORTS = [
     {"id": "p1", "name": "Port of Shanghai", "country": "China", "lat": 31.2222, "lon": 121.4581, "type": "Port", "volume": "High"},

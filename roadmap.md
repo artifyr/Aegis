@@ -1,13 +1,13 @@
 # Aegis / Geosint Future Roadmap
 
-This roadmap outlines the path to upgrading the Aegis Tactical Dashboard to reach full feature parity with large-scale, production-grade intelligence platforms like [OSIRIS](https://github.com/simplifaisoul/osiris) (an open-source Palantir alternative).
+This roadmap outlines the path to upgrading the Aegis Tactical Dashboard to reach full feature parity with large-scale, production-grade intelligence platforms (a Palantir alternative).
 
 ## 1. Map & Visualization Engine Upgrades
 - [ ] **Migrate to MapLibre GL**: Transition from Mapbox GL to MapLibre GL to enable true open-source scaling and high-performance WebGL rendering capable of handling thousands of concurrent entities at 60fps without proprietary API token restrictions.
 - [ ] **Data Layer Unification**: Create a unified layer management system with at least 16 toggleable data layers (like a holographic deck) to toggle between multiple data streams instantly.
 
 ## 2. Real-Time Global Data Streams & Layers
-*The sidebar will be broken down into granular toggleable layers just like OSIRIS.*
+*The sidebar will be broken down into granular toggleable layers.*
 
 **Aviation (Live Flight Tracking)**
 - [ ] Implement OpenSky Network to render active flights.

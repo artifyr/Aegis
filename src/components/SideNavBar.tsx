@@ -123,9 +123,9 @@ export function SideNavBar() {
           </div>
         </div>
 
-        {/* ═══ OSIRIS SDK ═══ */}
+        {/* ═══ AEGIS SDK ═══ */}
         <div className="flex flex-col gap-1">
-           <GroupHeader id="sdk" label="OSIRIS SDK" icon="account_tree" activeCount={0} totalCount={1} activeParent={false} />
+           <GroupHeader id="sdk" label="AEGIS SDK" icon="account_tree" activeCount={0} totalCount={1} activeParent={false} />
            {expandedGroups['sdk'] && (
              <LayerSwitch label="Intelligence Stream" active={false} count={0} dotColor="bg-slate-500" onClick={() => {}} />
            )}

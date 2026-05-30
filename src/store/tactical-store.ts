@@ -107,7 +107,7 @@ export const useTacticalStore = create<TacticalStore>()(
       })),
     }),
     {
-      name: 'osiris-tactical-storage', // key in local storage
+      name: 'aegis-tactical-storage', // key in local storage
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ layers: state.layers }), // Only persist the layers object
     }
