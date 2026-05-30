@@ -217,6 +217,7 @@ export function TacticalMap({
   selectedAssetId?: number | string | null;
 }) {
   const mapRef = useRef<MapRef>(null);
+  const coordsRef = useRef<HTMLSpanElement>(null);
   
   // Connect to Zustand store
   const cameras = useTacticalStore(state => state.cameras);
@@ -454,6 +455,23 @@ export function TacticalMap({
           const b = e.target.getBounds();
           if (b) setBounds({ sw: b.getSouthWest(), ne: b.getNorthEast() });
         }}
+        onMouseMove={(e) => {
+          if (coordsRef.current) {
+            const lat = e.lngLat.lat;
+            const lng = e.lngLat.lng;
+            coordsRef.current.innerText = `POS: ${Math.abs(lat).toFixed(6)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(6)}°${lng >= 0 ? 'E' : 'W'}`;
+          }
+        }}
+        onMouseLeave={() => {
+          if (coordsRef.current) {
+            const center = mapRef.current?.getMap()?.getCenter();
+            if (center) {
+              const lat = center.lat;
+              const lng = center.lng;
+              coordsRef.current.innerText = `CTR: ${Math.abs(lat).toFixed(6)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(6)}°${lng >= 0 ? 'E' : 'W'}`;
+            }
+          }
+        }}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle={mapStyle}
         projection={{ name: 'globe' }}
@@ -661,8 +679,8 @@ export function TacticalMap({
           backgroundColor: 'rgba(68, 71, 78, 0.25)',
         }}
       >
-        <span>
-          CTR: {(mapRef.current?.getMap()?.getCenter().lat ?? INITIAL_VIEW.latitude).toFixed(6)}°N, {(mapRef.current?.getMap()?.getCenter().lng ?? INITIAL_VIEW.longitude).toFixed(6)}°W
+        <span ref={coordsRef} className="w-56 inline-block">
+          CTR: {Math.abs(INITIAL_VIEW.latitude).toFixed(6)}°{INITIAL_VIEW.latitude >= 0 ? 'N' : 'S'}, {Math.abs(INITIAL_VIEW.longitude).toFixed(6)}°{INITIAL_VIEW.longitude >= 0 ? 'E' : 'W'}
         </span>
         <span>ZOOM: {(mapRef.current?.getMap()?.getZoom() ?? INITIAL_VIEW.zoom).toFixed(2)}</span>
         <span>PITCH: {(mapRef.current?.getMap()?.getPitch() ?? INITIAL_VIEW.pitch ?? 0).toFixed(1)}°</span>
