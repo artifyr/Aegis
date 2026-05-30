@@ -401,8 +401,8 @@ export function TacticalMap({
     setIsDived(false);
 
     map.flyTo({
-      center: [INITIAL_VIEW.longitude, INITIAL_VIEW.latitude],
-      zoom: INITIAL_VIEW.zoom,
+      center: [0, 20],
+      zoom: 1.5,
       pitch: 0,
       bearing: 0,
       speed: 1.2,
@@ -438,7 +438,13 @@ export function TacticalMap({
     <div className="absolute inset-0">
       <Map
         ref={mapRef}
-        initialViewState={INITIAL_VIEW}
+        initialViewState={{
+          longitude: 0,
+          latitude: 20,
+          zoom: 1.5,
+          pitch: 0,
+          bearing: 0,
+        }}
         onIdle={fetchCamerasInView}
         onMove={(e) => {
           const b = e.target.getBounds();
@@ -504,7 +510,7 @@ export function TacticalMap({
                 <div className="absolute top-4 left-4 bg-[#0d0e12]/90 border border-outline-variant/30 p-4 rounded-lg shadow-2xl backdrop-blur-md w-80 z-50 pointer-events-auto cursor-auto">
                   <button onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} className="absolute top-2 right-2 text-slate-400 hover:text-white material-symbols-outlined text-sm">close</button>
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-[#f97316] font-headline font-bold tracking-widest text-lg">{flight.callsign || 'UNKNOWN'}</h3>
+                     <h3 className="text-[#f97316] font-headline font-bold tracking-widest text-lg">{flight.callsign || 'UNKNOWN'}</h3>
                     <span className="text-slate-500 font-mono text-xs">{flight.icao24}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-4 mb-6">
@@ -623,7 +629,7 @@ export function TacticalMap({
       {isDived && (
         <button
           onClick={cameraReset}
-          className="absolute top-4 right-4 z-30 px-3 py-1.5 bg-[rgba(68,71,78,0.40)] font-mono text-[9px] text-[#7bd6d1] tracking-wider uppercase cursor-pointer transition-all duration-150 hover:bg-[rgba(68,71,78,0.60)] border border-[rgba(133,148,145,0.20)]"
+          className="absolute top-8 right-8 z-30 px-3 py-1.5 bg-[rgba(68,71,78,0.40)] font-mono text-[9px] text-[#3cdcd1] tracking-wider uppercase cursor-pointer transition-all duration-150 hover:bg-[rgba(68,71,78,0.60)] border border-[#3cdcd1]/30 hover:scale-105"
           style={{ backdropFilter: 'blur(12px)' }}
         >
           ◁ TACTICAL GLOBE
@@ -634,7 +640,7 @@ export function TacticalMap({
       {!isDived && (
         <button
           onClick={cameraReset}
-          className="absolute top-4 right-4 z-30 w-8 h-8 flex items-center justify-center bg-[rgba(68,71,78,0.40)] text-[#f97316] rounded-full cursor-pointer transition-all duration-150 hover:bg-[rgba(68,71,78,0.60)] border border-[#f97316]/50 shadow-[0_0_10px_rgba(249,115,22,0.3)] hover:scale-110"
+          className="absolute top-8 right-8 z-30 w-8 h-8 flex items-center justify-center bg-[rgba(68,71,78,0.40)] text-[#3cdcd1] rounded-full cursor-pointer transition-all duration-150 hover:bg-[rgba(68,71,78,0.60)] border border-[#3cdcd1]/50 shadow-[0_0_10px_rgba(60,220,209,0.3)] hover:scale-110"
           style={{ backdropFilter: 'blur(12px)' }}
           title="Reset Globe View"
         >
