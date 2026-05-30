@@ -242,14 +242,11 @@ export function TacticalMap({
 
   // Optimize rendering by filtering entities to current viewport and capping limits
   const visibleFlights = useMemo(() => {
-    let filtered = flights;
-    if (bounds) {
-      filtered = flights.filter(f => 
-        f.lat >= bounds.sw.lat && f.lat <= bounds.ne.lat &&
-        f.lng >= bounds.sw.lng && f.lng <= bounds.ne.lng
-      );
-    }
-    return filtered.slice(0, 300); // strict DOM limit to prevent lag
+    if (!bounds) return flights;
+    return flights.filter(f => 
+      f.lat >= bounds.sw.lat && f.lat <= bounds.ne.lat &&
+      f.lng >= bounds.sw.lng && f.lng <= bounds.ne.lng
+    );
   }, [flights, bounds]);
 
   const visiblePorts = useMemo(() => {
@@ -630,6 +627,18 @@ export function TacticalMap({
           style={{ backdropFilter: 'blur(12px)' }}
         >
           ◁ TACTICAL GLOBE
+        </button>
+      )}
+
+      {/* Globe View Reset Button */}
+      {!isDived && (
+        <button
+          onClick={cameraReset}
+          className="absolute top-4 right-4 z-30 w-8 h-8 flex items-center justify-center bg-[rgba(68,71,78,0.40)] text-[#f97316] rounded-full cursor-pointer transition-all duration-150 hover:bg-[rgba(68,71,78,0.60)] border border-[#f97316]/50 shadow-[0_0_10px_rgba(249,115,22,0.3)] hover:scale-110"
+          style={{ backdropFilter: 'blur(12px)' }}
+          title="Reset Globe View"
+        >
+          <span className="material-symbols-outlined text-[16px]">public</span>
         </button>
       )}
 
