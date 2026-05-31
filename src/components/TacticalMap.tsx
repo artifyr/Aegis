@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
-import Map, { NavigationControl, Marker, type MapRef } from 'react-map-gl/mapbox';
+import Map, { NavigationControl, Marker, Source, Layer, type MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useTacticalStore, SurveillanceNode } from '@/store/tactical-store';
 
