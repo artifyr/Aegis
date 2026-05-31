@@ -15,7 +15,7 @@ const getRegionFromCoords = (lat: number, lng: number) => {
 };
 
 export function SideNavBar() {
-  const { setDiveTarget, layers, toggleLayer, cameras, flights, ports, chokepoints } = useTacticalStore();
+  const { setDiveTarget, layers, toggleLayer, cameras, flights, ports, chokepoints, setMapCommand, setActiveEntityId } = useTacticalStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     aviation: true,
@@ -27,8 +27,49 @@ export function SideNavBar() {
     setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }));
   };
 
+  const searchResults = (() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    const results: any[] = [];
+    
+    // Search Flights
+    flights.forEach(f => {
+      if (f.callsign?.toLowerCase().includes(q) || f.icao24.toLowerCase().includes(q) || f.airline_code?.toLowerCase().includes(q)) {
+        results.push({ id: f.icao24, type: 'flight', name: f.callsign || f.icao24, lat: f.lat, lng: f.lng, sub: f.category });
+      }
+    });
+    // Search Ports
+    ports.forEach(p => {
+      if (p.name.toLowerCase().includes(q) || p.country?.toLowerCase().includes(q)) {
+        results.push({ id: p.id || p.name, type: 'port', name: p.name, lat: p.lat, lng: p.lng, sub: p.country || 'Port' });
+      }
+    });
+    // Search Chokepoints
+    chokepoints.forEach(c => {
+      if (c.name.toLowerCase().includes(q)) {
+        results.push({ id: c.name, type: 'chokepoint', name: c.name, lat: c.lat, lng: c.lng, sub: 'Chokepoint' });
+      }
+    });
+    // Search Cameras
+    cameras.forEach(c => {
+      if (c.id.toString().includes(q) || c.country?.toLowerCase().includes(q) || c.tags?.name?.toLowerCase().includes(q)) {
+        results.push({ id: c.id.toString(), type: 'cctv', name: c.tags?.name || `CAM-${c.id}`, lat: c.lat, lng: c.lon, sub: c.country || 'Camera' });
+      }
+    });
+    
+    return results.slice(0, 8); // Limit to 8 results
+  })();
+
   const handleSearch = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
+      if (searchResults.length > 0) {
+        const best = searchResults[0];
+        setMapCommand({ type: 'flyTo', lat: best.lat, lng: best.lng, zoom: 12 });
+        setActiveEntityId(best.id);
+        setSearchQuery('');
+        return;
+      }
+      
       const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
       if (!token) return;
       try {
@@ -36,7 +77,7 @@ export function SideNavBar() {
         const data = await res.json();
         if (data.features && data.features.length > 0) {
           const [lng, lat] = data.features[0].center;
-          setDiveTarget({ lat, lng, zoom: 12 });
+          setMapCommand({ type: 'flyTo', lat, lng, zoom: 10 });
         }
       } catch (err) {
         console.error("Geocoding failed", err);
@@ -109,7 +150,7 @@ export function SideNavBar() {
         </div>
 
         {/* Watchlist Input */}
-        <div className="flex flex-col gap-1 px-2">
+        <div className="flex flex-col gap-1 px-2 relative">
           <div className="relative">
             <input
               type="text"
@@ -121,6 +162,28 @@ export function SideNavBar() {
             />
             <span className="material-symbols-outlined absolute right-2 top-1 text-[14px] text-on-surface-variant">search</span>
           </div>
+
+          {searchQuery.trim() && searchResults.length > 0 && (
+            <div className="absolute top-[100%] left-2 right-2 mt-1 bg-[#14151a] border border-outline-variant/30 rounded-md shadow-2xl z-[999] max-h-64 overflow-y-auto custom-scrollbar">
+              {searchResults.map((res, i) => (
+                <button 
+                  key={`${res.type}-${res.id}-${i}`}
+                  className="w-full text-left px-3 py-2 hover:bg-slate-800/50 border-b border-outline-variant/10 flex items-center justify-between group"
+                  onClick={() => {
+                    setMapCommand({ type: 'flyTo', lat: res.lat, lng: res.lng, zoom: 12 });
+                    setActiveEntityId(res.id);
+                    setSearchQuery('');
+                  }}
+                >
+                  <div className="flex flex-col overflow-hidden pr-2">
+                    <span className="text-white text-xs font-headline tracking-wide uppercase truncate">{res.name}</span>
+                    <span className="text-slate-500 text-[9px] font-mono uppercase truncate">{res.type} • {res.sub}</span>
+                  </div>
+                  <span className="material-symbols-outlined text-slate-500 text-[14px] group-hover:text-secondary transition-colors shrink-0">my_location</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ═══ AEGIS SDK ═══ */}

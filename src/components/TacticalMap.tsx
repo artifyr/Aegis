@@ -235,9 +235,13 @@ export function TacticalMap({
   const setChokepoints = useTacticalStore(state => state.setChokepoints);
   const layers = useTacticalStore(state => state.layers);
 
+  const activeEntityId = useTacticalStore(state => state.activeEntityId);
+  const setActiveEntityId = useTacticalStore(state => state.setActiveEntityId);
+  const mapCommand = useTacticalStore(state => state.mapCommand);
+  const setMapCommand = useTacticalStore(state => state.setMapCommand);
+
   const [status, setStatus] = useState('AWAITING_MAP');
   const [isDived, setIsDived] = useState(false);
-  const [activeEntityId, setActiveEntityId] = useState<string | null>(null);
   const [mapStyle, setMapStyle] = useState(DARK_STYLE);
   const [bounds, setBounds] = useState<{ sw: { lat: number, lng: number }, ne: { lat: number, lng: number } } | null>(null);
 
@@ -425,6 +429,20 @@ export function TacticalMap({
   }, []);
 
   // Expose cameraDive via window for SideNavBar integration
+  useEffect(() => {
+    if (mapCommand && mapRef.current) {
+      if (mapCommand.type === 'flyTo') {
+        mapRef.current.flyTo({
+          center: [mapCommand.lng, mapCommand.lat],
+          zoom: mapCommand.zoom || 10,
+          duration: 2500,
+          essential: true
+        });
+      }
+      setMapCommand(null);
+    }
+  }, [mapCommand, setMapCommand]);
+
   useEffect(() => {
     (window as any).__aegisCameraDive = cameraDive;
     (window as any).__aegisCameraReset = cameraReset;

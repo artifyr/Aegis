@@ -51,6 +51,14 @@ interface TacticalStore {
   activeCamera: SurveillanceNode | null;
   setActiveCamera: (cam: SurveillanceNode | null) => void;
 
+  // The currently focused entity (Flight, Port, Chokepoint)
+  activeEntityId: string | null;
+  setActiveEntityId: (id: string | null) => void;
+
+  // Generic map commands (e.g. flyTo)
+  mapCommand: { type: 'flyTo'; lat: number; lng: number; zoom?: number } | null;
+  setMapCommand: (cmd: { type: 'flyTo'; lat: number; lng: number; zoom?: number } | null) => void;
+
   // Aviation
   flights: FlightNode[];
   setFlights: (flights: FlightNode[]) => void;
@@ -84,6 +92,12 @@ export const useTacticalStore = create<TacticalStore>()(
 
       activeCamera: null,
       setActiveCamera: (activeCamera) => set({ activeCamera }),
+
+      activeEntityId: null,
+      setActiveEntityId: (activeEntityId) => set({ activeEntityId }),
+
+      mapCommand: null,
+      setMapCommand: (mapCommand) => set({ mapCommand }),
 
       flights: [],
       setFlights: (flights) => set({ flights }), // Removed history merge logic as trails are removed
