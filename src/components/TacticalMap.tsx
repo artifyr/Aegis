@@ -251,14 +251,34 @@ export function TacticalMap({
       return true;
     });
 
-    if (!bounds) return activeFlights.slice(0, 3000);
+    if (!bounds) return activeFlights;
 
     const filtered = activeFlights.filter(f =>
       f.lat >= bounds.sw.lat && f.lat <= bounds.ne.lat &&
       f.lng >= bounds.sw.lng && f.lng <= bounds.ne.lng
     );
-    return filtered.slice(0, 3000);
+    return filtered;
   }, [flights, bounds, layers.aviation_commercial, layers.aviation_private, layers.aviation_jets, layers.aviation_military]);
+
+  // Generate GeoJSON for flights
+  const flightsGeoJSON = useMemo(() => {
+    return {
+      type: 'FeatureCollection',
+      features: visibleFlights.map(f => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [f.lng, f.lat] },
+        properties: {
+          icao24: f.icao24,
+          category: f.category,
+          true_track: f.true_track || 0
+        }
+      }))
+    };
+  }, [visibleFlights]);
+
+  const activeFlightData = useMemo(() => {
+    return flights.find(f => f.icao24 === activeEntityId);
+  }, [flights, activeEntityId]);
 
   const visiblePorts = useMemo(() => {
     if (!bounds) return ports;
@@ -366,17 +386,50 @@ export function TacticalMap({
   useEffect(() => {
     if (diveTarget && mapRef.current) {
       const map = mapRef.current.getMap();
-      map.flyTo({
-        center: [diveTarget.lng, diveTarget.lat],
-        zoom: diveTarget.zoom || 14,
-        pitch: 45,
-        speed: 2.0,
-        curve: 1.2
-      });
-      setMapStyle(SATELLITE_STYLE);
-      setIsDived(true);
+      if (map) {
+        map.setCenter([diveTarget.lng, diveTarget.lat]);
+        map.setZoom(diveTarget.zoom || 17);
+        map.setPitch(60);
+        map.setBearing(0);
+        
+        setSelectedCamera(diveTarget);
+        setIsDived(true);
+      }
     }
-  }, [diveTarget]);
+  }, [diveTarget, setSelectedCamera]);
+
+  const handleMapLoad = useCallback((e: any) => {
+    const map = e.target;
+    
+    const addPlaneImage = (id: string, color: string) => {
+      if (map.hasImage(id)) return;
+      const svg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="${color}" xmlns="http://www.w3.org/2000/svg"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>`;
+      const img = new Image(24, 24);
+      img.onload = () => {
+        if (!map.hasImage(id)) map.addImage(id, img);
+      };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    };
+
+    addPlaneImage('plane-commercial', '#f97316');
+    addPlaneImage('plane-private', '#a855f7');
+    addPlaneImage('plane-jet', '#ec4899');
+    addPlaneImage('plane-military', '#ef4444');
+    
+    const b = map.getBounds();
+    if (b) setBounds({ sw: { lat: b.getSouth(), lng: b.getWest() }, ne: { lat: b.getNorth(), lng: b.getEast() } });
+  }, []);
+
+  const handleMapClick = useCallback((e: any) => {
+    if (e.features && e.features.length > 0) {
+      const feature = e.features[0];
+      if (feature.layer.id === 'flights-layer') {
+        setActiveEntityId(feature.properties.icao24);
+        return;
+      }
+    }
+    setActiveEntityId(null);
+  }, []);
 
   // ─── Camera Dive ─────────────────────────────────────────────
   // DESIGN.md: Seamless high-velocity fly-to animation
@@ -457,31 +510,16 @@ export function TacticalMap({
           bearing: 0,
         }}
         onIdle={fetchCamerasInView}
-        onMoveEnd={(e) => {
+        onMove={(e) => {
           const b = e.target.getBounds();
-          if (b) setBounds({ sw: b.getSouthWest(), ne: b.getNorthEast() });
+          setBounds({
+            sw: { lat: b.getSouth(), lng: b.getWest() },
+            ne: { lat: b.getNorth(), lng: b.getEast() }
+          });
         }}
-        onLoad={(e) => {
-          const b = e.target.getBounds();
-          if (b) setBounds({ sw: b.getSouthWest(), ne: b.getNorthEast() });
-        }}
-        onMouseMove={(e) => {
-          if (coordsRef.current) {
-            const lat = e.lngLat.lat;
-            const lng = e.lngLat.lng;
-            coordsRef.current.innerText = `POS: ${Math.abs(lat).toFixed(6)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(6)}°${lng >= 0 ? 'E' : 'W'}`;
-          }
-        }}
-        onMouseLeave={() => {
-          if (coordsRef.current) {
-            const center = mapRef.current?.getMap()?.getCenter();
-            if (center) {
-              const lat = center.lat;
-              const lng = center.lng;
-              coordsRef.current.innerText = `CTR: ${Math.abs(lat).toFixed(6)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(6)}°${lng >= 0 ? 'E' : 'W'}`;
-            }
-          }
-        }}
+        onLoad={handleMapLoad}
+        onClick={handleMapClick}
+        interactiveLayerIds={['flights-layer']}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle={mapStyle}
         projection={{ name: 'globe' }}
@@ -496,6 +534,23 @@ export function TacticalMap({
         attributionControl={false}
       >
         <NavigationControl position="bottom-right" showCompass={false} />
+
+        {/* High-Performance WebGL Layer for Flights */}
+        {!isDived && (
+          <Source id="flights-source" type="geojson" data={flightsGeoJSON as any}>
+            <Layer
+              id="flights-layer"
+              type="symbol"
+              layout={{
+                'icon-image': ['concat', 'plane-', ['get', 'category']],
+                'icon-rotate': ['get', 'true_track'],
+                'icon-rotation-alignment': 'map',
+                'icon-allow-overlap': true,
+                'icon-size': 0.7
+              }}
+            />
+          </Source>
+        )}
 
         {/* HUD Markers projected directly onto WebGL Globe via Mapbox Marker */}
         {!isDived && layers.cctv && cameras.map((camera) => (
@@ -512,137 +567,14 @@ export function TacticalMap({
           </Marker>
         ))}
 
-        {!isDived && visibleFlights.map((flight) => {
-          const isActive = activeEntityId === flight.icao24;
-          return (
-            <Marker 
-              key={`flight-${flight.icao24}`} 
-              longitude={flight.lng} 
-              latitude={flight.lat} 
-              anchor="center"
-              style={{ zIndex: isActive ? 999999 : undefined }}
-            >
-              <div
-                className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform duration-200 hover:scale-125"
-                style={{
-                  transform: `translate(-50%, -50%) rotate(${flight.heading || 0}deg)`,
-                  color: flight.category === 'military' ? '#ef4444' : flight.category === 'jet' ? '#ec4899' : flight.category === 'private' ? '#a855f7' : '#f97316',
-                  filter: `drop-shadow(0 0 4px currentColor)`
-                }}
-                onClick={(e) => { e.stopPropagation(); setActiveEntityId(flight.icao24); }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M21,16v-2l-8-5V3.5C13,2.67,12.33,2,11.5,2S10,2.67,10,3.5V9l-8,5v2l8-2.5V19l-2,1.5V22l3.5-1l3.5,1v-1.5L13,19v-5.5L21,16z" />
-                </svg>
-              </div>
-
-              {isActive && (
-                <div 
-                  className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-md shadow-2xl backdrop-blur-lg w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
-                  style={{
-                    boxShadow: flight.category === 'military' 
-                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(239, 68, 68, 0.3)' 
-                      : flight.category === 'jet'
-                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(236, 72, 153, 0.3)'
-                      : flight.category === 'private'
-                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(168, 85, 247, 0.3)'
-                      : '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(249, 115, 22, 0.3)'
-                  }}
-                >
-                  <div 
-                    className="absolute top-0 left-0 right-0 h-1 rounded-t-md"
-                    style={{
-                      backgroundColor: flight.category === 'military' 
-                        ? '#ef4444' 
-                        : flight.category === 'jet'
-                        ? '#ec4899'
-                        : flight.category === 'private'
-                        ? '#a855f7'
-                        : '#f97316'
-                    }}
-                  />
-                  <div className="flex justify-between items-center mb-4 mt-1">
-                    <div>
-                      <h3 
-                        className="font-headline font-bold tracking-wider text-xl uppercase"
-                        style={{
-                          color: flight.category === 'military' 
-                            ? '#ef4444' 
-                            : flight.category === 'jet'
-                            ? '#ec4899'
-                            : flight.category === 'private'
-                            ? '#a855f7'
-                            : '#f97316'
-                        }}
-                      >
-                        {flight.callsign || 'UNKNOWN'}
-                      </h3>
-                      <span className="text-slate-500 font-mono text-[10px] tracking-wider uppercase block mt-0.5">ICAO24: {flight.icao24}</span>
-                    </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} 
-                      className="text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800/80 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-150 border border-slate-800"
-                    >
-                      <span className="material-symbols-outlined text-base">close</span>
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 mb-5 bg-slate-900/40 border border-slate-800/40 p-3 rounded-lg">
-                    <div>
-                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">MODEL</p>
-                      <p className="text-white text-xs font-mono font-medium uppercase truncate">{flight.category}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">ALTITUDE</p>
-                      <p className="text-cyan-400 text-xs font-mono font-medium">{flight.alt}m</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">SPEED</p>
-                      <p className="text-white text-xs font-mono font-medium">{flight.speed_knots}kt</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">HEADING</p>
-                      <p className="text-white text-xs font-mono font-medium">{flight.heading}°</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">REGISTR.</p>
-                      <p className="text-white text-xs font-mono font-medium truncate">{flight.airline_code || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">POSITION</p>
-                      <p className="text-white text-[10px] font-mono font-medium truncate">{flight.lat.toFixed(2)},{flight.lng.toFixed(2)}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <a 
-                      href={`https://www.flightaware.com/live/flight/${flight.callsign?.trim() || flight.icao24}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="flex-1 py-2 bg-slate-900 border border-orange-500/30 hover:border-orange-500/60 text-orange-400 text-[10px] font-bold font-mono tracking-wider rounded-lg transition-all duration-150 hover:bg-orange-500/10 flex items-center justify-center gap-1.5 shadow-[0_2px_8px_rgba(249,115,22,0.05)] hover:shadow-[0_2px_12px_rgba(249,115,22,0.15)]"
-                    >
-                      <span className="material-symbols-outlined text-xs">bolt</span> FLIGHTAWARE
-                    </a>
-                    <a 
-                      href={`https://globe.adsbexchange.com/?icao=${flight.icao24}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="flex-1 py-2 bg-slate-900 border border-cyan-500/30 hover:border-cyan-500/60 text-cyan-400 text-[10px] font-bold font-mono tracking-wider rounded-lg transition-all duration-150 hover:bg-cyan-500/10 flex items-center justify-center gap-1.5 shadow-[0_2px_8px_rgba(6,182,212,0.05)] hover:shadow-[0_2px_12px_rgba(6,182,212,0.15)]"
-                    >
-                      <span className="material-symbols-outlined text-xs">satellite_alt</span> ADS-B
-                    </a>
-                  </div>
-                </div>
-              )}
-            </Marker>
-          );
-        })}
 
         {!isDived && layers.maritime && visiblePorts.map((port) => {
           const isActive = activeEntityId === (port.id || port.name);
           return (
-            <Marker 
-              key={`port-${port.id || port.name}`} 
-              longitude={port.lng} 
-              latitude={port.lat} 
+            <Marker
+              key={`port-${port.id || port.name}`}
+              longitude={port.lng}
+              latitude={port.lat}
               anchor="center"
               style={{ zIndex: isActive ? 999999 : undefined }}
             >
@@ -651,36 +583,36 @@ export function TacticalMap({
                 onClick={(e) => { e.stopPropagation(); setActiveEntityId(port.id || port.name); }}
               />
               {isActive && (
-                <div 
+                <div
                   className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-md shadow-2xl backdrop-blur-lg w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
                   style={{
                     boxShadow: port.congestion === 'SEVERE'
                       ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(239, 68, 68, 0.3)'
                       : port.congestion === 'CONGESTED'
-                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(249, 115, 22, 0.3)'
-                      : '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(6, 182, 212, 0.3)'
+                        ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(249, 115, 22, 0.3)'
+                        : '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(6, 182, 212, 0.3)'
                   }}
                 >
-                  <div 
+                  <div
                     className="absolute top-0 left-0 right-0 h-1 rounded-t-md"
                     style={{
-                      backgroundColor: port.congestion === 'SEVERE' 
-                        ? '#ef4444' 
+                      backgroundColor: port.congestion === 'SEVERE'
+                        ? '#ef4444'
                         : port.congestion === 'CONGESTED'
-                        ? '#f97316'
-                        : '#06b6d4'
+                          ? '#f97316'
+                          : '#06b6d4'
                     }}
                   />
                   <div className="flex justify-between items-center mb-4 mt-1">
                     <div>
-                      <h3 
+                      <h3
                         className="font-headline font-bold tracking-wider text-lg uppercase truncate max-w-[200px]"
                         style={{
-                          color: port.congestion === 'SEVERE' 
-                            ? '#ef4444' 
+                          color: port.congestion === 'SEVERE'
+                            ? '#ef4444'
                             : port.congestion === 'CONGESTED'
-                            ? '#f97316'
-                            : '#06b6d4'
+                              ? '#f97316'
+                              : '#06b6d4'
                         }}
                       >
                         {port.name}
@@ -689,8 +621,8 @@ export function TacticalMap({
                         {port.country ? `PORT / BASE — ${port.country}` : 'PORT / BASE'}
                       </span>
                     </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} 
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }}
                       className="text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800/80 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-150 border border-slate-800"
                     >
                       <span className="material-symbols-outlined text-base">close</span>
@@ -699,14 +631,14 @@ export function TacticalMap({
                   <div className="bg-slate-900/40 border border-slate-800/40 p-4 rounded-lg space-y-3 mb-2">
                     <div className="flex justify-between items-center border-b border-slate-800/30 pb-2">
                       <span className="text-slate-500 text-[10px] font-mono tracking-wider uppercase">VOLUME / TRAFFIC</span>
-                      <span 
+                      <span
                         className="text-sm font-mono font-bold"
                         style={{
-                          color: port.congestion === 'SEVERE' 
-                            ? '#ef4444' 
+                          color: port.congestion === 'SEVERE'
+                            ? '#ef4444'
                             : port.congestion === 'CONGESTED'
-                            ? '#f97316'
-                            : '#06b6d4'
+                              ? '#f97316'
+                              : '#06b6d4'
                         }}
                       >
                         {port.volume || port.traffic || 'Unknown'}
@@ -714,14 +646,14 @@ export function TacticalMap({
                     </div>
                     <div className="flex justify-between items-center border-b border-slate-800/30 pb-2">
                       <span className="text-slate-500 text-[10px] font-mono tracking-wider uppercase">CONGESTION LEVEL</span>
-                      <span 
+                      <span
                         className="text-xs font-mono font-semibold uppercase"
                         style={{
-                          color: port.congestion === 'SEVERE' 
-                            ? '#ef4444' 
+                          color: port.congestion === 'SEVERE'
+                            ? '#ef4444'
                             : port.congestion === 'CONGESTED'
-                            ? '#f97316'
-                            : '#06b6d4'
+                              ? '#f97316'
+                              : '#06b6d4'
                         }}
                       >
                         {port.congestion || 'NORMAL'}
@@ -745,10 +677,10 @@ export function TacticalMap({
         {!isDived && layers.maritime && visibleChokepoints.map((chokepoint) => {
           const isActive = activeEntityId === chokepoint.name;
           return (
-            <Marker 
-              key={`chokepoint-${chokepoint.name}`} 
-              longitude={chokepoint.lng} 
-              latitude={chokepoint.lat} 
+            <Marker
+              key={`chokepoint-${chokepoint.name}`}
+              longitude={chokepoint.lng}
+              latitude={chokepoint.lat}
               anchor="center"
               style={{ zIndex: isActive ? 999999 : undefined }}
             >
@@ -757,36 +689,36 @@ export function TacticalMap({
                 onClick={(e) => { e.stopPropagation(); setActiveEntityId(chokepoint.name); }}
               />
               {isActive && (
-                <div 
+                <div
                   className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-md shadow-2xl backdrop-blur-lg w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
                   style={{
                     boxShadow: chokepoint.risk === 'CRITICAL'
                       ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(239, 68, 68, 0.3)'
                       : chokepoint.risk === 'HIGH'
-                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(249, 115, 22, 0.3)'
-                      : '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(234, 179, 8, 0.3)'
+                        ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(249, 115, 22, 0.3)'
+                        : '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(234, 179, 8, 0.3)'
                   }}
                 >
-                  <div 
+                  <div
                     className="absolute top-0 left-0 right-0 h-1 rounded-t-md"
                     style={{
-                      backgroundColor: chokepoint.risk === 'CRITICAL' 
-                        ? '#dc2626' 
+                      backgroundColor: chokepoint.risk === 'CRITICAL'
+                        ? '#dc2626'
                         : chokepoint.risk === 'HIGH'
-                        ? '#f97316'
-                        : '#eab308'
+                          ? '#f97316'
+                          : '#eab308'
                     }}
                   />
                   <div className="flex justify-between items-center mb-4 mt-1">
                     <div>
-                      <h3 
+                      <h3
                         className="font-headline font-bold tracking-wider text-lg uppercase truncate max-w-[200px]"
                         style={{
-                          color: chokepoint.risk === 'CRITICAL' 
-                            ? '#dc2626' 
+                          color: chokepoint.risk === 'CRITICAL'
+                            ? '#dc2626'
                             : chokepoint.risk === 'HIGH'
-                            ? '#f97316'
-                            : '#eab308'
+                              ? '#f97316'
+                              : '#eab308'
                         }}
                       >
                         {chokepoint.name}
@@ -795,8 +727,8 @@ export function TacticalMap({
                         STRATEGIC CHOKEPOINT
                       </span>
                     </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} 
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }}
                       className="text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800/80 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-150 border border-slate-800"
                     >
                       <span className="material-symbols-outlined text-base">close</span>
@@ -811,14 +743,14 @@ export function TacticalMap({
                     </div>
                     <div className="flex justify-between items-center pt-1">
                       <span className="text-slate-500 text-[10px] font-mono tracking-wider uppercase">RISK ASSESSMENT</span>
-                      <span 
+                      <span
                         className="text-xs font-mono font-semibold uppercase"
                         style={{
-                          color: chokepoint.risk === 'CRITICAL' 
-                            ? '#dc2626' 
+                          color: chokepoint.risk === 'CRITICAL'
+                            ? '#dc2626'
                             : chokepoint.risk === 'HIGH'
-                            ? '#f97316'
-                            : '#eab308'
+                              ? '#f97316'
+                              : '#eab308'
                         }}
                       >
                         {chokepoint.risk || 'NORMAL'}
