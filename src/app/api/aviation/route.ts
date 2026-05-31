@@ -141,7 +141,7 @@ export async function GET() {
   // Return cached data if within TTL
   if (cachedData && now - lastFetchTime < CACHE_TTL) {
     return NextResponse.json(cachedData, {
-      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
     });
   }
 
@@ -150,7 +150,7 @@ export async function GET() {
     try {
       const data = await fetchPromise;
       return NextResponse.json(data, {
-        headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
+        headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
       });
     } catch {
       // Fallback to error if the pending fetch failed
@@ -233,7 +233,7 @@ export async function GET() {
 
     return NextResponse.json(data, {
       headers: {
-        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
       },
     });
   } catch (error) {
