@@ -921,64 +921,90 @@ export function TacticalMap({
           style={{ zIndex: 100 }}
         >
           <div 
-            className="bg-[#0d0e12]/95 border border-[#3cdcd1]/40 rounded-md shadow-2xl p-4 w-80 max-h-96 overflow-y-auto custom-scrollbar backdrop-blur-md cursor-default pointer-events-auto"
+            className="bg-[#0b0c10]/95 border border-[#1f2937] rounded-lg shadow-2xl p-5 w-[380px] max-h-96 overflow-y-auto custom-scrollbar backdrop-blur-md cursor-default pointer-events-auto"
             onContextMenu={(e) => e.preventDefault()}
             onClick={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-2 border-b border-[#3cdcd1]/20 pb-2">
-              <h3 className="text-[#3cdcd1] font-headline font-bold text-xs uppercase tracking-widest">Region Dossier</h3>
-              <button onClick={() => setDossierLngLat(null)} className="text-slate-400 hover:text-white material-symbols-outlined text-sm">close</button>
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/5">
+              <h3 className="text-[#3cdcd1] font-headline font-bold text-sm uppercase tracking-widest">Region Dossier</h3>
+              <button onClick={() => setDossierLngLat(null)} className="text-slate-500 hover:text-white material-symbols-outlined text-sm transition-colors">close</button>
             </div>
             
             {isFetchingDossier ? (
-               <div className="flex flex-col items-center justify-center py-6 text-[#3cdcd1] animate-pulse">
-                 <span className="material-symbols-outlined text-3xl mb-2">radar</span>
-                 <span className="font-mono text-[10px]">TRANSMITTING INTEL...</span>
+               <div className="flex flex-col items-center justify-center py-8 text-[#3cdcd1] animate-pulse">
+                 <span className="material-symbols-outlined text-4xl mb-3">radar</span>
+                 <span className="font-mono text-[10px] tracking-widest">TRANSMITTING INTEL...</span>
                </div>
             ) : dossier && !dossier.error ? (
-               <div className="space-y-3 font-mono text-[10px] text-slate-300 text-left">
-                 <div>
-                   <div className="text-white font-bold mb-1">{dossier.location?.display_name || 'UNKNOWN TERRITORY'}</div>
-                   <div className="text-slate-500 text-[9px]">COORD: {dossier.coordinates?.lat.toFixed(4)}, {dossier.coordinates?.lng.toFixed(4)}</div>
+               <div className="flex flex-col gap-5 text-left">
+                 {/* Location Row */}
+                 <div className="flex flex-col">
+                   <span className="text-slate-500 text-[9px] font-mono tracking-widest uppercase mb-1">Location</span>
+                   <span className="text-white text-[13px] font-headline tracking-wide">{dossier.location?.display_name || 'UNKNOWN TERRITORY'}</span>
                  </div>
                  
+                 {/* Grid for Country details */}
                  {dossier.country ? (
-                   <div className="p-2 bg-white/5 rounded border border-white/10">
-                     <div className="flex items-center gap-2 mb-2">
-                       {dossier.country.flag_url ? (
-                         <img src={dossier.country.flag_url} alt="Flag" className="w-6 h-4 object-cover border border-slate-600" />
-                       ) : <span>{dossier.country.flag}</span>}
-                       <span className="text-[#3cdcd1] font-bold uppercase tracking-wider">{dossier.country.official_name || dossier.country.name}</span>
+                   <div className="grid grid-cols-2 gap-y-4 gap-x-2">
+                     <div className="flex flex-col">
+                       <span className="text-slate-500 text-[9px] font-mono tracking-widest uppercase mb-1">Country</span>
+                       <div className="flex items-center gap-2">
+                         {dossier.country.flag_url ? (
+                           <img src={dossier.country.flag_url} alt="Flag" className="w-5 h-3.5 object-cover rounded-[2px]" />
+                         ) : <span className="text-sm leading-none">{dossier.country.flag}</span>}
+                         <span className="text-white text-[12px] font-headline">{dossier.country.official_name || dossier.country.name}</span>
+                       </div>
                      </div>
-                     <div className="grid grid-cols-2 gap-1 mb-2">
-                       <span className="text-slate-500">CAPITAL:</span><span className="truncate">{dossier.country.capital || 'N/A'}</span>
-                       <span className="text-slate-500">POPULATION:</span><span>{dossier.country.population?.toLocaleString() || 'N/A'}</span>
-                       <span className="text-slate-500">AREA:</span><span>{dossier.country.area?.toLocaleString()} km²</span>
-                       <span className="text-slate-500">REGION:</span><span className="truncate">{dossier.country.region}</span>
+                     <div className="flex flex-col">
+                       <span className="text-slate-500 text-[9px] font-mono tracking-widest uppercase mb-1">Capital</span>
+                       <span className="text-white text-[12px] font-headline truncate">{dossier.country.capital || 'N/A'}</span>
                      </div>
-                     {dossier.country.currencies?.length > 0 && (
-                       <div className="truncate"><span className="text-slate-500">CURRENCY: </span>{dossier.country.currencies.join(', ')}</div>
-                     )}
+                     
+                     <div className="flex flex-col">
+                       <span className="text-slate-500 text-[9px] font-mono tracking-widest uppercase mb-1">Population</span>
+                       <span className="text-white text-[12px] font-headline">{dossier.country.population?.toLocaleString() || 'N/A'}</span>
+                     </div>
+                     <div className="flex flex-col">
+                       <span className="text-slate-500 text-[9px] font-mono tracking-widest uppercase mb-1">Region</span>
+                       <span className="text-white text-[12px] font-headline truncate">{dossier.country.region}</span>
+                     </div>
+                     
+                     <div className="flex flex-col">
+                       <span className="text-slate-500 text-[9px] font-mono tracking-widest uppercase mb-1">Languages</span>
+                       <span className="text-white text-[12px] font-headline truncate">{dossier.country.languages?.join(', ') || 'N/A'}</span>
+                     </div>
+                     <div className="flex flex-col">
+                       <span className="text-slate-500 text-[9px] font-mono tracking-widest uppercase mb-1">Area</span>
+                       <span className="text-white text-[12px] font-headline">{dossier.country.area?.toLocaleString()} km²</span>
+                     </div>
                    </div>
                  ) : (
-                   <div className="text-red-400 p-2 bg-red-900/10 border border-red-500/20 rounded">NO SOVEREIGN DATA FOUND (INTERNATIONAL WATERS)</div>
+                   <div className="text-red-400 p-3 bg-red-900/10 border border-red-500/20 rounded-md font-mono text-[10px]">NO SOVEREIGN DATA FOUND (INTERNATIONAL WATERS)</div>
                  )}
                  
+                 {/* Head of State */}
                  {dossier.head_of_state && (
-                   <div className="p-2 bg-white/5 rounded border border-white/10">
-                     <div className="text-[#66FCF1] mb-1 font-bold">{dossier.head_of_state.position?.toUpperCase()}</div>
-                     <div className="text-white font-bold">{dossier.head_of_state.name}</div>
+                   <div className="flex flex-col">
+                     <span className="text-slate-500 text-[9px] font-mono tracking-widest uppercase mb-1">Head of State</span>
+                     <span className="text-[#3cdcd1] text-[13px] font-headline">{dossier.head_of_state.name}</span>
+                     <span className="text-slate-500 text-[10px] mt-0.5">{dossier.head_of_state.position}</span>
                    </div>
                  )}
                  
+                 {/* Intelligence Brief */}
                  {dossier.wikipedia && (
-                   <div className="border-t border-[#3cdcd1]/20 pt-2">
-                     <div className="text-[#3cdcd1] mb-1 font-bold flex items-center justify-between">
-                       WIKIPEDIA EXTRACT
-                       {dossier.wikipedia.thumbnail && <img src={dossier.wikipedia.thumbnail} alt="Thumb" className="w-6 h-6 rounded border border-slate-600" />}
-                     </div>
-                     <div className="text-[9px] leading-relaxed text-slate-400 text-justify">
-                       {dossier.wikipedia.extract}
+                   <div className="flex flex-col">
+                     <span className="text-slate-500 text-[9px] font-mono tracking-widest uppercase mb-2">Intelligence Brief</span>
+                     <div className="flex gap-4">
+                       {dossier.country?.flag_url ? (
+                         <img src={dossier.country.flag_url} alt="Flag" className="w-12 h-8 rounded border border-white/10 object-cover shrink-0 mt-0.5" />
+                       ) : dossier.wikipedia.thumbnail ? (
+                         <img src={dossier.wikipedia.thumbnail} alt="Thumb" className="w-12 h-12 rounded border border-white/10 object-cover shrink-0 mt-0.5" />
+                       ) : null}
+                       <div className="text-[10px] leading-relaxed text-slate-400 text-justify">
+                         {dossier.wikipedia.extract}
+                       </div>
                      </div>
                    </div>
                  )}
