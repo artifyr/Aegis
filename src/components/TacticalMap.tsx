@@ -251,13 +251,13 @@ export function TacticalMap({
       return true;
     });
 
-    if (!bounds) return activeFlights.slice(0, 300);
+    if (!bounds) return activeFlights.slice(0, 3000);
 
     const filtered = activeFlights.filter(f =>
       f.lat >= bounds.sw.lat && f.lat <= bounds.ne.lat &&
       f.lng >= bounds.sw.lng && f.lng <= bounds.ne.lng
     );
-    return filtered.slice(0, 300);
+    return filtered.slice(0, 3000);
   }, [flights, bounds, layers.aviation_commercial, layers.aviation_private, layers.aviation_jets, layers.aviation_military]);
 
   const visiblePorts = useMemo(() => {
