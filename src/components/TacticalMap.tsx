@@ -516,7 +516,7 @@ export function TacticalMap({
 
           if (e.features && e.features.length > 0) {
             const feature = e.features[0];
-            if (feature.layer.id === 'flights-layer') {
+            if (feature.layer?.id === 'flights-layer') {
               setActiveEntityId(feature.properties?.id);
             }
           } else {
