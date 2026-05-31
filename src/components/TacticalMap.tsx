@@ -789,31 +789,45 @@ export function TacticalMap({
                 style={{ zIndex: 999999 }}
               >
                 <div 
-                  className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-md shadow-2xl backdrop-blur-lg w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
+                  className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-5 rounded-xl shadow-2xl backdrop-blur-lg w-[320px] pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
                   style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${sat.color}4D` }}
                 >
-                  <div 
-                    className="absolute top-0 left-0 right-0 h-1 rounded-t-md"
-                    style={{ backgroundColor: sat.color }}
-                  />
-                  <div className="flex justify-between items-center mb-4 mt-1">
-                    <div>
-                      <h3 className="text-white font-mono text-sm tracking-widest leading-tight">{sat.name}</h3>
-                      <p className="text-[#8e9196] font-mono text-[10px] tracking-wider mt-1">{sat.mission.toUpperCase()} SATELLITE</p>
+                  <div className="flex justify-between items-start mb-5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-lg inline-block transform -rotate-12 filter drop-shadow-md">🛰️</span>
+                      <h3 className="font-mono text-[16px] font-bold tracking-widest uppercase mt-1" style={{ color: sat.color }}>{sat.name}</h3>
                     </div>
-                    <span className="material-symbols-outlined text-[20px]" style={{ color: sat.color }}>satellite_alt</span>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} 
+                      className="text-slate-500 hover:text-white transition-colors p-1 -mr-2 -mt-2"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">close</span>
+                    </button>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="bg-[#1f2937]/50 rounded p-2 border border-white/5">
-                      <p className="text-[#8e9196] font-mono text-[9px] tracking-widest mb-1">ALTITUDE</p>
-                      <p className="text-white font-mono text-xs">{sat.alt} KM</p>
+                  <div className="grid grid-cols-3 gap-2 mb-6">
+                    <div>
+                      <p className="text-slate-500 text-[10px] font-mono tracking-widest mb-1.5 uppercase">MISSION</p>
+                      <p className="text-[#3cdcd1] font-mono text-[11px] uppercase truncate">{sat.mission}</p>
                     </div>
-                    <div className="bg-[#1f2937]/50 rounded p-2 border border-white/5">
-                      <p className="text-[#8e9196] font-mono text-[9px] tracking-widest mb-1">NORAD ID</p>
-                      <p className="text-white font-mono text-xs">{sat.noradId}</p>
+                    <div>
+                      <p className="text-slate-500 text-[10px] font-mono tracking-widest mb-1.5 uppercase">ALT</p>
+                      <p className="text-[#3cdcd1] font-mono text-[11px] uppercase">{sat.alt} km</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 text-[10px] font-mono tracking-widest mb-1.5 uppercase">POS</p>
+                      <p className="text-slate-200 font-mono text-[11px] truncate uppercase">{sat.lat.toFixed(2)}°, {sat.lng.toFixed(2)}°</p>
                     </div>
                   </div>
+
+                  <a 
+                    href={`https://db.satnogs.org/satellite/${sat.noradId}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="w-full py-3 bg-cyan-950/20 border border-cyan-800/60 hover:border-[#3cdcd1]/80 text-[#3cdcd1] text-[10px] font-bold font-mono tracking-[0.2em] rounded transition-all duration-150 hover:bg-cyan-900/40 flex items-center justify-center gap-2 shadow-[0_2px_12px_rgba(6,182,212,0.05)]"
+                  >
+                    <span className="text-[14px]">🔭</span> SOURCE: SATNOGS
+                  </a>
                 </div>
               </Marker>
             );
