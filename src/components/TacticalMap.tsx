@@ -261,10 +261,13 @@ export function TacticalMap({
       const antiLat = -declination;
       const antiLng = lng > 0 ? lng - 180 : lng + 180;
       
-      // Draw ~90deg circle
       try {
-        const circle = turf.circle([antiLng, antiLat], 10018, { steps: 64, units: 'kilometers' });
-        setTerminatorData(circle);
+        // Create the daylight circle
+        const dayCircle = turf.circle([lng, declination], 10018, { steps: 128, units: 'kilometers' });
+        // Use turf.mask to invert it into a global night polygon with the day as a hole.
+        // This explicitly covers the poles and avoids Mapbox globe antimeridian/polar bugs.
+        const nightMask = turf.mask(dayCircle);
+        setTerminatorData(nightMask);
       } catch (e) {
         console.error('Failed to generate terminator', e);
       }

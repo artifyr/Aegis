@@ -173,7 +173,7 @@ export function SideNavBar() {
            <GroupHeader id="environment" label="ENVIRONMENT & TIME" icon="public" activeCount={envActiveCount} totalCount={1} activeParent={envActiveCount > 0} />
            {expandedGroups['environment'] && (
              <div className="flex flex-col gap-0.5">
-               <LayerSwitch label="Solar Terminator" active={layers.dayNightCycle} count={undefined} dotColor="bg-yellow-400" onClick={() => toggleLayer('dayNightCycle')} />
+               <LayerSwitch label="Day/Night Cycle" active={layers.dayNightCycle} count={undefined} dotColor="bg-yellow-400" onClick={() => toggleLayer('dayNightCycle')} />
              </div>
            )}
         </div>
