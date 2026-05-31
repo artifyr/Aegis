@@ -245,6 +245,30 @@ export function TacticalMap({
   const [mapStyle, setMapStyle] = useState(DARK_STYLE);
   const [bounds, setBounds] = useState<{ sw: { lat: number, lng: number }, ne: { lat: number, lng: number } } | null>(null);
 
+  const [dossier, setDossier] = useState<any>(null);
+  const [isFetchingDossier, setIsFetchingDossier] = useState(false);
+  const [dossierPos, setDossierPos] = useState<{ x: number, y: number } | null>(null);
+
+  const fetchDossier = async (lat: number, lng: number, x: number, y: number) => {
+    setIsFetchingDossier(true);
+    setDossierPos({ x, y });
+    setDossier(null);
+    try {
+      const res = await fetch(`/api/region-dossier?lat=${lat}&lng=${lng}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDossier(data);
+      } else {
+        setDossier({ error: true });
+      }
+    } catch (err) {
+      console.error(err);
+      setDossier({ error: true });
+    } finally {
+      setIsFetchingDossier(false);
+    }
+  };
+
   // Convert flights to GeoJSON for highly performant Mapbox WebGL rendering
   const flightGeoJson = useMemo(() => {
     return {
@@ -476,6 +500,15 @@ export function TacticalMap({
           zoom: 1.5,
           pitch: 0,
           bearing: 0,
+        }}
+        onContextMenu={(e) => {
+          e.originalEvent.preventDefault();
+          const { lng, lat } = e.lngLat;
+          fetchDossier(lat, lng, e.point.x, e.point.y);
+        }}
+        onClick={(e) => {
+          // If clicking elsewhere on map, close dossier
+          if (dossierPos) setDossierPos(null);
         }}
         onIdle={fetchCamerasInView}
         onMoveEnd={(e) => {
@@ -914,6 +947,81 @@ export function TacticalMap({
       {/* Tactical Video Feed Overlay */}
       {isDived && selectedCamera && (
         <TacticalVideoOverlay camera={selectedCamera} onClose={cameraReset} />
+      )}
+
+      {/* Region Dossier Modal */}
+      {dossierPos && (
+        <div 
+          className="absolute z-50 bg-[#0d0e12]/95 border border-[#3cdcd1]/40 rounded-md shadow-2xl p-4 w-80 max-h-96 overflow-y-auto custom-scrollbar"
+          style={{ 
+            top: Math.min(dossierPos.y, typeof window !== 'undefined' ? window.innerHeight - 400 : dossierPos.y), 
+            left: Math.min(dossierPos.x, typeof window !== 'undefined' ? window.innerWidth - 350 : dossierPos.x) 
+          }}
+          onContextMenu={(e) => e.preventDefault()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex justify-between items-center mb-2 border-b border-[#3cdcd1]/20 pb-2">
+            <h3 className="text-[#3cdcd1] font-headline font-bold text-xs uppercase tracking-widest">Region Dossier</h3>
+            <button onClick={() => setDossierPos(null)} className="text-slate-400 hover:text-white material-symbols-outlined text-sm">close</button>
+          </div>
+          
+          {isFetchingDossier ? (
+             <div className="flex flex-col items-center justify-center py-6 text-[#3cdcd1] animate-pulse">
+               <span className="material-symbols-outlined text-3xl mb-2">radar</span>
+               <span className="font-mono text-[10px]">TRANSMITTING INTEL...</span>
+             </div>
+          ) : dossier && !dossier.error ? (
+             <div className="space-y-3 font-mono text-[10px] text-slate-300">
+               <div>
+                 <div className="text-white font-bold mb-1">{dossier.location?.display_name || 'UNKNOWN TERRITORY'}</div>
+                 <div className="text-slate-500 text-[9px]">COORD: {dossier.coordinates?.lat.toFixed(4)}, {dossier.coordinates?.lng.toFixed(4)}</div>
+               </div>
+               
+               {dossier.country ? (
+                 <div className="p-2 bg-white/5 rounded border border-white/10">
+                   <div className="flex items-center gap-2 mb-2">
+                     {dossier.country.flag_url ? (
+                       <img src={dossier.country.flag_url} alt="Flag" className="w-6 h-4 object-cover border border-slate-600" />
+                     ) : <span>{dossier.country.flag}</span>}
+                     <span className="text-[#3cdcd1] font-bold uppercase tracking-wider">{dossier.country.official_name || dossier.country.name}</span>
+                   </div>
+                   <div className="grid grid-cols-2 gap-1 mb-2">
+                     <span className="text-slate-500">CAPITAL:</span><span className="truncate">{dossier.country.capital || 'N/A'}</span>
+                     <span className="text-slate-500">POPULATION:</span><span>{dossier.country.population?.toLocaleString() || 'N/A'}</span>
+                     <span className="text-slate-500">AREA:</span><span>{dossier.country.area?.toLocaleString()} km²</span>
+                     <span className="text-slate-500">REGION:</span><span className="truncate">{dossier.country.region}</span>
+                   </div>
+                   {dossier.country.currencies?.length > 0 && (
+                     <div className="truncate"><span className="text-slate-500">CURRENCY: </span>{dossier.country.currencies.join(', ')}</div>
+                   )}
+                 </div>
+               ) : (
+                 <div className="text-red-400 p-2 bg-red-900/10 border border-red-500/20 rounded">NO SOVEREIGN DATA FOUND (INTERNATIONAL WATERS)</div>
+               )}
+               
+               {dossier.head_of_state && (
+                 <div className="p-2 bg-white/5 rounded border border-white/10">
+                   <div className="text-[#66FCF1] mb-1 font-bold">{dossier.head_of_state.position?.toUpperCase()}</div>
+                   <div className="text-white font-bold">{dossier.head_of_state.name}</div>
+                 </div>
+               )}
+               
+               {dossier.wikipedia && (
+                 <div className="border-t border-[#3cdcd1]/20 pt-2">
+                   <div className="text-[#3cdcd1] mb-1 font-bold flex items-center justify-between">
+                     WIKIPEDIA EXTRACT
+                     {dossier.wikipedia.thumbnail && <img src={dossier.wikipedia.thumbnail} alt="Thumb" className="w-6 h-6 rounded border border-slate-600" />}
+                   </div>
+                   <div className="text-[9px] leading-relaxed text-slate-400 text-justify">
+                     {dossier.wikipedia.extract}
+                   </div>
+                 </div>
+               )}
+             </div>
+          ) : (
+             <div className="text-red-400 py-4 text-center">INTEL UNAVAILABLE</div>
+          )}
+        </div>
       )}
 
       {/* Coordinate readout footer — DESIGN.md Technical Authority */}

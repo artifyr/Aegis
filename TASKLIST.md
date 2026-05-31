@@ -23,6 +23,9 @@ The following features and optimizations have been successfully implemented:
   - [x] Reduced flight marker sizing (down to 14x14px SVGs) for visual precision.
   - [x] Pre-filtered aviation markers (military/commercial) before capping DOM elements at 300 to improve render performance to a stable 60fps.
   - [x] Fixed military flight visibility to render correctly when their respective layer is toggled on.
+- [x] **Region Dossier OSINT Tool**:
+  - [x] Created a parallel-fetching Next.js API that synthesizes reverse-geocoding, RestCountries API, Wikipedia summaries, and Wikidata SPARQL queries (Head of State).
+  - [x] Integrated a contextual right-click modal into the Tactical Map to surface localized intelligence anywhere on the globe.
 
 ---
 
