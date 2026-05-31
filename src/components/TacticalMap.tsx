@@ -513,6 +513,15 @@ export function TacticalMap({
         onClick={(e) => {
           // If clicking elsewhere on map, close dossier
           if (dossierLngLat) setDossierLngLat(null);
+
+          if (e.features && e.features.length > 0) {
+            const feature = e.features[0];
+            if (feature.layer.id === 'flights-layer') {
+              setActiveEntityId(feature.properties?.id);
+            }
+          } else {
+            setActiveEntityId(null);
+          }
         }}
         onIdle={fetchCamerasInView}
         onMoveEnd={(e) => {
@@ -538,16 +547,7 @@ export function TacticalMap({
           addPlaneImage('#f97316', 'plane-commercial');
         }}
         interactiveLayerIds={['flights-layer']}
-        onClick={(e) => {
-          if (e.features && e.features.length > 0) {
-            const feature = e.features[0];
-            if (feature.layer.id === 'flights-layer') {
-              setActiveEntityId(feature.properties?.id);
-            }
-          } else {
-            setActiveEntityId(null);
-          }
-        }}
+
         onMouseEnter={(e) => {
           if (e.features && e.features.length > 0) {
             if (mapRef.current) mapRef.current.getCanvas().style.cursor = 'pointer';
