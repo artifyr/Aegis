@@ -310,6 +310,35 @@ export function TacticalMap({
     };
   }, [flights, layers.aviation_commercial, layers.aviation_private, layers.aviation_jets, layers.aviation_military]);
 
+  // Convert flight trails to GeoJSON
+  const flightTrailsGeoJson = useMemo(() => {
+    return {
+      type: 'FeatureCollection',
+      features: flights
+        .filter(f => f.history && f.history.length > 1 && layers[`aviation_${f.category === 'jet' ? 'jets' : f.category}` as keyof typeof layers])
+        .map(f => {
+          const color = f.category === 'military' 
+            ? '#ef4444' 
+            : f.category === 'jet'
+            ? '#ec4899'
+            : f.category === 'private'
+            ? '#a855f7'
+            : '#f97316';
+          
+          return {
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: f.history!.map(pt => [pt.lng, pt.lat])
+            },
+            properties: {
+              color
+            }
+          };
+        })
+    };
+  }, [flights, layers]);
+
   // Convert satellites to GeoJSON
   const satelliteGeoJson = useMemo(() => {
     return {
@@ -747,33 +776,20 @@ export function TacticalMap({
         )}
 
         {/* Render Flight Trails */}
-        {!isDived && flights.filter(f => f.history && f.history.length > 1 && layers[`aviation_${f.category === 'jet' ? 'jets' : f.category}` as keyof typeof layers]).map(flight => (
-          <Source key={`trail-${flight.icao24}`} id={`trail-${flight.icao24}`} type="geojson" data={{
-            type: 'Feature',
-            geometry: {
-              type: 'LineString',
-              coordinates: flight.history!.map(pt => [pt.lng, pt.lat])
-            },
-            properties: {}
-          }}>
+        {!isDived && (
+          <Source id="flight-trails-source" type="geojson" data={flightTrailsGeoJson as any}>
             <Layer
-              id={`trail-layer-${flight.icao24}`}
+              id="flight-trails-layer"
               type="line"
               paint={{
-                'line-color': flight.category === 'military' 
-                  ? '#ef4444' 
-                  : flight.category === 'jet'
-                  ? '#ec4899'
-                  : flight.category === 'private'
-                  ? '#a855f7'
-                  : '#f97316',
+                'line-color': ['get', 'color'],
                 'line-width': 1.5,
                 'line-opacity': 0.6,
                 'line-dasharray': [2, 2]
               }}
             />
           </Source>
-        ))}
+        )}
 
         {/* GeoJSON Satellites Layer */}
         {!isDived && layers.space_satellites && (
