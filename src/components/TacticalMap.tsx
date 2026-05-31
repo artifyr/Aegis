@@ -256,13 +256,24 @@ export function TacticalMap({
     setDossierLngLat({ lng, lat });
     setDossier(null);
     try {
-      const res = await fetch(`/api/region-dossier?lat=${lat}&lng=${lng}`);
-      if (res.ok) {
-        const data = await res.json();
-        setDossier(data);
+      const [dossierRes, sentinelRes] = await Promise.allSettled([
+        fetch(`/api/region-dossier?lat=${lat}&lng=${lng}`),
+        fetch(`/api/sentinel?lat=${lat}&lng=${lng}`)
+      ]);
+      
+      let finalData: any = {};
+      
+      if (dossierRes.status === 'fulfilled' && dossierRes.value.ok) {
+        finalData = await dossierRes.value.json();
       } else {
-        setDossier({ error: true });
+        finalData = { error: true };
       }
+
+      if (sentinelRes.status === 'fulfilled' && sentinelRes.value.ok) {
+        finalData.sentinel = await sentinelRes.value.json();
+      }
+
+      setDossier(finalData);
     } catch (err) {
       console.error(err);
       setDossier({ error: true });
@@ -1122,6 +1133,37 @@ export function TacticalMap({
                        <div className="text-[10px] leading-relaxed text-slate-400 text-justify line-clamp-4">
                          {dossier.wikipedia.extract}
                        </div>
+                     </div>
+                   </div>
+                 )}
+
+                 {/* Sentinel SAR Recent Overpasses */}
+                 {dossier.sentinel && dossier.sentinel.scenes && dossier.sentinel.scenes.length > 0 && (
+                   <div className="mt-4 pt-3 border-t border-slate-800/30">
+                     <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-2 flex items-center gap-1">
+                       <span className="material-symbols-outlined text-[10px]">satellite_alt</span> Recent Sentinel Overpasses ({dossier.sentinel.total})
+                     </span>
+                     <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                       {dossier.sentinel.scenes.slice(0, 3).map((scene: any, i: number) => (
+                         <div 
+                           key={i} 
+                           className="flex-shrink-0 relative group rounded overflow-hidden border border-slate-800/60 hover:border-cyan-500/50 transition-all cursor-pointer bg-slate-900"
+                           style={{ width: '80px', height: '60px' }}
+                           onClick={() => window.open(`https://browser.dataspace.copernicus.eu/?zoom=12&lat=${dossierLngLat?.lat}&lng=${dossierLngLat?.lng}&themeId=DEFAULT-THEME&datasetId=S1_GRD_IW`, '_blank')}
+                         >
+                           {scene.preview || scene.thumbnail ? (
+                             <img src={scene.preview || scene.thumbnail} alt="SAR" className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
+                           ) : (
+                             <div className="w-full h-full flex flex-col items-center justify-center text-[8px] text-slate-500 font-mono">
+                               <span className="material-symbols-outlined text-[14px] mb-1">image_not_supported</span>
+                               NO IMG
+                             </div>
+                           )}
+                           <div className="absolute bottom-0 left-0 right-0 bg-black/80 px-1 py-0.5 text-[7px] text-white font-mono truncate text-center">
+                             {new Date(scene.datetime).toLocaleDateString()}
+                           </div>
+                         </div>
+                       ))}
                      </div>
                    </div>
                  )}
