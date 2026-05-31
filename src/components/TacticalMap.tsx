@@ -1,8 +1,7 @@
 'use client';
 
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
-import Map, { NavigationControl, Marker, Source, Layer, type MapRef } from 'react-map-gl/mapbox';
-import * as turf from '@turf/turf';
+import Map, { NavigationControl, Marker, type MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useTacticalStore, SurveillanceNode } from '@/store/tactical-store';
 
@@ -241,42 +240,6 @@ export function TacticalMap({
   const [activeEntityId, setActiveEntityId] = useState<string | null>(null);
   const [mapStyle, setMapStyle] = useState(DARK_STYLE);
   const [bounds, setBounds] = useState<{ sw: { lat: number, lng: number }, ne: { lat: number, lng: number } } | null>(null);
-  const [terminatorData, setTerminatorData] = useState<any>(null);
-
-  useEffect(() => {
-    if (!layers.dayNightCycle) {
-      setTerminatorData(null);
-      return;
-    }
-    
-    const updateTerminator = () => {
-      const date = new Date();
-      // Calculate subsolar point roughly
-      const days = (date.getTime() - new Date(date.getUTCFullYear(), 0, 1).getTime()) / 86400000;
-      const declination = -23.44 * Math.cos((360 / 365.24) * (days + 10) * Math.PI / 180);
-      const gmt = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
-      const lng = 15 * (12 - gmt);
-      
-      // Antipodal point (center of night)
-      const antiLat = -declination;
-      const antiLng = lng > 0 ? lng - 180 : lng + 180;
-      
-      try {
-        // Create the daylight circle
-        const dayCircle = turf.circle([lng, declination], 10018, { steps: 128, units: 'kilometers' });
-        // Use turf.mask to invert it into a global night polygon with the day as a hole.
-        // This explicitly covers the poles and avoids Mapbox globe antimeridian/polar bugs.
-        const nightMask = turf.mask(dayCircle);
-        setTerminatorData(nightMask);
-      } catch (e) {
-        console.error('Failed to generate terminator', e);
-      }
-    };
-
-    updateTerminator();
-    const interval = setInterval(updateTerminator, 60000);
-    return () => clearInterval(interval);
-  }, [layers.dayNightCycle]);
 
   // Optimize rendering by filtering entities to current viewport and capping limits
   const visibleFlights = useMemo(() => {
@@ -533,19 +496,6 @@ export function TacticalMap({
         attributionControl={false}
       >
         <NavigationControl position="bottom-right" showCompass={false} />
-
-        {layers.dayNightCycle && terminatorData && (
-          <Source id="terminator" type="geojson" data={terminatorData}>
-            <Layer
-              id="terminator-layer"
-              type="fill"
-              paint={{
-                'fill-color': '#000000',
-                'fill-opacity': 0.45
-              }}
-            />
-          </Source>
-        )}
 
         {/* HUD Markers projected directly onto WebGL Globe via Mapbox Marker */}
         {!isDived && layers.cctv && cameras.map((camera) => (
