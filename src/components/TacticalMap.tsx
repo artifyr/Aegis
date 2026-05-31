@@ -310,35 +310,6 @@ export function TacticalMap({
     };
   }, [flights, layers.aviation_commercial, layers.aviation_private, layers.aviation_jets, layers.aviation_military]);
 
-  // Convert flight trails to GeoJSON
-  const flightTrailsGeoJson = useMemo(() => {
-    return {
-      type: 'FeatureCollection',
-      features: flights
-        .filter(f => f.history && f.history.length > 1 && layers[`aviation_${f.category === 'jet' ? 'jets' : f.category}` as keyof typeof layers])
-        .map(f => {
-          const color = f.category === 'military' 
-            ? '#ef4444' 
-            : f.category === 'jet'
-            ? '#ec4899'
-            : f.category === 'private'
-            ? '#a855f7'
-            : '#f97316';
-          
-          return {
-            type: 'Feature',
-            geometry: {
-              type: 'LineString',
-              coordinates: f.history!.map(pt => [pt.lng, pt.lat])
-            },
-            properties: {
-              color
-            }
-          };
-        })
-    };
-  }, [flights, layers]);
-
   // Convert satellites to GeoJSON
   const satelliteGeoJson = useMemo(() => {
     return {
@@ -484,7 +455,7 @@ export function TacticalMap({
     };
 
     fetchAviation();
-    const intervalId = setInterval(fetchAviation, 120000);
+    const intervalId = setInterval(fetchAviation, 90000); // 1.5 mins
     return () => clearInterval(intervalId);
   }, [setFlights]);
 
@@ -770,22 +741,6 @@ export function TacticalMap({
                 'icon-allow-overlap': true,
                 'icon-ignore-placement': true,
                 'icon-size': 0.7,
-              }}
-            />
-          </Source>
-        )}
-
-        {/* Render Flight Trails */}
-        {!isDived && (
-          <Source id="flight-trails-source" type="geojson" data={flightTrailsGeoJson as any}>
-            <Layer
-              id="flight-trails-layer"
-              type="line"
-              paint={{
-                'line-color': ['get', 'color'],
-                'line-width': 1.5,
-                'line-opacity': 0.6,
-                'line-dasharray': [2, 2]
               }}
             />
           </Source>

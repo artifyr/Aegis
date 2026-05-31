@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 /**
- * OSIRIS — Region Dossier API
+ * AEGIS — Region Dossier API
  * Provides country intelligence for any coordinate (right-click on map)
  * Fix #115: Steps 2-4 now run in parallel via Promise.allSettled
  */
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=5&addressdetails=1`,
       {
         signal: AbortSignal.timeout(8000),
-        headers: { 'User-Agent': 'OsirisIntelPlatform/1.0' },
+        headers: { 'User-Agent': 'AegisIntelPlatform/1.0' },
       }
     );
 
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
             { signal: AbortSignal.timeout(5000) }
           );
           if (res.ok) return await res.json();
-        } catch (e) { console.warn('[OSIRIS] Country fetch error:', e instanceof Error ? e.message : e); }
+        } catch (e) { console.warn('[AEGIS] Country fetch error:', e instanceof Error ? e.message : e); }
         return null;
       })(),
 
@@ -72,7 +72,7 @@ export async function GET(request: Request) {
               thumbnail: wiki.thumbnail?.source,
             };
           }
-        } catch (e) { console.warn('[OSIRIS] Wikipedia fetch error:', e instanceof Error ? e.message : e); }
+        } catch (e) { console.warn('[AEGIS] Wikipedia fetch error:', e instanceof Error ? e.message : e); }
         return null;
       })(),
 
@@ -93,7 +93,7 @@ export async function GET(request: Request) {
             `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`,
             {
               signal: AbortSignal.timeout(5000),
-              headers: { 'User-Agent': 'OsirisIntelPlatform/1.0' },
+              headers: { 'User-Agent': 'AegisIntelPlatform/1.0' },
             }
           );
           if (res.ok) {
@@ -106,7 +106,7 @@ export async function GET(request: Request) {
               };
             }
           }
-        } catch (e) { console.warn('[OSIRIS] Wikidata fetch error:', e instanceof Error ? e.message : e); }
+        } catch (e) { console.warn('[AEGIS] Wikidata fetch error:', e instanceof Error ? e.message : e); }
         return null;
       })(),
     ]);
