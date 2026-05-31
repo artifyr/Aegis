@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
-import Map, { NavigationControl, Marker, Source, Layer, type MapRef } from 'react-map-gl/mapbox';
+import Map, { Marker, Source, Layer, type MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useTacticalStore, SurveillanceNode } from '@/store/tactical-store';
 
@@ -577,7 +577,7 @@ export function TacticalMap({
         style={{ width: '100%', height: '100%' }}
         attributionControl={false}
       >
-        <NavigationControl position="bottom-right" showCompass={false} />
+        {/* Default zoom controls removed in favor of TopNavBar custom zoom buttons */}
 
         {/* HUD Markers projected directly onto WebGL Globe via Mapbox Marker */}
         {!isDived && layers.cctv && cameras.map((camera) => (
