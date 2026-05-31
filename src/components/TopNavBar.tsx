@@ -2,9 +2,34 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 
 export function TopNavBar() {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+  const [uptime, setUptime] = useState(0);
+  const [zuluTime, setZuluTime] = useState('');
+
+  useEffect(() => {
+    setMounted(true);
+    const start = Date.now();
+    const updateTime = () => {
+      setUptime(Math.floor((Date.now() - start) / 1000));
+      const now = new Date();
+      const zulu = `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}:${String(now.getUTCSeconds()).padStart(2, '0')}`;
+      setZuluTime(`ZULU: ${zulu}`);
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatUptime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
 
   const navLinks = [
     { name: 'MAP', href: '/' },
@@ -37,15 +62,28 @@ export function TopNavBar() {
         </nav>
       </div>
       <div className="flex items-center gap-6">
+        <button 
+          onClick={() => (window as any).__aegisCameraReset?.()}
+          className="w-8 h-8 flex items-center justify-center bg-[rgba(68,71,78,0.40)] text-[#3cdcd1] rounded-full cursor-pointer transition-all duration-150 hover:bg-[rgba(68,71,78,0.60)] border border-[#3cdcd1]/50 shadow-[0_0_10px_rgba(60,220,209,0.3)] hover:scale-110"
+          title="Reset Globe View"
+        >
+          <span className="material-symbols-outlined text-[16px]">public</span>
+        </button>
+
         <div className="hidden lg:flex flex-col items-end font-mono text-[10px] tracking-widest">
-          <span className="text-[#66FCF1]">ZULU: 14:22:05</span>
+          <span className="text-[#66FCF1]">{mounted ? zuluTime : 'ZULU: --:--:--'}</span>
           <span className="text-on-surface-variant/60">SYST_HEALTH: OPTIMAL</span>
         </div>
-        <div className="flex items-center gap-4 text-on-surface-variant">
-          <span className="material-symbols-outlined cursor-pointer hover:text-white transition-colors">settings</span>
+
+        <div className="hidden lg:flex flex-col items-end font-mono text-[10px] tracking-widest border-l border-outline-variant/30 pl-4">
+          <span className="text-[#3cdcd1]">UPTIME</span>
+          <span className="text-white">{mounted ? formatUptime(uptime) : '00:00:00'}</span>
+        </div>
+
+        <div className="flex items-center gap-4 text-on-surface-variant ml-2">
           <div className="relative">
             <span className="material-symbols-outlined cursor-pointer hover:text-white transition-colors">notifications</span>
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-on-tertiary-container"></span>
+            <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#66FCF1] rounded-full shadow-[0_0_5px_#66FCF1]"></span>
           </div>
           <span className="material-symbols-outlined cursor-pointer hover:text-white transition-colors">account_circle</span>
         </div>

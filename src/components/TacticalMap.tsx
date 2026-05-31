@@ -909,17 +909,7 @@ export function TacticalMap({
         </button>
       )}
 
-      {/* Globe View Reset Button */}
-      {!isDived && (
-        <button
-          onClick={cameraReset}
-          className="absolute top-8 right-8 z-30 w-8 h-8 flex items-center justify-center bg-[rgba(68,71,78,0.40)] text-[#3cdcd1] rounded-full cursor-pointer transition-all duration-150 hover:bg-[rgba(68,71,78,0.60)] border border-[#3cdcd1]/50 shadow-[0_0_10px_rgba(60,220,209,0.3)] hover:scale-110"
-          style={{ backdropFilter: 'blur(12px)' }}
-          title="Reset Globe View"
-        >
-          <span className="material-symbols-outlined text-[16px]">public</span>
-        </button>
-      )}
+      {/* Globe View Reset Button moved to TopNavBar */}
 
       {/* Tactical Video Feed Overlay */}
       {isDived && selectedCamera && (
