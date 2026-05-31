@@ -1,7 +1,8 @@
 'use client';
 
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
-import Map, { NavigationControl, Marker, type MapRef } from 'react-map-gl/mapbox';
+import Map, { NavigationControl, Marker, Source, Layer, type MapRef } from 'react-map-gl/mapbox';
+import * as turf from '@turf/turf';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useTacticalStore, SurveillanceNode } from '@/store/tactical-store';
 
@@ -79,7 +80,7 @@ function CameraMarker({
         <path d="M2 34 L2 46 L14 46" stroke={color} strokeWidth="2" fill="none" opacity={isSelected ? 1 : 0.6} />
         {/* Bottom-right bracket */}
         <path d="M34 46 L46 46 L46 34" stroke={color} strokeWidth="2" fill="none" opacity={isSelected ? 1 : 0.6} />
-        
+
         {/* Surveillance Camera Icon Inside */}
         <path d="M16 21h10v6H16z" fill={color} opacity="0.8" />
         <path d="M26 22l6-3v8l-6-3" fill={color} opacity="0.8" />
@@ -165,14 +166,14 @@ function TacticalVideoOverlay({ camera, onClose }: { camera: SurveillanceNode; o
   // Tactical Glass Rule: 12px backdrop-blur, 40% opacity on charcoal surface (#1f1f24 mapped to roughly rgba)
   return (
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 border border-[#3cdcd1] p-4 flex flex-col bezel-glow shadow-[0_0_20px_#3cdcd140]"
-         style={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(31, 31, 36, 0.40)' }}>
+      style={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(31, 31, 36, 0.40)' }}>
       <div className="flex justify-between items-center border-b border-[#3cdcd1]/50 pb-2 mb-4">
         <span className="font-mono text-[10px] text-[#3cdcd1] tracking-widest uppercase">LIVE FEED // NODE_{camera.id}</span>
         <button onClick={onClose} className="text-[#3cdcd1] font-mono text-xs w-6 h-6 flex items-center justify-center hover:bg-[#3cdcd1]/20 cursor-pointer transition-colors">
           ✕
         </button>
       </div>
-      
+
       {/* Video Container */}
       <div className="relative w-[480px] h-[270px] bg-black flex flex-col items-center justify-center overflow-hidden border border-[#3cdcd1]/30">
         {!streamData ? (
@@ -181,24 +182,24 @@ function TacticalVideoOverlay({ camera, onClose }: { camera: SurveillanceNode; o
             <span className="font-mono text-[#bacac7] text-[10px] tracking-widest animate-none z-10">ESTABLISHING UPLINK...</span>
           </>
         ) : (
-          <iframe 
-            src={`${streamData.stream_url}?autoplay=1&mute=1&playsinline=1`} 
-            className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none" 
-            frameBorder="0" 
+          <iframe
+            src={`${streamData.stream_url}?autoplay=1&mute=1&playsinline=1`}
+            className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+            frameBorder="0"
             allow="autoplay"
           />
         )}
-        
+
         {/* Telemetry HUD explicitly overlaid on video player */}
         <div className="absolute top-2 right-2 text-[#3cdcd1] text-[10px] font-mono flex items-center gap-1.5 z-20" style={{ textShadow: "1px 1px 2px #000" }}>
           REC <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
         </div>
-        
+
         <div className="absolute bottom-2 left-2 text-[#3cdcd1] text-[9px] font-mono flex flex-col z-20 leading-tight tracking-widest" style={{ textShadow: "1px 1px 2px #000" }}>
           <span>LAT: {camera.lat.toFixed(6)}</span>
           <span>LNG: {camera.lon.toFixed(6)}</span>
         </div>
-        
+
         <div className="absolute bottom-2 right-2 text-[#3cdcd1] text-[9px] font-mono z-20 tracking-widest uppercase" style={{ textShadow: "1px 1px 2px #000" }}>
           SYS_HEALTH: {streamData?.uptime || "CALCULATING"}
         </div>
@@ -218,14 +219,14 @@ export function TacticalMap({
 }) {
   const mapRef = useRef<MapRef>(null);
   const coordsRef = useRef<HTMLSpanElement>(null);
-  
+
   // Connect to Zustand store
   const cameras = useTacticalStore(state => state.cameras);
   const setCameras = useTacticalStore(state => state.setCameras);
   const diveTarget = useTacticalStore(state => state.diveTarget);
   const selectedCamera = useTacticalStore(state => state.activeCamera);
   const setSelectedCamera = useTacticalStore(state => state.setActiveCamera);
-  
+
   // New stores for Maritime and Aviation
   const flights = useTacticalStore(state => state.flights);
   const setFlights = useTacticalStore(state => state.setFlights);
@@ -234,25 +235,68 @@ export function TacticalMap({
   const chokepoints = useTacticalStore(state => state.chokepoints);
   const setChokepoints = useTacticalStore(state => state.setChokepoints);
   const layers = useTacticalStore(state => state.layers);
-  
+
   const [status, setStatus] = useState('AWAITING_MAP');
   const [isDived, setIsDived] = useState(false);
   const [activeEntityId, setActiveEntityId] = useState<string | null>(null);
   const [mapStyle, setMapStyle] = useState(DARK_STYLE);
-  const [bounds, setBounds] = useState<{sw: {lat: number, lng: number}, ne: {lat: number, lng: number}} | null>(null);
+  const [bounds, setBounds] = useState<{ sw: { lat: number, lng: number }, ne: { lat: number, lng: number } } | null>(null);
+  const [terminatorData, setTerminatorData] = useState<any>(null);
+
+  useEffect(() => {
+    if (!layers.dayNightCycle) {
+      setTerminatorData(null);
+      return;
+    }
+    
+    const updateTerminator = () => {
+      const date = new Date();
+      // Calculate subsolar point roughly
+      const days = (date.getTime() - new Date(date.getUTCFullYear(), 0, 1).getTime()) / 86400000;
+      const declination = -23.44 * Math.cos((360 / 365.24) * (days + 10) * Math.PI / 180);
+      const gmt = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+      const lng = 15 * (12 - gmt);
+      
+      // Antipodal point (center of night)
+      const antiLat = -declination;
+      const antiLng = lng > 0 ? lng - 180 : lng + 180;
+      
+      // Draw ~90deg circle
+      try {
+        const circle = turf.circle([antiLng, antiLat], 10018, { steps: 64, units: 'kilometers' });
+        setTerminatorData(circle);
+      } catch (e) {
+        console.error('Failed to generate terminator', e);
+      }
+    };
+
+    updateTerminator();
+    const interval = setInterval(updateTerminator, 60000);
+    return () => clearInterval(interval);
+  }, [layers.dayNightCycle]);
 
   // Optimize rendering by filtering entities to current viewport and capping limits
   const visibleFlights = useMemo(() => {
-    if (!bounds) return flights;
-    return flights.filter(f => 
+    const activeFlights = flights.filter((flight) => {
+      if (flight.category === 'commercial' && !layers.aviation_commercial) return false;
+      if (flight.category === 'private' && !layers.aviation_private) return false;
+      if (flight.category === 'jet' && !layers.aviation_jets) return false;
+      if (flight.category === 'military' && !layers.aviation_military) return false;
+      return true;
+    });
+
+    if (!bounds) return activeFlights.slice(0, 300);
+
+    const filtered = activeFlights.filter(f =>
       f.lat >= bounds.sw.lat && f.lat <= bounds.ne.lat &&
       f.lng >= bounds.sw.lng && f.lng <= bounds.ne.lng
     );
-  }, [flights, bounds]);
+    return filtered.slice(0, 300);
+  }, [flights, bounds, layers.aviation_commercial, layers.aviation_private, layers.aviation_jets, layers.aviation_military]);
 
   const visiblePorts = useMemo(() => {
     if (!bounds) return ports;
-    return ports.filter(p => 
+    return ports.filter(p =>
       p.lat >= bounds.sw.lat && p.lat <= bounds.ne.lat &&
       p.lng >= bounds.sw.lng && p.lng <= bounds.ne.lng
     );
@@ -260,7 +304,7 @@ export function TacticalMap({
 
   const visibleChokepoints = useMemo(() => {
     if (!bounds) return chokepoints;
-    return chokepoints.filter(c => 
+    return chokepoints.filter(c =>
       c.lat >= bounds.sw.lat && c.lat <= bounds.ne.lat &&
       c.lng >= bounds.sw.lng && c.lng <= bounds.ne.lng
     );
@@ -270,12 +314,12 @@ export function TacticalMap({
   const fetchCamerasInView = useCallback(() => {
     const map = mapRef.current?.getMap();
     if (!map) return;
-    
+
     setStatus('QUERYING_OVERPASS');
     const zoom = map.getZoom();
     const bounds = map.getBounds();
     if (!bounds) return;
-    
+
     // Scale limits based on zoom to prevent UI congestion.
     let limit = 0;
     if (zoom >= 12) limit = 300;
@@ -284,27 +328,27 @@ export function TacticalMap({
 
     // Below zoom 4, we exclusively use GLOBAL_SEED_CAMERAS.
     if (limit === 0) {
-       setStatus('LIVE // GLOBAL_MACRO');
-       setCameras(GLOBAL_SEED_CAMERAS);
-       return;
+      setStatus('LIVE // GLOBAL_MACRO');
+      setCameras(GLOBAL_SEED_CAMERAS);
+      return;
     }
 
     const sw = bounds.getSouthWest();
     const ne = bounds.getNorthEast();
-    
+
     // Bbox format: south, west, north, east
     const bbox = `${sw.lat},${sw.lng},${ne.lat},${ne.lng}`;
-    
+
     // Fetch Cameras via Next.js API
     fetch(`/api/cctv?bbox=${bbox}&limit=${limit}`)
       .then(res => res.json())
       .then(data => {
         // Merge the Overpass results with the global seeds if the seeds are within the current viewport
         const elements = data.elements || [];
-        const inViewSeeds = GLOBAL_SEED_CAMERAS.filter(c => 
+        const inViewSeeds = GLOBAL_SEED_CAMERAS.filter(c =>
           c.lat >= sw.lat && c.lat <= ne.lat && c.lon >= sw.lng && c.lon <= ne.lng
         );
-        
+
         // Remove duplicates
         const combined = [...elements, ...inViewSeeds];
         const unique = Array.from(new globalThis.Map(combined.map(c => [c.id, c])).values());
@@ -316,7 +360,7 @@ export function TacticalMap({
         console.error("Overpass fetch failed", err);
         setStatus('OVERPASS_ERROR');
       });
-      
+
   }, []);
 
   // Fetch static maritime intel on mount
@@ -487,6 +531,19 @@ export function TacticalMap({
       >
         <NavigationControl position="bottom-right" showCompass={false} />
 
+        {layers.dayNightCycle && terminatorData && (
+          <Source id="terminator" type="geojson" data={terminatorData}>
+            <Layer
+              id="terminator-layer"
+              type="fill"
+              paint={{
+                'fill-color': '#000000',
+                'fill-opacity': 0.45
+              }}
+            />
+          </Source>
+        )}
+
         {/* HUD Markers projected directly onto WebGL Globe via Mapbox Marker */}
         {!isDived && layers.cctv && cameras.map((camera) => (
           <Marker key={`cam-${camera.id}`} longitude={camera.lon} latitude={camera.lat} anchor="center">
@@ -503,66 +560,121 @@ export function TacticalMap({
         ))}
 
         {!isDived && visibleFlights.map((flight) => {
-          if (flight.category === 'commercial' && !layers.aviation_commercial) return null;
-          if (flight.category === 'private' && !layers.aviation_private) return null;
-          if (flight.category === 'jet' && !layers.aviation_jets) return null;
-          if (flight.category === 'military' && !layers.aviation_military) return null;
-          
+          const isActive = activeEntityId === flight.icao24;
           return (
-            <Marker key={`flight-${flight.icao24}`} longitude={flight.lng} latitude={flight.lat} anchor="center">
-              <div 
+            <Marker 
+              key={`flight-${flight.icao24}`} 
+              longitude={flight.lng} 
+              latitude={flight.lat} 
+              anchor="center"
+              style={{ zIndex: isActive ? 999999 : undefined }}
+            >
+              <div
                 className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform duration-200 hover:scale-125"
-                style={{ 
+                style={{
                   transform: `translate(-50%, -50%) rotate(${flight.heading || 0}deg)`,
                   color: flight.category === 'military' ? '#ef4444' : flight.category === 'jet' ? '#ec4899' : flight.category === 'private' ? '#a855f7' : '#f97316',
                   filter: `drop-shadow(0 0 4px currentColor)`
                 }}
                 onClick={(e) => { e.stopPropagation(); setActiveEntityId(flight.icao24); }}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M21,16v-2l-8-5V3.5C13,2.67,12.33,2,11.5,2S10,2.67,10,3.5V9l-8,5v2l8-2.5V19l-2,1.5V22l3.5-1l3.5,1v-1.5L13,19v-5.5L21,16z" />
                 </svg>
               </div>
 
-              {activeEntityId === flight.icao24 && (
-                <div className="absolute top-4 left-4 bg-[#0d0e12]/90 border border-outline-variant/30 p-4 rounded-lg shadow-2xl backdrop-blur-md w-80 z-50 pointer-events-auto cursor-auto">
-                  <button onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} className="absolute top-2 right-2 text-slate-400 hover:text-white material-symbols-outlined text-sm">close</button>
-                  <div className="flex justify-between items-start mb-4">
-                     <h3 className="text-[#f97316] font-headline font-bold tracking-widest text-lg">{flight.callsign || 'UNKNOWN'}</h3>
-                    <span className="text-slate-500 font-mono text-xs">{flight.icao24}</span>
+              {isActive && (
+                <div 
+                  className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-md shadow-2xl backdrop-blur-lg w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
+                  style={{
+                    boxShadow: flight.category === 'military' 
+                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(239, 68, 68, 0.3)' 
+                      : flight.category === 'jet'
+                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(236, 72, 153, 0.3)'
+                      : flight.category === 'private'
+                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(168, 85, 247, 0.3)'
+                      : '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(249, 115, 22, 0.3)'
+                  }}
+                >
+                  <div 
+                    className="absolute top-0 left-0 right-0 h-1 rounded-t-md"
+                    style={{
+                      backgroundColor: flight.category === 'military' 
+                        ? '#ef4444' 
+                        : flight.category === 'jet'
+                        ? '#ec4899'
+                        : flight.category === 'private'
+                        ? '#a855f7'
+                        : '#f97316'
+                    }}
+                  />
+                  <div className="flex justify-between items-center mb-4 mt-1">
+                    <div>
+                      <h3 
+                        className="font-headline font-bold tracking-wider text-xl uppercase"
+                        style={{
+                          color: flight.category === 'military' 
+                            ? '#ef4444' 
+                            : flight.category === 'jet'
+                            ? '#ec4899'
+                            : flight.category === 'private'
+                            ? '#a855f7'
+                            : '#f97316'
+                        }}
+                      >
+                        {flight.callsign || 'UNKNOWN'}
+                      </h3>
+                      <span className="text-slate-500 font-mono text-[10px] tracking-wider uppercase block mt-0.5">ICAO24: {flight.icao24}</span>
+                    </div>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} 
+                      className="text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800/80 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-150 border border-slate-800"
+                    >
+                      <span className="material-symbols-outlined text-base">close</span>
+                    </button>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="grid grid-cols-3 gap-3 mb-5 bg-slate-900/40 border border-slate-800/40 p-3 rounded-lg">
                     <div>
-                      <p className="text-slate-500 text-[9px] font-mono mb-1">MODEL</p>
-                      <p className="text-white text-xs font-mono uppercase">{flight.category}</p>
+                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">MODEL</p>
+                      <p className="text-white text-xs font-mono font-medium uppercase truncate">{flight.category}</p>
                     </div>
                     <div>
-                      <p className="text-slate-500 text-[9px] font-mono mb-1">ALT</p>
-                      <p className="text-cyan-400 text-xs font-mono">{flight.alt}m</p>
+                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">ALTITUDE</p>
+                      <p className="text-cyan-400 text-xs font-mono font-medium">{flight.alt}m</p>
                     </div>
                     <div>
-                      <p className="text-slate-500 text-[9px] font-mono mb-1">SPEED</p>
-                      <p className="text-white text-xs font-mono">{flight.speed_knots}kt</p>
+                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">SPEED</p>
+                      <p className="text-white text-xs font-mono font-medium">{flight.speed_knots}kt</p>
                     </div>
                     <div>
-                      <p className="text-slate-500 text-[9px] font-mono mb-1">HDG</p>
-                      <p className="text-white text-xs font-mono">{flight.heading}°</p>
+                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">HEADING</p>
+                      <p className="text-white text-xs font-mono font-medium">{flight.heading}°</p>
                     </div>
                     <div>
-                      <p className="text-slate-500 text-[9px] font-mono mb-1">REG</p>
-                      <p className="text-white text-xs font-mono">{flight.airline_code || 'N/A'}</p>
+                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">REGISTR.</p>
+                      <p className="text-white text-xs font-mono font-medium truncate">{flight.airline_code || 'N/A'}</p>
                     </div>
                     <div>
-                      <p className="text-slate-500 text-[9px] font-mono mb-1">POS</p>
-                      <p className="text-white text-xs font-mono">{flight.lat.toFixed(2)},{flight.lng.toFixed(2)}</p>
+                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">POSITION</p>
+                      <p className="text-white text-[10px] font-mono font-medium truncate">{flight.lat.toFixed(2)},{flight.lng.toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <a href={`https://www.flightaware.com/live/flight/${flight.callsign?.trim() || flight.icao24}`} target="_blank" rel="noopener noreferrer" className="flex-1 py-1.5 border border-orange-500/50 text-orange-400 text-[9px] font-bold font-mono tracking-wider rounded hover:bg-orange-500/10 flex items-center justify-center gap-1">
-                      <span className="material-symbols-outlined text-[11px]">bolt</span> FLIGHTAWARE
+                    <a 
+                      href={`https://www.flightaware.com/live/flight/${flight.callsign?.trim() || flight.icao24}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="flex-1 py-2 bg-slate-900 border border-orange-500/30 hover:border-orange-500/60 text-orange-400 text-[10px] font-bold font-mono tracking-wider rounded-lg transition-all duration-150 hover:bg-orange-500/10 flex items-center justify-center gap-1.5 shadow-[0_2px_8px_rgba(249,115,22,0.05)] hover:shadow-[0_2px_12px_rgba(249,115,22,0.15)]"
+                    >
+                      <span className="material-symbols-outlined text-xs">bolt</span> FLIGHTAWARE
                     </a>
-                    <a href={`https://globe.adsbexchange.com/?icao=${flight.icao24}`} target="_blank" rel="noopener noreferrer" className="flex-1 py-1.5 border border-cyan-500/50 text-cyan-400 text-[9px] font-bold font-mono tracking-wider rounded hover:bg-cyan-500/10 flex items-center justify-center gap-1">
-                      <span className="material-symbols-outlined text-[11px]">satellite_alt</span> ADS-B
+                    <a 
+                      href={`https://globe.adsbexchange.com/?icao=${flight.icao24}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="flex-1 py-2 bg-slate-900 border border-cyan-500/30 hover:border-cyan-500/60 text-cyan-400 text-[10px] font-bold font-mono tracking-wider rounded-lg transition-all duration-150 hover:bg-cyan-500/10 flex items-center justify-center gap-1.5 shadow-[0_2px_8px_rgba(6,182,212,0.05)] hover:shadow-[0_2px_12px_rgba(6,182,212,0.15)]"
+                    >
+                      <span className="material-symbols-outlined text-xs">satellite_alt</span> ADS-B
                     </a>
                   </div>
                 </div>
@@ -571,57 +683,200 @@ export function TacticalMap({
           );
         })}
 
-        {!isDived && layers.maritime && visiblePorts.map((port) => (
-          <Marker key={`port-${port.id || port.name}`} longitude={port.lng} latitude={port.lat} anchor="center">
-            <div 
-              className={`w-3 h-3 rounded-full border border-black cursor-pointer shadow-[0_0_8px_currentColor] ${port.congestion === 'SEVERE' ? 'bg-red-500 text-red-500' : port.congestion === 'CONGESTED' ? 'bg-orange-500 text-orange-500' : 'bg-cyan-500 text-cyan-500'}`} 
-              onClick={(e) => { e.stopPropagation(); setActiveEntityId(port.id || port.name); }}
-            />
-            {activeEntityId === (port.id || port.name) && (
-              <div className="absolute top-4 left-4 bg-[#0d0e12]/90 border border-outline-variant/30 p-4 rounded-lg shadow-2xl backdrop-blur-md w-80 z-50 pointer-events-auto cursor-auto">
-                <button onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} className="absolute top-2 right-2 text-slate-400 hover:text-white material-symbols-outlined text-sm">close</button>
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-red-500 font-headline font-bold tracking-widest text-md">{port.name}</h3>
+        {!isDived && layers.maritime && visiblePorts.map((port) => {
+          const isActive = activeEntityId === (port.id || port.name);
+          return (
+            <Marker 
+              key={`port-${port.id || port.name}`} 
+              longitude={port.lng} 
+              latitude={port.lat} 
+              anchor="center"
+              style={{ zIndex: isActive ? 999999 : undefined }}
+            >
+              <div
+                className={`w-3 h-3 rounded-full border border-black cursor-pointer shadow-[0_0_8px_currentColor] ${port.congestion === 'SEVERE' ? 'bg-red-500 text-red-500' : port.congestion === 'CONGESTED' ? 'bg-orange-500 text-orange-500' : 'bg-cyan-500 text-cyan-500'}`}
+                onClick={(e) => { e.stopPropagation(); setActiveEntityId(port.id || port.name); }}
+              />
+              {isActive && (
+                <div 
+                  className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-md shadow-2xl backdrop-blur-lg w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
+                  style={{
+                    boxShadow: port.congestion === 'SEVERE'
+                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(239, 68, 68, 0.3)'
+                      : port.congestion === 'CONGESTED'
+                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(249, 115, 22, 0.3)'
+                      : '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(6, 182, 212, 0.3)'
+                  }}
+                >
+                  <div 
+                    className="absolute top-0 left-0 right-0 h-1 rounded-t-md"
+                    style={{
+                      backgroundColor: port.congestion === 'SEVERE' 
+                        ? '#ef4444' 
+                        : port.congestion === 'CONGESTED'
+                        ? '#f97316'
+                        : '#06b6d4'
+                    }}
+                  />
+                  <div className="flex justify-between items-center mb-4 mt-1">
+                    <div>
+                      <h3 
+                        className="font-headline font-bold tracking-wider text-lg uppercase truncate max-w-[200px]"
+                        style={{
+                          color: port.congestion === 'SEVERE' 
+                            ? '#ef4444' 
+                            : port.congestion === 'CONGESTED'
+                            ? '#f97316'
+                            : '#06b6d4'
+                        }}
+                      >
+                        {port.name}
+                      </h3>
+                      <span className="text-slate-500 font-mono text-[10px] tracking-wider uppercase block mt-0.5">
+                        {port.country ? `PORT / BASE — ${port.country}` : 'PORT / BASE'}
+                      </span>
+                    </div>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} 
+                      className="text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800/80 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-150 border border-slate-800"
+                    >
+                      <span className="material-symbols-outlined text-base">close</span>
+                    </button>
+                  </div>
+                  <div className="bg-slate-900/40 border border-slate-800/40 p-4 rounded-lg space-y-3 mb-2">
+                    <div className="flex justify-between items-center border-b border-slate-800/30 pb-2">
+                      <span className="text-slate-500 text-[10px] font-mono tracking-wider uppercase">VOLUME / TRAFFIC</span>
+                      <span 
+                        className="text-sm font-mono font-bold"
+                        style={{
+                          color: port.congestion === 'SEVERE' 
+                            ? '#ef4444' 
+                            : port.congestion === 'CONGESTED'
+                            ? '#f97316'
+                            : '#06b6d4'
+                        }}
+                      >
+                        {port.volume || port.traffic || 'Unknown'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-slate-800/30 pb-2">
+                      <span className="text-slate-500 text-[10px] font-mono tracking-wider uppercase">CONGESTION LEVEL</span>
+                      <span 
+                        className="text-xs font-mono font-semibold uppercase"
+                        style={{
+                          color: port.congestion === 'SEVERE' 
+                            ? '#ef4444' 
+                            : port.congestion === 'CONGESTED'
+                            ? '#f97316'
+                            : '#06b6d4'
+                        }}
+                      >
+                        {port.congestion || 'NORMAL'}
+                      </span>
+                    </div>
+                    {port.fleet && (
+                      <div className="flex justify-between items-center pt-1">
+                        <span className="text-slate-500 text-[10px] font-mono tracking-wider uppercase">FLEET STATIONED</span>
+                        <span className="text-slate-200 text-xs font-mono font-medium truncate max-w-[150px]">
+                          {port.fleet}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <p className="text-slate-400 text-xs font-mono mb-4 uppercase">{port.country ? `PORT / BASE — ${port.country}` : 'PORT / BASE'}</p>
-                <p className="text-slate-300 text-xs font-mono mb-2">
-                  Volume: <span className="text-red-500">{port.volume || port.traffic || 'Unknown'}</span> | LIVE: 0 (WAITING: 0)
-                </p>
-                {port.fleet && (
-                  <p className="text-slate-300 text-xs font-mono">
-                    Fleet: <span className="text-red-500">{port.fleet}</span>
-                  </p>
-                )}
-              </div>
-            )}
-          </Marker>
-        ))}
+              )}
+            </Marker>
+          );
+        })}
 
-        {!isDived && layers.maritime && visibleChokepoints.map((chokepoint) => (
-          <Marker key={`chokepoint-${chokepoint.name}`} longitude={chokepoint.lng} latitude={chokepoint.lat} anchor="center">
-            <div 
-              className={`w-3 h-3 rotate-45 border border-black cursor-pointer shadow-[0_0_8px_currentColor] ${chokepoint.risk === 'CRITICAL' ? 'bg-red-600 text-red-600' : chokepoint.risk === 'HIGH' ? 'bg-orange-500 text-orange-500' : 'bg-yellow-500 text-yellow-500'}`} 
-              onClick={(e) => { e.stopPropagation(); setActiveEntityId(chokepoint.name); }}
-            />
-            {activeEntityId === chokepoint.name && (
-              <div className="absolute top-4 left-4 bg-[#0d0e12]/90 border border-outline-variant/30 p-4 rounded-lg shadow-2xl backdrop-blur-md w-80 z-50 pointer-events-auto cursor-auto">
-                <button onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} className="absolute top-2 right-2 text-slate-400 hover:text-white material-symbols-outlined text-sm">close</button>
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-red-500 font-headline font-bold tracking-widest text-md">{chokepoint.name}</h3>
+        {!isDived && layers.maritime && visibleChokepoints.map((chokepoint) => {
+          const isActive = activeEntityId === chokepoint.name;
+          return (
+            <Marker 
+              key={`chokepoint-${chokepoint.name}`} 
+              longitude={chokepoint.lng} 
+              latitude={chokepoint.lat} 
+              anchor="center"
+              style={{ zIndex: isActive ? 999999 : undefined }}
+            >
+              <div
+                className={`w-3 h-3 rotate-45 border border-black cursor-pointer shadow-[0_0_8px_currentColor] ${chokepoint.risk === 'CRITICAL' ? 'bg-red-600 text-red-600' : chokepoint.risk === 'HIGH' ? 'bg-orange-500 text-orange-500' : 'bg-yellow-500 text-yellow-500'}`}
+                onClick={(e) => { e.stopPropagation(); setActiveEntityId(chokepoint.name); }}
+              />
+              {isActive && (
+                <div 
+                  className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-md shadow-2xl backdrop-blur-lg w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
+                  style={{
+                    boxShadow: chokepoint.risk === 'CRITICAL'
+                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(239, 68, 68, 0.3)'
+                      : chokepoint.risk === 'HIGH'
+                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(249, 115, 22, 0.3)'
+                      : '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(234, 179, 8, 0.3)'
+                  }}
+                >
+                  <div 
+                    className="absolute top-0 left-0 right-0 h-1 rounded-t-md"
+                    style={{
+                      backgroundColor: chokepoint.risk === 'CRITICAL' 
+                        ? '#dc2626' 
+                        : chokepoint.risk === 'HIGH'
+                        ? '#f97316'
+                        : '#eab308'
+                    }}
+                  />
+                  <div className="flex justify-between items-center mb-4 mt-1">
+                    <div>
+                      <h3 
+                        className="font-headline font-bold tracking-wider text-lg uppercase truncate max-w-[200px]"
+                        style={{
+                          color: chokepoint.risk === 'CRITICAL' 
+                            ? '#dc2626' 
+                            : chokepoint.risk === 'HIGH'
+                            ? '#f97316'
+                            : '#eab308'
+                        }}
+                      >
+                        {chokepoint.name}
+                      </h3>
+                      <span className="text-slate-500 font-mono text-[10px] tracking-wider uppercase block mt-0.5">
+                        STRATEGIC CHOKEPOINT
+                      </span>
+                    </div>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} 
+                      className="text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800/80 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-150 border border-slate-800"
+                    >
+                      <span className="material-symbols-outlined text-base">close</span>
+                    </button>
+                  </div>
+                  <div className="bg-slate-900/40 border border-slate-800/40 p-4 rounded-lg space-y-3 mb-2">
+                    <div className="flex justify-between items-center border-b border-slate-800/30 pb-2">
+                      <span className="text-slate-500 text-[10px] font-mono tracking-wider uppercase">TRAFFIC VOLUME</span>
+                      <span className="text-slate-200 text-sm font-mono font-bold">
+                        {chokepoint.traffic || 'Unknown'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center pt-1">
+                      <span className="text-slate-500 text-[10px] font-mono tracking-wider uppercase">RISK ASSESSMENT</span>
+                      <span 
+                        className="text-xs font-mono font-semibold uppercase"
+                        style={{
+                          color: chokepoint.risk === 'CRITICAL' 
+                            ? '#dc2626' 
+                            : chokepoint.risk === 'HIGH'
+                            ? '#f97316'
+                            : '#eab308'
+                        }}
+                      >
+                        {chokepoint.risk || 'NORMAL'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-slate-400 text-xs font-mono mb-4 uppercase">STRATEGIC CHOKEPOINT</p>
-                <p className="text-slate-300 text-xs font-mono mb-2">
-                  Volume: <span className="text-red-500">{chokepoint.traffic || 'Unknown'}</span> | LIVE: 0 (WAITING: 0)
-                </p>
-                {chokepoint.risk && (
-                  <p className="text-slate-300 text-xs font-mono">
-                    Risk: <span className="text-orange-500">{chokepoint.risk}</span>
-                  </p>
-                )}
-              </div>
-            )}
-          </Marker>
-        ))}
+              )}
+            </Marker>
+          );
+        })}
       </Map>
 
       {/* Ghost Border Grid — visible on satellite dive */}
@@ -630,13 +885,12 @@ export function TacticalMap({
       {/* SYST_STATUS HUD — top left */}
       <div className="absolute top-4 left-4 z-30 flex items-center gap-2">
         <div
-          className={`w-2 h-2 ${
-            status.includes('LIVE')
-              ? 'bg-[#3cdcd1] shadow-[0_0_8px_#3cdcd1] animate-pulse'
-              : status.includes('QUERYING') || status.includes('CONNECTING')
+          className={`w-2 h-2 ${status.includes('LIVE')
+            ? 'bg-[#3cdcd1] shadow-[0_0_8px_#3cdcd1] animate-pulse'
+            : status.includes('QUERYING') || status.includes('CONNECTING')
               ? 'bg-yellow-500 animate-pulse'
               : 'bg-red-500'
-          }`}
+            }`}
         />
         <span className="font-mono text-[9px] tracking-widest text-[#bacac7] uppercase">
           SYST_STATUS: {status}

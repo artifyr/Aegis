@@ -21,6 +21,7 @@ export function SideNavBar() {
     aviation: true,
     maritime: true,
     surveillance: true,
+    environment: true,
   });
 
   const toggleGroup = (group: string) => {
@@ -89,9 +90,10 @@ export function SideNavBar() {
   const aviationActiveCount = [layers.aviation_commercial, layers.aviation_private, layers.aviation_jets, layers.aviation_military].filter(Boolean).length;
   const maritimeActiveCount = [layers.maritime, false].filter(Boolean).length; // Satellites false
   const survActiveCount = [layers.cctv, false].filter(Boolean).length;
+  const envActiveCount = [layers.dayNightCycle].filter(Boolean).length;
   
   const totalEntities = cameras.length + flights.length + ports.length + chokepoints.length;
-  const activeLayersTotal = aviationActiveCount + maritimeActiveCount + survActiveCount;
+  const activeLayersTotal = aviationActiveCount + maritimeActiveCount + survActiveCount + envActiveCount;
 
   return (
     <aside className="static flex-shrink-0 left-0 top-16 h-[calc(100vh-64px)] w-80 flex flex-col justify-between py-4 bg-[#0d0e12] border-r border-outline-variant/10 z-40 overflow-hidden">
@@ -162,6 +164,16 @@ export function SideNavBar() {
              <div className="flex flex-col gap-0.5">
                <LayerSwitch label="CCTV Cameras" active={layers.cctv} count={cameras.length} dotColor="bg-green-500" onClick={() => toggleLayer('cctv')} />
                <LayerSwitch label="Live News Feeds" active={false} count={15} dotColor="bg-red-500" onClick={() => {}} />
+             </div>
+           )}
+        </div>
+
+        {/* ═══ ENVIRONMENT & TIME ═══ */}
+        <div className="flex flex-col gap-1">
+           <GroupHeader id="environment" label="ENVIRONMENT & TIME" icon="public" activeCount={envActiveCount} totalCount={1} activeParent={envActiveCount > 0} />
+           {expandedGroups['environment'] && (
+             <div className="flex flex-col gap-0.5">
+               <LayerSwitch label="Solar Terminator" active={layers.dayNightCycle} count={undefined} dotColor="bg-yellow-400" onClick={() => toggleLayer('dayNightCycle')} />
              </div>
            )}
         </div>

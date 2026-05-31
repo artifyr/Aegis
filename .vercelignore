@@ -1,0 +1,4 @@
+backend/
+venv/
+.venv/
+backend/venv/

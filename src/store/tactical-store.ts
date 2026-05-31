@@ -69,6 +69,7 @@ interface TacticalStore {
     aviation_military: boolean;
     maritime: boolean;
     cctv: boolean;
+    dayNightCycle: boolean;
   };
   toggleLayer: (layerName: keyof TacticalStore['layers']) => void;
 }
@@ -101,6 +102,7 @@ export const useTacticalStore = create<TacticalStore>()(
         aviation_military: false,
         maritime: false,
         cctv: false,
+        dayNightCycle: false,
       },
       toggleLayer: (layerName) => set((state) => ({
         layers: { ...state.layers, [layerName]: !state.layers[layerName] }

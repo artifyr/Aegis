@@ -20,13 +20,15 @@ This roadmap outlines the path to upgrading the Aegis Tactical Dashboard to reac
 **Surveillance & Hazards**
 - [x] **CCTV / Surveillance Integration**: Dynamic overpass querying and global webcams integration. (COMPLETED)
 - [ ] **24/7 Global News Feeds**: Implement live streams and feeds pulling from global broadcasters.
-- [ ] **Earthquake & Seismic Monitoring**: USGS real-time API for live seismic events (M2.5+).
-- [ ] **Active Fires & Environmental**: NASA FIRMS for active fires and severe weather.
+- [ ] **Earthquake & Seismic Monitoring (Seismic)**: USGS Earthquake API for real-time M2.5+ events.
+- [ ] **Active Fires & Hotspots (Fires)**: NASA FIRMS for active hotspots.
+- [ ] **Severe Events Monitoring (Weather)**: NASA EONET for severe weather and environmental hazards.
 
-**Threats & Infrastructure**
+**Threats, Sanctions & Infrastructure**
 - [ ] **Nuclear Facilities**: Static intel mapping of global nuclear sites.
 - [ ] **Global Incidents**: Track severity-coded warning markers across conflict zones.
 - [ ] **GPS Jamming**: Visualize global GPS interference and spoofing zones.
+- [ ] **SDN Sanctions Search (Sanctions)**: Search tool for Person/Organization/Vessel utilizing OpenSanctions (US OFAC SDN mirror).
 
 **Display Options**
 - [ ] **Day / Night Cycle**: A global shadow overlay showing real-time solar terminator.
@@ -39,26 +41,29 @@ This roadmap outlines the path to upgrading the Aegis Tactical Dashboard to reac
 - [ ] **Critical Suppliers**: Uptime tracking for Tier 1/2 monitored nodes.
 
 **Markets & Intel Dashboard**
-- [ ] **Space Weather Integration**: Display Kp Index and latest solar flares.
+- [ ] **Space Weather & Satellite Tracker (Space)**: Display Kp Index, solar flares (NOAA SWPC), and satellite coordinates (N2YO).
 - [ ] **Live Financial Tickers**: Real-time stock feeds categorized by:
   - *Indices* (Global market health)
   - *Defense* (RTX, LMT, NOC, GD, BA, PLTR)
   - *Energy* (Crude, Natural Gas, etc.)
 
 **Region Presets & Navigation**
+- [x] **Globe Reset & Precision Navigation**: Cyan globe reset widget and precise zoom-to-cursor/coordinate tracking. (COMPLETED)
 - [ ] Implement quick-jump buttons for global regions (Global, Europe, Middle East, Americas, Ukraine, Africa, S.E. Asia, Arctic, India, Australia, Sudan).
 - [ ] Add real-time "hot zone" indicators (red pulsing dots) next to active conflict regions.
 
 ## 4. Reconnaissance Toolkit (Side-Panel Modules)
-- [ ] **Network Intelligence (Cyber Domain)**
-- [ ] **Network Intelligence (Cyber Domain 17-Tool Suite)**
-  - Fully implement the 17-tool Recon Toolkit including: Global IP Sweep, Port Scan, Vuln Scan, DNS, WHOIS, CERTS, Threats, Headers, SSL/TLS, Subdomain Enum, Tech Detect, Shodan, BGP Map, MAC Lookup, Ping Sweep, and Data Leaks.
-  - **CVE Threats**: Search for CVE vulnerabilities via the NVD database.
+
+**Network Intelligence (Cyber Domain 17-Tool Suite)**
+- [ ] Fully implement the 17-tool Recon Toolkit including: Global IP Sweep, Port Scan, Vuln Scan, DNS, WHOIS, CERTS, Threats, Headers, SSL/TLS, Subdomain Enum, Tech Detect, Shodan, BGP Map, MAC Lookup, Ping Sweep, and Data Leaks.
+- [ ] **CVE Threats & Vuln Scan (Cyber)**: Search CVE vulnerabilities via the NVD database, and run automated local scanning diagnostics.
 - [ ] **Live Alerts Panel**
   - Implement a tabbed alert feed (All, News, Quakes, Feeds).
   - **Telegram OSINT**: Embed geoparsed posts from public military/intel channels via direct `t.me/s/<channel>` web previews.
 
-## 4. Architectural & Backend Expansions
+## 5. Architectural & Backend Expansions
+- [x] **Vercel Cost & Deployment Optimization**: Deployed to `aegisint` using lightweight configuration and disabled ISR for heavy dynamic routes. (COMPLETED)
 - [ ] **Persistent Database**: Migrate in-memory seeds and configurations to a proper PostgreSQL/PostGIS database for handling spatial queries and saving targets persistently.
 - [ ] **Dockerization**: Create a `docker-compose.yml` that cleanly orchestrates the Next.js frontend, FastAPI backend, and PostgreSQL database for one-click self-hosting.
 - [ ] **AI Neural Observer Pipeline**: Expand the backend with YOLO/OpenCV to run automated object detection on active video streams and send structural alerts when threats are identified.
+

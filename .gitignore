@@ -61,3 +61,13 @@ __pycache__/
 /.next/
 /out/
 /build
+
+.vercel
+
+# graphify
+graphify-out/
+.graphify/
+
+# gemini
+.gemini/
+

@@ -13,6 +13,8 @@
     "@deck.gl/layers": "^9.2.11",
     "@deck.gl/mapbox": "^9.2.11",
     "@deck.gl/react": "^9.2.11",
+    "@turf/turf": "^7.3.5",
+    "@types/suncalc": "^1.9.2",
     "@types/ws": "^8.18.1",
     "lucide-react": "^1.7.0",
     "mapbox-gl": "^3.20.0",
@@ -20,6 +22,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-map-gl": "^8.1.0",
+    "suncalc": "^1.9.0",
     "ws": "^8.21.0",
     "zustand": "^5.0.12"
   },

@@ -33,6 +33,14 @@ Aegis Tactical Dashboard is a high-performance, real-time geospatial intelligenc
 *   **Change Detection Tooling**: Calculates Intersection over Union (IoU) across sequential frames to accurately flag *New Signatures* vs *Known Entities*. Priorities feed directly into frontend Alert Chips styled with "Instrumentation Glows."
 *   **Mock Sentinel Hub API**: Stubs for fetching imagery localized to user-requested geographic bounded boxes or timestamps.
 
+### 6. Production Deployment, Viewport HUD & Aviation Optimizations
+*   **Vercel Cloud Integration**: Production deployment on Vercel (`aegisint.vercel.app`) using `.vercelignore` exclusions to bypass standard 500MB serverless Lambda size limits (ignoring heavy local Python dependencies). Added production environment configurations for Windy API & Mapbox GL JS.
+*   **Disabled ISR**: Disabled ISR caching behaviors on heavy/dynamic pages to minimize Vercel runtime compute costs.
+*   **Precision Viewport HUD Widget**: Integrated a custom, cyan-colored reset globe utility inside the viewport frame to zoom out to a complete global overview. Enhanced default map Zoom behavior to center zoom directly onto the mouse cursor, and placed real-time Latitude & Longitude coordinate tracking at the bottom dashboard controller.
+*   **Branding & Initial Layer Controls**: Rebranded "Geoint Command" to "Aegis Command" and configured dashboard layers to remain disabled on boot by default (unless past user preferences exist).
+*   **High-Performance Aviation Layers**: Scaled down flight markers to 14x14px SVGs for visual efficiency, optimized loading latency by applying pre-filtering on active military/commercial layers before limiting active DOM marker limits to 300 to maintain a smooth 60fps.
+
+
 ## Design System & UX Principles
 *   **The "Kinetic Monolith"**: Strictly enforced UI rules requiring `0px` border radiuses for all containers and data boxes.
 *   **Glass & Gradient Rule**: Implementation of `backdrop-blur(12px)` paired with deeply translucent dark palettes (`surface_variant`).
