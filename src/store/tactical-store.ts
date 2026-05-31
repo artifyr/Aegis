@@ -125,7 +125,22 @@ export const useTacticalStore = create<TacticalStore>()(
       setMapCommand: (mapCommand) => set({ mapCommand }),
 
       flights: [],
-      setFlights: (flights) => set({ flights }), // Removed history merge logic as trails are removed
+      setFlights: (newFlights) => set((state) => {
+        const historyMap = new Map(state.flights.map(f => [f.icao24, f.history || []]));
+        const mergedFlights = newFlights.map(f => {
+          const pastHistory = historyMap.get(f.icao24) || [];
+          const newHistory = [...pastHistory];
+          // Add to history if moved significantly or is first point
+          if (newHistory.length === 0 || newHistory[newHistory.length - 1].lat !== f.lat || newHistory[newHistory.length - 1].lng !== f.lng) {
+            newHistory.push({ lat: f.lat, lng: f.lng });
+          }
+          // Optional: cap history at 100 points
+          if (newHistory.length > 100) newHistory.shift();
+          
+          return { ...f, history: newHistory };
+        });
+        return { flights: mergedFlights };
+      }),
 
       ports: [],
       setPorts: (ports) => set({ ports }),

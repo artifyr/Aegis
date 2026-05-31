@@ -455,7 +455,7 @@ export function TacticalMap({
     };
 
     fetchAviation();
-    const intervalId = setInterval(fetchAviation, 300000);
+    const intervalId = setInterval(fetchAviation, 120000);
     return () => clearInterval(intervalId);
   }, [setFlights]);
 
@@ -745,6 +745,35 @@ export function TacticalMap({
             />
           </Source>
         )}
+
+        {/* Render Flight Trails */}
+        {!isDived && flights.filter(f => f.history && f.history.length > 1 && layers[`aviation_${f.category === 'jet' ? 'jets' : f.category}` as keyof typeof layers]).map(flight => (
+          <Source key={`trail-${flight.icao24}`} id={`trail-${flight.icao24}`} type="geojson" data={{
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: flight.history!.map(pt => [pt.lng, pt.lat])
+            },
+            properties: {}
+          }}>
+            <Layer
+              id={`trail-layer-${flight.icao24}`}
+              type="line"
+              paint={{
+                'line-color': flight.category === 'military' 
+                  ? '#ef4444' 
+                  : flight.category === 'jet'
+                  ? '#ec4899'
+                  : flight.category === 'private'
+                  ? '#a855f7'
+                  : '#f97316',
+                'line-width': 1.5,
+                'line-opacity': 0.6,
+                'line-dasharray': [2, 2]
+              }}
+            />
+          </Source>
+        ))}
 
         {/* GeoJSON Satellites Layer */}
         {!isDived && layers.space_satellites && (
