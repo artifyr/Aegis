@@ -421,14 +421,26 @@ export function TacticalMap({
   }, []);
 
   const handleMapClick = useCallback((e: any) => {
+    console.log('Map clicked', e.features);
     if (e.features && e.features.length > 0) {
       const feature = e.features[0];
       if (feature.layer.id === 'flights-layer') {
+        console.log('Setting active flight:', feature.properties.icao24);
         setActiveEntityId(feature.properties.icao24);
         return;
       }
     }
     setActiveEntityId(null);
+  }, []);
+
+  const onMouseEnter = useCallback(() => {
+    const map = mapRef.current?.getMap();
+    if (map) map.getCanvas().style.cursor = 'pointer';
+  }, []);
+
+  const onMouseLeave = useCallback(() => {
+    const map = mapRef.current?.getMap();
+    if (map) map.getCanvas().style.cursor = '';
   }, []);
 
   // ─── Camera Dive ─────────────────────────────────────────────
@@ -519,6 +531,8 @@ export function TacticalMap({
         }}
         onLoad={handleMapLoad}
         onClick={handleMapClick}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
         interactiveLayerIds={['flights-layer']}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle={mapStyle}
