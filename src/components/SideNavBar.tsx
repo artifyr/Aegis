@@ -15,7 +15,7 @@ const getRegionFromCoords = (lat: number, lng: number) => {
 };
 
 export function SideNavBar() {
-  const { setDiveTarget, layers, toggleLayer, cameras, flights, ports, chokepoints, satellites, setMapCommand, setActiveEntityId } = useTacticalStore();
+  const { setDiveTarget, layers, toggleLayer, cameras, flights, ports, chokepoints, satellites, earthquakes, nuclearFacilities, setMapCommand, setActiveEntityId } = useTacticalStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     aviation: true,
@@ -134,11 +134,13 @@ export function SideNavBar() {
   };
 
   const aviationActiveCount = [layers.aviation_commercial, layers.aviation_private, layers.aviation_jets, layers.aviation_military].filter(Boolean).length;
-  const maritimeActiveCount = [layers.maritime, false].filter(Boolean).length; // Satellites false
+  const maritimeActiveCount = [layers.maritime, layers.space_satellites].filter(Boolean).length;
   const survActiveCount = [layers.cctv, false].filter(Boolean).length;
+  const hazardsActiveCount = [layers.hazards_earthquakes, false, false].filter(Boolean).length;
+  const threatsActiveCount = [layers.threats_nuclear, false, false].filter(Boolean).length;
   
-  const totalEntities = cameras.length + flights.length + ports.length + chokepoints.length;
-  const activeLayersTotal = aviationActiveCount + maritimeActiveCount + survActiveCount;
+  const totalEntities = cameras.length + flights.length + ports.length + chokepoints.length + satellites.length + earthquakes.length + nuclearFacilities.length;
+  const activeLayersTotal = aviationActiveCount + maritimeActiveCount + survActiveCount + hazardsActiveCount + threatsActiveCount;
 
   return (
     <aside className="static flex-shrink-0 left-0 top-16 h-[calc(100vh-64px)] w-80 flex flex-col justify-between py-4 bg-[#0d0e12] border-r border-outline-variant/10 z-40 overflow-hidden">
@@ -237,10 +239,10 @@ export function SideNavBar() {
 
         {/* ═══ NATURAL HAZARDS ═══ */}
         <div className="flex flex-col gap-1">
-           <GroupHeader id="hazards" label="NATURAL HAZARDS" icon="bolt" activeCount={0} totalCount={3} activeParent={false} />
+           <GroupHeader id="hazards" label="NATURAL HAZARDS" icon="bolt" activeCount={hazardsActiveCount} totalCount={3} activeParent={hazardsActiveCount > 0} />
            {expandedGroups['hazards'] && (
              <div className="flex flex-col gap-0.5">
-               <LayerSwitch label="Earthquakes (24h)" active={false} count={35} dotColor="bg-orange-500" onClick={() => {}} />
+               <LayerSwitch label="Earthquakes (24h)" active={layers.hazards_earthquakes} count={earthquakes.length} dotColor="bg-orange-500" onClick={() => toggleLayer('hazards_earthquakes')} />
                <LayerSwitch label="Active Fires" active={false} count={0} dotColor="bg-red-500" onClick={() => {}} />
                <LayerSwitch label="Severe Weather" active={false} count={0} dotColor="bg-purple-500" onClick={() => {}} />
              </div>
@@ -249,10 +251,10 @@ export function SideNavBar() {
         
         {/* ═══ THREATS & INFRA ═══ */}
         <div className="flex flex-col gap-1">
-           <GroupHeader id="threats" label="THREATS & INFRA" icon="warning" activeCount={0} totalCount={3} activeParent={false} />
+           <GroupHeader id="threats" label="THREATS & INFRA" icon="warning" activeCount={threatsActiveCount} totalCount={3} activeParent={threatsActiveCount > 0} />
            {expandedGroups['threats'] && (
              <div className="flex flex-col gap-0.5">
-               <LayerSwitch label="Nuclear Facilities" active={false} count={0} dotColor="bg-green-500" onClick={() => {}} />
+               <LayerSwitch label="Nuclear Facilities" active={layers.threats_nuclear} count={nuclearFacilities.length} dotColor="bg-green-500" onClick={() => toggleLayer('threats_nuclear')} />
                <LayerSwitch label="Global Incidents" active={false} count={30} dotColor="bg-red-500" onClick={() => {}} />
                <LayerSwitch label="GPS Jamming" active={false} count={0} dotColor="bg-slate-500" onClick={() => {}} />
              </div>

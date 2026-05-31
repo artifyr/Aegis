@@ -237,6 +237,10 @@ export function TacticalMap({
   const setShips = useTacticalStore(state => state.setShips);
   const satellites = useTacticalStore(state => state.satellites);
   const setSatellites = useTacticalStore(state => state.setSatellites);
+  const earthquakes = useTacticalStore(state => state.earthquakes);
+  const setEarthquakes = useTacticalStore(state => state.setEarthquakes);
+  const nuclearFacilities = useTacticalStore(state => state.nuclearFacilities);
+  const setNuclearFacilities = useTacticalStore(state => state.setNuclearFacilities);
   const layers = useTacticalStore(state => state.layers);
 
   const activeEntityId = useTacticalStore(state => state.activeEntityId);
@@ -473,6 +477,44 @@ export function TacticalMap({
     const intervalId = setInterval(fetchSatellites, 60000);
     return () => clearInterval(intervalId);
   }, [layers.space_satellites, setSatellites]);
+
+  // Fetch Earthquakes
+  useEffect(() => {
+    if (!layers.hazards_earthquakes) return;
+    const fetchEarthquakes = () => {
+      fetch('/api/earthquakes')
+        .then(res => res.json())
+        .then(data => {
+          if (data.earthquakes) {
+            setEarthquakes(data.earthquakes);
+          }
+        })
+        .catch(err => console.error("Earthquakes fetch failed", err));
+    };
+
+    fetchEarthquakes();
+    const intervalId = setInterval(fetchEarthquakes, 300000); // 5 mins
+    return () => clearInterval(intervalId);
+  }, [layers.hazards_earthquakes, setEarthquakes]);
+
+  // Fetch Nuclear Facilities
+  useEffect(() => {
+    if (!layers.threats_nuclear) return;
+    const fetchNuclear = () => {
+      fetch('/api/infrastructure')
+        .then(res => res.json())
+        .then(data => {
+          if (data.infrastructure) {
+            setNuclearFacilities(data.infrastructure);
+          }
+        })
+        .catch(err => console.error("Nuclear fetch failed", err));
+    };
+
+    fetchNuclear();
+    const intervalId = setInterval(fetchNuclear, 300000); // 5 mins
+    return () => clearInterval(intervalId);
+  }, [layers.threats_nuclear, setNuclearFacilities]);
 
   // Execute external dives from the Zustand store
   useEffect(() => {
@@ -1176,6 +1218,120 @@ export function TacticalMap({
                         {chokepoint.risk || 'NORMAL'}
                       </span>
                     </div>
+                  </div>
+                </div>
+              )}
+            </Marker>
+          );
+        })}
+
+        {/* Render Earthquakes */}
+        {!isDived && layers.hazards_earthquakes && earthquakes.map((eq) => {
+          const isActive = activeEntityId === eq.id;
+          const mag = eq.magnitude || 0;
+          const size = Math.max(8, mag * 3);
+          const color = mag >= 6 ? '#ef4444' : mag >= 4.5 ? '#f97316' : '#eab308';
+          
+          return (
+            <Marker key={`eq-${eq.id}`} longitude={eq.lng} latitude={eq.lat} anchor="center" style={{ zIndex: isActive ? 999999 : 10 }}>
+              <div 
+                className="rounded-full cursor-pointer transition-transform relative flex items-center justify-center hover:scale-110"
+                style={{ width: `${size}px`, height: `${size}px` }}
+                onClick={(e) => { e.stopPropagation(); setActiveEntityId(eq.id); }}
+              >
+                <div className="absolute inset-0 rounded-full animate-ping opacity-75" style={{ backgroundColor: color }}></div>
+                <div className="relative rounded-full border border-black shadow-[0_0_8px_currentColor] w-full h-full" style={{ backgroundColor: color, color }}></div>
+              </div>
+              
+              {isActive && (
+                <div className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-xl shadow-2xl backdrop-blur-lg w-72 pointer-events-auto cursor-auto z-[999999]"
+                     style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${color}40` }}>
+                  <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl" style={{ backgroundColor: color }} />
+                  <div className="flex justify-between items-start mb-2 mt-1">
+                    <div>
+                      <h3 className="font-headline font-bold text-sm tracking-wider uppercase" style={{ color }}>{eq.place}</h3>
+                      <span className="text-slate-400 font-mono text-[9px] uppercase">{new Date(eq.time).toLocaleString()}</span>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} className="text-slate-500 hover:text-white transition-colors">
+                      <span className="material-symbols-outlined text-[16px]">close</span>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-3 mb-2">
+                    <div className="bg-slate-900/50 border border-slate-800 rounded p-2 text-center">
+                      <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">MAGNITUDE</span>
+                      <span className="text-white font-mono text-sm font-bold" style={{ color }}>M {mag.toFixed(1)}</span>
+                    </div>
+                    <div className="bg-slate-900/50 border border-slate-800 rounded p-2 text-center">
+                      <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">DEPTH</span>
+                      <span className="text-slate-200 font-mono text-xs">{eq.depth.toFixed(1)} km</span>
+                    </div>
+                  </div>
+                  {eq.alert && (
+                     <div className="bg-red-900/20 border border-red-500/30 rounded p-2 text-center mt-2">
+                       <span className="text-red-400 text-[9px] font-mono uppercase">Alert Level: {eq.alert}</span>
+                     </div>
+                  )}
+                  {eq.url && (
+                    <a href={eq.url} target="_blank" rel="noopener noreferrer" className="mt-3 text-cyan-400 text-[10px] font-mono hover:underline flex items-center justify-center gap-1 w-full bg-slate-900/50 p-2 rounded">
+                      <span className="material-symbols-outlined text-[12px]">open_in_new</span> USGS REPORT
+                    </a>
+                  )}
+                </div>
+              )}
+            </Marker>
+          );
+        })}
+
+        {/* Render Nuclear Facilities */}
+        {!isDived && layers.threats_nuclear && nuclearFacilities.map((nuc) => {
+          const isActive = activeEntityId === nuc.id;
+          const isDanger = nuc.status.includes('SEISMIC') || nuc.status.includes('Conflict') || nuc.status.includes('Destroyed');
+          const isWarning = nuc.status.includes('Shutdown') || nuc.status.includes('Suspended');
+          const color = isDanger ? '#ef4444' : isWarning ? '#eab308' : '#22c55e';
+          
+          return (
+            <Marker key={`nuc-${nuc.id}`} longitude={nuc.lng} latitude={nuc.lat} anchor="center" style={{ zIndex: isActive ? 999999 : 20 }}>
+              <div 
+                className="cursor-pointer flex items-center justify-center bg-[#0d0e12]/80 rounded border border-white/20 p-1.5 hover:scale-110 transition-transform"
+                onClick={(e) => { e.stopPropagation(); setActiveEntityId(nuc.id); }}
+                style={{ boxShadow: `0 0 10px ${color}40` }}
+              >
+                <span className="material-symbols-outlined text-[16px]" style={{ color }}>warning</span>
+              </div>
+              
+              {isActive && (
+                <div className="absolute top-6 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-xl shadow-2xl backdrop-blur-lg w-[300px] pointer-events-auto cursor-auto z-[999999]" style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${color}40` }}>
+                  <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl" style={{ backgroundColor: color }} />
+                  <div className="flex justify-between items-start mb-3 mt-1">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[16px]" style={{ color }}>warning</span>
+                        <h3 className="font-headline font-bold text-sm tracking-wider uppercase truncate max-w-[200px]" style={{ color }}>{nuc.name}</h3>
+                      </div>
+                      <span className="text-slate-400 font-mono text-[9px] uppercase tracking-widest block mt-0.5">{nuc.city}, {nuc.country}</span>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} className="text-slate-500 hover:text-white transition-colors">
+                      <span className="material-symbols-outlined text-[16px]">close</span>
+                    </button>
+                  </div>
+                  
+                  <div className="bg-slate-900/50 border border-slate-800/80 rounded p-3 mb-3">
+                    <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">STATUS</span>
+                    <span className="font-mono text-xs font-bold uppercase truncate" style={{ color }}>{nuc.status}</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div className="bg-slate-900/50 border border-slate-800 rounded p-2 text-center">
+                      <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">REACTORS</span>
+                      <span className="text-white font-mono text-xs">{nuc.reactors}</span>
+                    </div>
+                    <div className="bg-slate-900/50 border border-slate-800 rounded p-2 text-center">
+                      <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">CAPACITY</span>
+                      <span className="text-white font-mono text-xs">{nuc.capacityMW} MW</span>
+                    </div>
+                  </div>
+                  <div className="text-center mt-2 pt-2 border-t border-slate-800/50">
+                     <span className="text-slate-500 font-mono text-[9px] uppercase">OWNER: <span className="text-slate-300">{nuc.owner}</span></span>
                   </div>
                 </div>
               )}

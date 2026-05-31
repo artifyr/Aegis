@@ -85,6 +85,12 @@ interface TacticalStore {
   satellites: SatelliteNode[];
   setSatellites: (satellites: SatelliteNode[]) => void;
 
+  // Hazards & Infrastructure
+  earthquakes: any[];
+  setEarthquakes: (earthquakes: any[]) => void;
+  nuclearFacilities: any[];
+  setNuclearFacilities: (facilities: any[]) => void;
+
   // UI Layers Visibility
   layers: {
     aviation_commercial: boolean;
@@ -94,6 +100,8 @@ interface TacticalStore {
     maritime: boolean;
     cctv: boolean;
     space_satellites: boolean;
+    hazards_earthquakes: boolean;
+    threats_nuclear: boolean;
   };
   toggleLayer: (layerName: keyof TacticalStore['layers']) => void;
 }
@@ -131,6 +139,12 @@ export const useTacticalStore = create<TacticalStore>()(
       satellites: [],
       setSatellites: (satellites) => set({ satellites }),
 
+      earthquakes: [],
+      setEarthquakes: (earthquakes) => set({ earthquakes }),
+
+      nuclearFacilities: [],
+      setNuclearFacilities: (nuclearFacilities) => set({ nuclearFacilities }),
+
       layers: {
         aviation_commercial: false,
         aviation_private: false,
@@ -139,6 +153,8 @@ export const useTacticalStore = create<TacticalStore>()(
         maritime: false,
         cctv: false,
         space_satellites: false,
+        hazards_earthquakes: false,
+        threats_nuclear: false,
       },
       toggleLayer: (layerName) => set((state) => ({
         layers: { ...state.layers, [layerName]: !state.layers[layerName] }
