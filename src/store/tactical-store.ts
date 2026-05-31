@@ -95,12 +95,12 @@ export const useTacticalStore = create<TacticalStore>()(
       setChokepoints: (chokepoints) => set({ chokepoints }),
 
       layers: {
-        aviation_commercial: true,
+        aviation_commercial: false,
         aviation_private: false,
         aviation_jets: false,
-        aviation_military: true,
-        maritime: true,
-        cctv: true,
+        aviation_military: false,
+        maritime: false,
+        cctv: false,
       },
       toggleLayer: (layerName) => set((state) => ({
         layers: { ...state.layers, [layerName]: !state.layers[layerName] }

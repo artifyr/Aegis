@@ -23,7 +23,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GEOINT COMMAND - Tactical War Room",
+  title: "AEGIS COMMAND - Tactical War Room",
   description: "Geospatial Intelligence Dashboard",
 };
 

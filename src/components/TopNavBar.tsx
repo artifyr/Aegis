@@ -16,7 +16,7 @@ export function TopNavBar() {
   return (
     <header className="flex justify-between items-center w-full px-6 h-16 bg-[#0d0e12] dark:bg-slate-950 fixed top-0 z-50 border-b-0 inner-glow-primary">
       <div className="flex items-center gap-8">
-        <h1 className="text-xl font-black tracking-widest text-white uppercase font-headline">GEOINT COMMAND</h1>
+        <h1 className="text-xl font-black tracking-widest text-white uppercase font-headline">AEGIS COMMAND</h1>
         <nav className="hidden md:flex gap-6 items-center">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
