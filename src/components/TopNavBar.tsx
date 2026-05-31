@@ -62,13 +62,32 @@ export function TopNavBar() {
         </nav>
       </div>
       <div className="flex items-center gap-6">
-        <button 
-          onClick={() => (window as any).__aegisCameraReset?.()}
-          className="w-8 h-8 flex items-center justify-center bg-[rgba(68,71,78,0.40)] text-[#3cdcd1] rounded-full cursor-pointer transition-all duration-150 hover:bg-[rgba(68,71,78,0.60)] border border-[#3cdcd1]/50 shadow-[0_0_10px_rgba(60,220,209,0.3)] hover:scale-110"
-          title="Reset Globe View"
-        >
-          <span className="material-symbols-outlined text-[16px]">public</span>
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center rounded-md overflow-hidden bg-[rgba(68,71,78,0.2)] backdrop-blur-md border border-[#3cdcd1]/20">
+            <button 
+              onClick={() => (window as any).__aegisCameraZoomIn?.()}
+              className="w-10 h-8 flex items-center justify-center bg-[#3cdcd1]/30 text-[#3cdcd1] hover:bg-[#3cdcd1]/40 transition-colors"
+              title="Zoom In"
+            >
+              <span className="material-symbols-outlined text-[20px] font-bold">add</span>
+            </button>
+            <button 
+              onClick={() => (window as any).__aegisCameraZoomOut?.()}
+              className="w-10 h-8 flex items-center justify-center bg-[#0d0e12]/60 text-[#3cdcd1] hover:bg-[#0d0e12]/80 transition-colors"
+              title="Zoom Out"
+            >
+              <span className="material-symbols-outlined text-[20px] font-bold">remove</span>
+            </button>
+          </div>
+
+          <button 
+            onClick={() => (window as any).__aegisCameraReset?.()}
+            className="w-8 h-8 flex items-center justify-center bg-[rgba(68,71,78,0.40)] text-[#3cdcd1] rounded-full cursor-pointer transition-all duration-150 hover:bg-[rgba(68,71,78,0.60)] border border-[#3cdcd1]/50 shadow-[0_0_10px_rgba(60,220,209,0.3)] hover:scale-110"
+            title="Reset Globe View"
+          >
+            <span className="material-symbols-outlined text-[16px]">public</span>
+          </button>
+        </div>
 
         <div className="hidden lg:flex flex-col items-end font-mono text-[10px] tracking-widest">
           <span className="text-[#66FCF1]">{mounted ? zuluTime : 'ZULU: --:--:--'}</span>

@@ -470,9 +470,13 @@ export function TacticalMap({
   useEffect(() => {
     (window as any).__aegisCameraDive = cameraDive;
     (window as any).__aegisCameraReset = cameraReset;
+    (window as any).__aegisCameraZoomIn = () => { mapRef.current?.zoomIn({ duration: 500 }); };
+    (window as any).__aegisCameraZoomOut = () => { mapRef.current?.zoomOut({ duration: 500 }); };
     return () => {
       delete (window as any).__aegisCameraDive;
       delete (window as any).__aegisCameraReset;
+      delete (window as any).__aegisCameraZoomIn;
+      delete (window as any).__aegisCameraZoomOut;
     };
   }, [cameraDive, cameraReset]);
 
