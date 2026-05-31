@@ -15,7 +15,7 @@ const getRegionFromCoords = (lat: number, lng: number) => {
 };
 
 export function SideNavBar() {
-  const { setDiveTarget, layers, toggleLayer, cameras, flights, ports, chokepoints, setMapCommand, setActiveEntityId } = useTacticalStore();
+  const { setDiveTarget, layers, toggleLayer, cameras, flights, ports, chokepoints, satellites, setMapCommand, setActiveEntityId } = useTacticalStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     aviation: true,
@@ -54,6 +54,12 @@ export function SideNavBar() {
     cameras.forEach(c => {
       if (c.id.toString().includes(q) || c.country?.toLowerCase().includes(q) || c.tags?.name?.toLowerCase().includes(q)) {
         results.push({ id: c.id.toString(), type: 'cctv', name: c.tags?.name || `CAM-${c.id}`, lat: c.lat, lng: c.lon, sub: c.country || 'Camera' });
+      }
+    });
+    // Search Satellites
+    satellites.forEach(s => {
+      if (s.name.toLowerCase().includes(q) || s.mission.toLowerCase().includes(q)) {
+        results.push({ id: s.noradId, type: 'satellite', name: s.name, lat: s.lat, lng: s.lng, sub: s.mission });
       }
     });
     
@@ -213,7 +219,7 @@ export function SideNavBar() {
            {expandedGroups['maritime'] && (
              <div className="flex flex-col gap-0.5">
                <LayerSwitch label="Maritime / Naval" active={layers.maritime} count={ports.length + chokepoints.length} dotColor="bg-cyan-500" onClick={() => toggleLayer('maritime')} />
-               <LayerSwitch label="Satellites" active={false} count={1193} dotColor="bg-yellow-500" onClick={() => {}} />
+               <LayerSwitch label="Satellites" active={layers.space_satellites} count={satellites.length} dotColor="bg-yellow-500" onClick={() => toggleLayer('space_satellites')} />
              </div>
            )}
         </div>

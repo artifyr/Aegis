@@ -233,6 +233,8 @@ export function TacticalMap({
   const setPorts = useTacticalStore(state => state.setPorts);
   const chokepoints = useTacticalStore(state => state.chokepoints);
   const setChokepoints = useTacticalStore(state => state.setChokepoints);
+  const satellites = useTacticalStore(state => state.satellites);
+  const setSatellites = useTacticalStore(state => state.setSatellites);
   const layers = useTacticalStore(state => state.layers);
 
   const activeEntityId = useTacticalStore(state => state.activeEntityId);
@@ -290,6 +292,24 @@ export function TacticalMap({
       }))
     };
   }, [flights, layers.aviation_commercial, layers.aviation_private, layers.aviation_jets, layers.aviation_military]);
+
+  // Convert satellites to GeoJSON
+  const satelliteGeoJson = useMemo(() => {
+    return {
+      type: 'FeatureCollection',
+      features: satellites.filter(() => layers.space_satellites).map(s => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [s.lng, s.lat] },
+        properties: {
+          id: s.noradId,
+          mission: s.mission,
+          color: s.color,
+          name: s.name,
+          alt: s.alt,
+        }
+      }))
+    };
+  }, [satellites, layers.space_satellites]);
 
   const visiblePorts = useMemo(() => {
     if (!bounds) return ports;
@@ -392,6 +412,25 @@ export function TacticalMap({
     const intervalId = setInterval(fetchAviation, 300000);
     return () => clearInterval(intervalId);
   }, [setFlights]);
+
+  // Fetch Satellites data every 60 seconds if layer is active
+  useEffect(() => {
+    if (!layers.space_satellites) return;
+    const fetchSatellites = () => {
+      fetch('/api/satellites')
+        .then(res => res.json())
+        .then(data => {
+          if (data.satellites) {
+            setSatellites(data.satellites);
+          }
+        })
+        .catch(err => console.error("Satellites fetch failed", err));
+    };
+
+    fetchSatellites();
+    const intervalId = setInterval(fetchSatellites, 60000);
+    return () => clearInterval(intervalId);
+  }, [layers.space_satellites, setSatellites]);
 
   // Execute external dives from the Zustand store
   useEffect(() => {
@@ -516,7 +555,7 @@ export function TacticalMap({
 
           if (e.features && e.features.length > 0) {
             const feature = e.features[0];
-            if (feature.layer?.id === 'flights-layer') {
+            if (feature.layer?.id === 'flights-layer' || feature.layer?.id === 'satellites-layer') {
               setActiveEntityId(feature.properties?.id);
             }
           } else {
@@ -546,7 +585,7 @@ export function TacticalMap({
           addPlaneImage('#a855f7', 'plane-private');
           addPlaneImage('#f97316', 'plane-commercial');
         }}
-        interactiveLayerIds={['flights-layer']}
+        interactiveLayerIds={['flights-layer', 'satellites-layer']}
 
         onMouseEnter={(e) => {
           if (e.features && e.features.length > 0) {
@@ -606,6 +645,23 @@ export function TacticalMap({
                 'icon-allow-overlap': true,
                 'icon-ignore-placement': true,
                 'icon-size': 0.7,
+              }}
+            />
+          </Source>
+        )}
+
+        {/* GeoJSON Satellites Layer */}
+        {!isDived && layers.space_satellites && (
+          <Source id="satellites-source" type="geojson" data={satelliteGeoJson as any}>
+            <Layer
+              id="satellites-layer"
+              type="circle"
+              paint={{
+                'circle-radius': 3.5,
+                'circle-color': ['get', 'color'],
+                'circle-opacity': 0.85,
+                'circle-stroke-width': 0.5,
+                'circle-stroke-color': '#0d0e12'
               }}
             />
           </Source>
@@ -714,6 +770,49 @@ export function TacticalMap({
                     >
                       <span className="material-symbols-outlined text-xs">satellite_alt</span> ADS-B
                     </a>
+                  </div>
+                </div>
+              </Marker>
+            );
+          })()
+        )}
+
+        {/* Active Satellite Popup */}
+        {!isDived && activeEntityId && satellites.find(s => s.noradId === activeEntityId) && (
+          (() => {
+            const sat = satellites.find(s => s.noradId === activeEntityId)!;
+            return (
+              <Marker 
+                longitude={sat.lng} 
+                latitude={sat.lat} 
+                anchor="center"
+                style={{ zIndex: 999999 }}
+              >
+                <div 
+                  className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-md shadow-2xl backdrop-blur-lg w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
+                  style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${sat.color}4D` }}
+                >
+                  <div 
+                    className="absolute top-0 left-0 right-0 h-1 rounded-t-md"
+                    style={{ backgroundColor: sat.color }}
+                  />
+                  <div className="flex justify-between items-center mb-4 mt-1">
+                    <div>
+                      <h3 className="text-white font-mono text-sm tracking-widest leading-tight">{sat.name}</h3>
+                      <p className="text-[#8e9196] font-mono text-[10px] tracking-wider mt-1">{sat.mission.toUpperCase()} SATELLITE</p>
+                    </div>
+                    <span className="material-symbols-outlined text-[20px]" style={{ color: sat.color }}>satellite_alt</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="bg-[#1f2937]/50 rounded p-2 border border-white/5">
+                      <p className="text-[#8e9196] font-mono text-[9px] tracking-widest mb-1">ALTITUDE</p>
+                      <p className="text-white font-mono text-xs">{sat.alt} KM</p>
+                    </div>
+                    <div className="bg-[#1f2937]/50 rounded p-2 border border-white/5">
+                      <p className="text-[#8e9196] font-mono text-[9px] tracking-widest mb-1">NORAD ID</p>
+                      <p className="text-white font-mono text-xs">{sat.noradId}</p>
+                    </div>
                   </div>
                 </div>
               </Marker>

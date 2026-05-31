@@ -38,6 +38,16 @@ export interface MaritimeNode {
   fleet?: string;
 }
 
+export interface SatelliteNode {
+  name: string;
+  lat: number;
+  lng: number;
+  alt: number;
+  mission: string;
+  color: string;
+  noradId: string;
+}
+
 interface TacticalStore {
   // Currently fetched cameras in the viewport
   cameras: SurveillanceNode[];
@@ -69,6 +79,10 @@ interface TacticalStore {
   chokepoints: MaritimeNode[];
   setChokepoints: (chokepoints: MaritimeNode[]) => void;
 
+  // Space
+  satellites: SatelliteNode[];
+  setSatellites: (satellites: SatelliteNode[]) => void;
+
   // UI Layers Visibility
   layers: {
     aviation_commercial: boolean;
@@ -77,6 +91,7 @@ interface TacticalStore {
     aviation_military: boolean;
     maritime: boolean;
     cctv: boolean;
+    space_satellites: boolean;
   };
   toggleLayer: (layerName: keyof TacticalStore['layers']) => void;
 }
@@ -108,6 +123,9 @@ export const useTacticalStore = create<TacticalStore>()(
       chokepoints: [],
       setChokepoints: (chokepoints) => set({ chokepoints }),
 
+      satellites: [],
+      setSatellites: (satellites) => set({ satellites }),
+
       layers: {
         aviation_commercial: false,
         aviation_private: false,
@@ -115,6 +133,7 @@ export const useTacticalStore = create<TacticalStore>()(
         aviation_military: false,
         maritime: false,
         cctv: false,
+        space_satellites: false,
       },
       toggleLayer: (layerName) => set((state) => ({
         layers: { ...state.layers, [layerName]: !state.layers[layerName] }
