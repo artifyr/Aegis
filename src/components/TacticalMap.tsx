@@ -241,44 +241,27 @@ export function TacticalMap({
   const [mapStyle, setMapStyle] = useState(DARK_STYLE);
   const [bounds, setBounds] = useState<{ sw: { lat: number, lng: number }, ne: { lat: number, lng: number } } | null>(null);
 
-  // Optimize rendering by filtering entities to current viewport and capping limits
-  const visibleFlights = useMemo(() => {
-    const activeFlights = flights.filter((flight) => {
-      if (flight.category === 'commercial' && !layers.aviation_commercial) return false;
-      if (flight.category === 'private' && !layers.aviation_private) return false;
-      if (flight.category === 'jet' && !layers.aviation_jets) return false;
-      if (flight.category === 'military' && !layers.aviation_military) return false;
-      return true;
-    });
-
-    if (!bounds) return activeFlights;
-
-    const filtered = activeFlights.filter(f =>
-      f.lat >= bounds.sw.lat && f.lat <= bounds.ne.lat &&
-      f.lng >= bounds.sw.lng && f.lng <= bounds.ne.lng
-    );
-    return filtered;
-  }, [flights, bounds, layers.aviation_commercial, layers.aviation_private, layers.aviation_jets, layers.aviation_military]);
-
-  // Generate GeoJSON for flights
-  const flightsGeoJSON = useMemo(() => {
+  // Convert flights to GeoJSON for highly performant Mapbox WebGL rendering
+  const flightGeoJson = useMemo(() => {
     return {
       type: 'FeatureCollection',
-      features: visibleFlights.map(f => ({
+      features: flights.filter((flight) => {
+        if (flight.category === 'commercial' && !layers.aviation_commercial) return false;
+        if (flight.category === 'private' && !layers.aviation_private) return false;
+        if (flight.category === 'jet' && !layers.aviation_jets) return false;
+        if (flight.category === 'military' && !layers.aviation_military) return false;
+        return true;
+      }).map(f => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [f.lng, f.lat] },
         properties: {
-          icao24: f.icao24,
-          category: f.category,
-          true_track: f.true_track || 0
+          id: f.icao24,
+          heading: f.heading || 0,
+          icon: `plane-${f.category}`,
         }
       }))
     };
-  }, [visibleFlights]);
-
-  const activeFlightData = useMemo(() => {
-    return flights.find(f => f.icao24 === activeEntityId);
-  }, [flights, activeEntityId]);
+  }, [flights, layers.aviation_commercial, layers.aviation_private, layers.aviation_jets, layers.aviation_military]);
 
   const visiblePorts = useMemo(() => {
     if (!bounds) return ports;
@@ -386,62 +369,17 @@ export function TacticalMap({
   useEffect(() => {
     if (diveTarget && mapRef.current) {
       const map = mapRef.current.getMap();
-      if (map) {
-        map.setCenter([diveTarget.lng, diveTarget.lat]);
-        map.setZoom(diveTarget.zoom || 17);
-        map.setPitch(60);
-        map.setBearing(0);
-        
-        setSelectedCamera(diveTarget);
-        setIsDived(true);
-      }
+      map.flyTo({
+        center: [diveTarget.lng, diveTarget.lat],
+        zoom: diveTarget.zoom || 14,
+        pitch: 45,
+        speed: 2.0,
+        curve: 1.2
+      });
+      setMapStyle(SATELLITE_STYLE);
+      setIsDived(true);
     }
-  }, [diveTarget, setSelectedCamera]);
-
-  const handleMapLoad = useCallback((e: any) => {
-    const map = e.target;
-    
-    const addPlaneImage = (id: string, color: string) => {
-      if (map.hasImage(id)) return;
-      const svg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="${color}" xmlns="http://www.w3.org/2000/svg"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>`;
-      const img = new Image(24, 24);
-      img.onload = () => {
-        if (!map.hasImage(id)) map.addImage(id, img);
-      };
-      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    };
-
-    addPlaneImage('plane-commercial', '#f97316');
-    addPlaneImage('plane-private', '#a855f7');
-    addPlaneImage('plane-jet', '#ec4899');
-    addPlaneImage('plane-military', '#ef4444');
-    
-    const b = map.getBounds();
-    if (b) setBounds({ sw: { lat: b.getSouth(), lng: b.getWest() }, ne: { lat: b.getNorth(), lng: b.getEast() } });
-  }, []);
-
-  const handleMapClick = useCallback((e: any) => {
-    console.log('Map clicked', e.features);
-    if (e.features && e.features.length > 0) {
-      const feature = e.features[0];
-      if (feature.layer.id === 'flights-layer') {
-        console.log('Setting active flight:', feature.properties.icao24);
-        setActiveEntityId(feature.properties.icao24);
-        return;
-      }
-    }
-    setActiveEntityId(null);
-  }, []);
-
-  const onMouseEnter = useCallback(() => {
-    const map = mapRef.current?.getMap();
-    if (map) map.getCanvas().style.cursor = 'pointer';
-  }, []);
-
-  const onMouseLeave = useCallback(() => {
-    const map = mapRef.current?.getMap();
-    if (map) map.getCanvas().style.cursor = '';
-  }, []);
+  }, [diveTarget]);
 
   // ─── Camera Dive ─────────────────────────────────────────────
   // DESIGN.md: Seamless high-velocity fly-to animation
@@ -522,18 +460,55 @@ export function TacticalMap({
           bearing: 0,
         }}
         onIdle={fetchCamerasInView}
-        onMove={(e) => {
+        onMoveEnd={(e) => {
           const b = e.target.getBounds();
-          setBounds({
-            sw: { lat: b.getSouth(), lng: b.getWest() },
-            ne: { lat: b.getNorth(), lng: b.getEast() }
-          });
+          if (b) setBounds({ sw: b.getSouthWest(), ne: b.getNorthEast() });
         }}
-        onLoad={handleMapLoad}
-        onClick={handleMapClick}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
+        onLoad={(e) => {
+          const map = e.target;
+          const b = map.getBounds();
+          if (b) setBounds({ sw: b.getSouthWest(), ne: b.getNorthEast() });
+
+          const addPlaneImage = (color: string, name: string) => {
+            const img = new Image(24, 24);
+            img.onload = () => {
+              if (!map.hasImage(name)) map.addImage(name, img);
+            };
+            const svgStr = `<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21,16v-2l-8-5V3.5C13,2.67,12.33,2,11.5,2S10,2.67,10,3.5V9l-8,5v2l8-2.5V19l-2,1.5V22l3.5-1l3.5,1v-1.5L13,19v-5.5L21,16z" fill="${color}"/></svg>`;
+            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+          };
+          addPlaneImage('#ef4444', 'plane-military');
+          addPlaneImage('#ec4899', 'plane-jet');
+          addPlaneImage('#a855f7', 'plane-private');
+          addPlaneImage('#f97316', 'plane-commercial');
+        }}
         interactiveLayerIds={['flights-layer']}
+        onClick={(e) => {
+          if (e.features && e.features.length > 0) {
+            const feature = e.features[0];
+            if (feature.layer.id === 'flights-layer') {
+              setActiveEntityId(feature.properties?.id);
+            }
+          } else {
+            setActiveEntityId(null);
+          }
+        }}
+        onMouseEnter={(e) => {
+          if (e.features && e.features.length > 0) {
+            if (mapRef.current) mapRef.current.getCanvas().style.cursor = 'pointer';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (mapRef.current) mapRef.current.getCanvas().style.cursor = '';
+          if (coordsRef.current) {
+            const center = mapRef.current?.getMap()?.getCenter();
+            if (center) {
+              const lat = center.lat;
+              const lng = center.lng;
+              coordsRef.current.innerText = `CTR: ${Math.abs(lat).toFixed(6)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(6)}°${lng >= 0 ? 'E' : 'W'}`;
+            }
+          }
+        }}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle={mapStyle}
         projection={{ name: 'globe' }}
@@ -548,23 +523,6 @@ export function TacticalMap({
         attributionControl={false}
       >
         <NavigationControl position="bottom-right" showCompass={false} />
-
-        {/* High-Performance WebGL Layer for Flights */}
-        {!isDived && (
-          <Source id="flights-source" type="geojson" data={flightsGeoJSON as any}>
-            <Layer
-              id="flights-layer"
-              type="symbol"
-              layout={{
-                'icon-image': ['concat', 'plane-', ['get', 'category']],
-                'icon-rotate': ['get', 'true_track'],
-                'icon-rotation-alignment': 'map',
-                'icon-allow-overlap': true,
-                'icon-size': 0.7
-              }}
-            />
-          </Source>
-        )}
 
         {/* HUD Markers projected directly onto WebGL Globe via Mapbox Marker */}
         {!isDived && layers.cctv && cameras.map((camera) => (
@@ -581,6 +539,132 @@ export function TacticalMap({
           </Marker>
         ))}
 
+        {/* GeoJSON Flights Layer for High Performance */}
+        {!isDived && (
+          <Source id="flights-source" type="geojson" data={flightGeoJson as any}>
+            <Layer
+              id="flights-layer"
+              type="symbol"
+              layout={{
+                'icon-image': ['get', 'icon'],
+                'icon-rotate': ['get', 'heading'],
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+                'icon-size': 0.7,
+              }}
+            />
+          </Source>
+        )}
+
+        {/* Active Flight Popup rendering as a DOM Marker so we keep exact CSS styling */}
+        {!isDived && activeEntityId && flights.find(f => f.icao24 === activeEntityId) && (
+          (() => {
+            const flight = flights.find(f => f.icao24 === activeEntityId)!;
+            return (
+              <Marker 
+                longitude={flight.lng} 
+                latitude={flight.lat} 
+                anchor="center"
+                style={{ zIndex: 999999 }}
+              >
+                <div 
+                  className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-md shadow-2xl backdrop-blur-lg w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
+                  style={{
+                    boxShadow: flight.category === 'military' 
+                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(239, 68, 68, 0.3)' 
+                      : flight.category === 'jet'
+                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(236, 72, 153, 0.3)'
+                      : flight.category === 'private'
+                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(168, 85, 247, 0.3)'
+                      : '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(249, 115, 22, 0.3)'
+                  }}
+                >
+                  <div 
+                    className="absolute top-0 left-0 right-0 h-1 rounded-t-md"
+                    style={{
+                      backgroundColor: flight.category === 'military' 
+                        ? '#ef4444' 
+                        : flight.category === 'jet'
+                        ? '#ec4899'
+                        : flight.category === 'private'
+                        ? '#a855f7'
+                        : '#f97316'
+                    }}
+                  />
+                  <div className="flex justify-between items-center mb-4 mt-1">
+                    <div>
+                      <h3 
+                        className="font-headline font-bold tracking-wider text-xl uppercase"
+                        style={{
+                          color: flight.category === 'military' 
+                            ? '#ef4444' 
+                            : flight.category === 'jet'
+                            ? '#ec4899'
+                            : flight.category === 'private'
+                            ? '#a855f7'
+                            : '#f97316'
+                        }}
+                      >
+                        {flight.callsign || 'UNKNOWN'}
+                      </h3>
+                      <span className="text-slate-500 font-mono text-[10px] tracking-wider uppercase block mt-0.5">ICAO24: {flight.icao24}</span>
+                    </div>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} 
+                      className="text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800/80 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-150 border border-slate-800"
+                    >
+                      <span className="material-symbols-outlined text-base">close</span>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 mb-5 bg-slate-900/40 border border-slate-800/40 p-3 rounded-lg">
+                    <div>
+                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">MODEL</p>
+                      <p className="text-white text-xs font-mono font-medium uppercase truncate">{flight.category}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">ALTITUDE</p>
+                      <p className="text-cyan-400 text-xs font-mono font-medium">{flight.alt}m</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">SPEED</p>
+                      <p className="text-white text-xs font-mono font-medium">{flight.speed_knots}kt</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">HEADING</p>
+                      <p className="text-white text-xs font-mono font-medium">{flight.heading}°</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">REGISTR.</p>
+                      <p className="text-white text-xs font-mono font-medium truncate">{flight.airline_code || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 text-[8px] font-mono tracking-wider mb-0.5 uppercase">POSITION</p>
+                      <p className="text-white text-[10px] font-mono font-medium truncate">{flight.lat.toFixed(2)},{flight.lng.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <a 
+                      href={`https://www.flightaware.com/live/flight/${flight.callsign?.trim() || flight.icao24}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="flex-1 py-2 bg-slate-900 border border-orange-500/30 hover:border-orange-500/60 text-orange-400 text-[10px] font-bold font-mono tracking-wider rounded-lg transition-all duration-150 hover:bg-orange-500/10 flex items-center justify-center gap-1.5 shadow-[0_2px_8px_rgba(249,115,22,0.05)] hover:shadow-[0_2px_12px_rgba(249,115,22,0.15)]"
+                    >
+                      <span className="material-symbols-outlined text-xs">bolt</span> FLIGHTAWARE
+                    </a>
+                    <a 
+                      href={`https://globe.adsbexchange.com/?icao=${flight.icao24}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="flex-1 py-2 bg-slate-900 border border-cyan-500/30 hover:border-cyan-500/60 text-cyan-400 text-[10px] font-bold font-mono tracking-wider rounded-lg transition-all duration-150 hover:bg-cyan-500/10 flex items-center justify-center gap-1.5 shadow-[0_2px_8px_rgba(6,182,212,0.05)] hover:shadow-[0_2px_12px_rgba(6,182,212,0.15)]"
+                    >
+                      <span className="material-symbols-outlined text-xs">satellite_alt</span> ADS-B
+                    </a>
+                  </div>
+                </div>
+              </Marker>
+            );
+          })()
+        )}
 
         {!isDived && layers.maritime && visiblePorts.map((port) => {
           const isActive = activeEntityId === (port.id || port.name);
