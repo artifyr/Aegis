@@ -233,6 +233,8 @@ export function TacticalMap({
   const setPorts = useTacticalStore(state => state.setPorts);
   const chokepoints = useTacticalStore(state => state.chokepoints);
   const setChokepoints = useTacticalStore(state => state.setChokepoints);
+  const ships = useTacticalStore(state => state.ships);
+  const setShips = useTacticalStore(state => state.setShips);
   const satellites = useTacticalStore(state => state.satellites);
   const setSatellites = useTacticalStore(state => state.setSatellites);
   const layers = useTacticalStore(state => state.layers);
@@ -322,6 +324,27 @@ export function TacticalMap({
     };
   }, [satellites, layers.space_satellites]);
 
+  // Convert ships to GeoJSON
+  const shipGeoJson = useMemo(() => {
+    return {
+      type: 'FeatureCollection',
+      features: ships.filter(() => layers.maritime).map(s => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [s.lng, s.lat] },
+        properties: {
+          id: s.mmsi,
+          name: s.name || `MMSI: ${s.mmsi}`,
+          type: s.type || 'cargo',
+          speed: s.speed || 0,
+          heading: s.heading || 0,
+          destination: s.destination || 'UNKNOWN',
+          icon: `ship-${s.type || 'cargo'}`,
+          flag: s.flag || 'AIS'
+        }
+      }))
+    };
+  }, [ships, layers.maritime]);
+
   const visiblePorts = useMemo(() => {
     if (!bounds) return ports;
     return ports.filter(p =>
@@ -391,16 +414,24 @@ export function TacticalMap({
 
   }, []);
 
-  // Fetch static maritime intel on mount
+  // Fetch Maritime data every 60 seconds if layer is active
   useEffect(() => {
-    fetch('/api/maritime')
-      .then(res => res.json())
-      .then(data => {
-        setPorts(data.ports || []);
-        setChokepoints(data.chokepoints || []);
-      })
-      .catch(err => console.error("Maritime fetch failed", err));
-  }, [setPorts, setChokepoints]);
+    if (!layers.maritime) return;
+    const fetchMaritime = () => {
+      fetch('/api/maritime')
+        .then(res => res.json())
+        .then(data => {
+          setPorts(data.ports || []);
+          setChokepoints(data.chokepoints || []);
+          setShips(data.ships || []);
+        })
+        .catch(err => console.error("Maritime fetch failed", err));
+    };
+
+    fetchMaritime();
+    const intervalId = setInterval(fetchMaritime, 60000);
+    return () => clearInterval(intervalId);
+  }, [layers.maritime, setPorts, setChokepoints, setShips]);
 
   // Fetch Aviation data every 5 minutes (300,000 ms)
   useEffect(() => {
@@ -566,7 +597,7 @@ export function TacticalMap({
 
           if (e.features && e.features.length > 0) {
             const feature = e.features[0];
-            if (feature.layer?.id === 'flights-layer' || feature.layer?.id === 'satellites-layer') {
+            if (feature.layer?.id === 'flights-layer' || feature.layer?.id === 'satellites-layer' || feature.layer?.id === 'ships-layer') {
               setActiveEntityId(feature.properties?.id);
             }
           } else {
@@ -595,8 +626,20 @@ export function TacticalMap({
           addPlaneImage('#ec4899', 'plane-jet');
           addPlaneImage('#a855f7', 'plane-private');
           addPlaneImage('#f97316', 'plane-commercial');
+
+          const addShipImage = (color: string, name: string) => {
+            const img = new Image(14, 14);
+            img.onload = () => {
+              if (!map.hasImage(name)) map.addImage(name, img);
+            };
+            const svgStr = `<svg width="14" height="14" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,2 L18,10 L18,22 L6,22 L6,10 Z" fill="${color}" stroke="#0d0e12" stroke-width="1"/></svg>`;
+            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+          };
+          addShipImage('#ef4444', 'ship-military');
+          addShipImage('#eab308', 'ship-tanker');
+          addShipImage('#06b6d4', 'ship-cargo');
         }}
-        interactiveLayerIds={['flights-layer', 'satellites-layer']}
+        interactiveLayerIds={['flights-layer', 'satellites-layer', 'ships-layer']}
 
         onMouseEnter={(e) => {
           if (e.features && e.features.length > 0) {
@@ -839,6 +882,106 @@ export function TacticalMap({
                   >
                     <span className="text-[14px]">🔭</span> SOURCE: SATNOGS
                   </a>
+                </div>
+              </Marker>
+            );
+          })()
+        )}
+
+        {/* GeoJSON Ships Layer */}
+        {!isDived && layers.maritime && (
+          <Source id="ships-source" type="geojson" data={shipGeoJson as any}>
+            <Layer
+              id="ships-layer"
+              type="symbol"
+              layout={{
+                'icon-image': ['get', 'icon'],
+                'icon-rotate': ['get', 'heading'],
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+                'icon-size': 0.8,
+              }}
+            />
+          </Source>
+        )}
+
+        {/* Active Ship Popup */}
+        {!isDived && activeEntityId && ships.find(s => s.mmsi === activeEntityId) && (
+          (() => {
+            const ship = ships.find(s => s.mmsi === activeEntityId)!;
+            const isMilitary = ship.type === 'military';
+            const isTanker = ship.type === 'tanker';
+            const themeColor = isMilitary ? '#ef4444' : isTanker ? '#eab308' : '#06b6d4';
+            const themeShadow = isMilitary ? 'rgba(239, 68, 68, 0.3)' : isTanker ? 'rgba(234, 179, 8, 0.3)' : 'rgba(6, 182, 212, 0.3)';
+
+            return (
+              <Marker 
+                longitude={ship.lng} 
+                latitude={ship.lat} 
+                anchor="center"
+                style={{ zIndex: 999999 }}
+              >
+                <div 
+                  className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-5 rounded-xl shadow-2xl backdrop-blur-lg w-[320px] pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
+                  style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${themeShadow}` }}
+                >
+                  <div 
+                    className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl"
+                    style={{ backgroundColor: themeColor }}
+                  />
+                  
+                  {/* Header */}
+                  <div className="flex justify-between items-start mb-4 mt-1">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[16px] transform -rotate-12">🚢</span>
+                        <h3 
+                          className="font-headline font-bold tracking-widest text-[16px] uppercase"
+                          style={{ color: themeColor }}
+                        >
+                          {ship.name}
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-slate-400 font-mono text-[10px] tracking-wider uppercase px-2 py-0.5 rounded bg-slate-800/50 border border-slate-700/50">
+                          {ship.flag}
+                        </span>
+                        <span className="text-slate-500 font-mono text-[10px] tracking-wider uppercase">
+                          MMSI: {ship.mmsi}
+                        </span>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }}
+                      className="text-slate-500 hover:text-white transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  </div>
+
+                  {/* 3-Column Data Grid */}
+                  <div className="grid grid-cols-3 gap-2 mb-5">
+                    <div className="bg-slate-900/50 border border-slate-800/80 rounded p-2 text-center">
+                      <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">TYPE</span>
+                      <span className="text-slate-200 font-mono text-[11px] uppercase truncate">{ship.type}</span>
+                    </div>
+                    <div className="bg-slate-900/50 border border-slate-800/80 rounded p-2 text-center">
+                      <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">SPEED</span>
+                      <span className="text-slate-200 font-mono text-[11px]">{ship.speed.toFixed(1)} kn</span>
+                    </div>
+                    <div className="bg-slate-900/50 border border-slate-800/80 rounded p-2 text-center">
+                      <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">HDG</span>
+                      <span className="text-slate-200 font-mono text-[11px]">{ship.heading.toFixed(0)}°</span>
+                    </div>
+                  </div>
+
+                  {/* Destination */}
+                  <div className="bg-slate-900/50 border border-slate-800/80 rounded p-3 mb-2 flex flex-col items-center justify-center">
+                    <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">DESTINATION</span>
+                    <span className="text-slate-200 font-mono text-[11px] uppercase truncate max-w-[200px]">
+                      {ship.destination || 'UNKNOWN'}
+                    </span>
+                  </div>
                 </div>
               </Marker>
             );

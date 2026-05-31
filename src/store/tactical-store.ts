@@ -78,6 +78,8 @@ interface TacticalStore {
   setPorts: (ports: MaritimeNode[]) => void;
   chokepoints: MaritimeNode[];
   setChokepoints: (chokepoints: MaritimeNode[]) => void;
+  ships: any[];
+  setShips: (ships: any[]) => void;
 
   // Space
   satellites: SatelliteNode[];
@@ -122,6 +124,9 @@ export const useTacticalStore = create<TacticalStore>()(
 
       chokepoints: [],
       setChokepoints: (chokepoints) => set({ chokepoints }),
+
+      ships: [],
+      setShips: (ships) => set({ ships }),
 
       satellites: [],
       setSatellites: (satellites) => set({ satellites }),
