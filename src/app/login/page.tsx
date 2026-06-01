@@ -166,7 +166,7 @@ export default function LoginPage() {
 
           {/* Heading */}
           <div className="font-nothing text-3xl mb-1 flex justify-center tracking-wide">
-            <TypewriterText text="Login" delay={200} />
+            <TypewriterText text="LOGIN" delay={200} />
           </div>
 
           <div className="mb-10"></div>
