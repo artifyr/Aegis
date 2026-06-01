@@ -180,7 +180,7 @@ export default function AnalyticsPage() {
   return (
     <main className="flex-1 w-full relative bg-[#0b0c10] h-full overflow-y-auto">
       {/* Top Bar */}
-      <div className="sticky top-0 z-20 bg-black/80 backdrop-blur-xl border-b border-white/10 px-8 py-4 flex justify-between items-center">
+      <div className="sticky top-0 z-20 bg-black/80 backdrop-blur-xl border-b border-white/10 px-4 md:px-8 py-4 flex justify-between items-center">
         <div>
           <h1 className="text-white font-bold text-lg font-headline uppercase tracking-wider">
             GLOBAL ANALYTICS COMMAND
@@ -199,9 +199,9 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="p-8 max-w-[1600px] mx-auto">
+      <div className="p-4 md:p-8 max-w-[1600px] mx-auto pb-20 md:pb-8">
         {/* ═══ KPI Row ═══ */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-8">
           <StatCard
             label="Total Mobile Assets"
             value={totalAssets}
@@ -229,7 +229,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* ═══ Main Grid ═══ */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-8">
           
           {/* Real-Time Telemetry Graph */}
           <div className="lg:col-span-2 fui-border bg-black/40 p-6 relative">

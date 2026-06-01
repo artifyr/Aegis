@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { TopNavBar } from './TopNavBar';
 import { SideNavBar } from './SideNavBar';
 import { BottomNavBar } from './BottomNavBar';
+import { SearchPanel } from './SearchPanel';
 import { GlobalDataLoader } from './GlobalDataLoader';
 
 export function NavigationWrapper({ children }: { children: React.ReactNode }) {
@@ -22,6 +23,7 @@ export function NavigationWrapper({ children }: { children: React.ReactNode }) {
         <SideNavBar />
         {children}
       </div>
+      <SearchPanel />
       <BottomNavBar />
     </>
   );

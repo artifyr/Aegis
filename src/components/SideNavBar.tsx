@@ -264,7 +264,7 @@ export function SideNavBar() {
       </div>
 
       {/* Watchlist Input */}
-      <div className="fui-border p-2">
+      <div className="hidden md:block fui-border p-2">
         <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
         <div className="relative">
           <input
