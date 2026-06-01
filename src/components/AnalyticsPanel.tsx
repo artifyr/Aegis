@@ -145,102 +145,102 @@ export function AnalyticsPanel({
   const sortedRegions = Object.entries(regionCounts).sort((a, b) => b[1] - a[1]);
 
   return (
-    <aside className="static right-0 top-16 h-[calc(100vh-64px)] w-80 flex-shrink-0 flex flex-col bg-surface-container bezel-glow z-40 overflow-hidden">
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-outline-variant/10 flex items-center gap-3">
-        <span className="material-symbols-outlined text-secondary">analytics</span>
-        <h2 className="font-headline font-bold text-sm tracking-tight text-white">DATA ANALYTICS &amp; ALERTS</h2>
-      </div>
-
-      {/* Network Status Section */}
-      <div className="p-5 flex flex-col gap-4 border-b border-outline-variant/10">
-        <div className="flex items-center justify-between">
-          <h3 className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">Network Status</h3>
-          <div className="flex gap-1">
-            <AlertChip label={`${workingFeeds} ONLINE`} type="info" />
-            <AlertChip label={`${deadFeeds} OFFLINE`} type="critical" />
+    <aside className="static flex-shrink-0 w-80 h-full flex flex-col gap-4 z-40 bg-transparent p-4 border-l border-white/10 overflow-hidden">
+      
+      {/* Network Status & Scan Summary */}
+      <div className="fui-border p-3 flex flex-col gap-3">
+        <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+        
+        <div className="flex items-center justify-between border-b border-white/20 pb-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full border border-white"></span>
+            <h3 className="text-white font-bold tracking-widest text-[11px] uppercase">NETWORK STATUS</h3>
+          </div>
+          <div className="flex gap-1 text-[9px] font-mono">
+            <span className="bg-white/20 text-white px-1">{workingFeeds} ONLINE</span>
+            <span className="bg-red-500/20 text-red-400 px-1">{deadFeeds} OFFLINE</span>
           </div>
         </div>
 
-        {/* Scan Summary */}
         {latestScan && (
-          <div className="bg-surface-container-low p-3 bezel-glow">
-            <div className="flex justify-between mb-2">
-              <span className="text-[9px] font-mono text-on-surface-variant">LATEST_SYNC</span>
-              <span className="text-[9px] font-mono text-secondary">
-                LIVE
-              </span>
+          <div className="bg-white/5 p-2 border border-white/10">
+            <div className="flex justify-between mb-1">
+              <span className="text-[9px] font-mono text-white/50">LATEST_SYNC</span>
+              <span className="text-[9px] font-mono text-secondary animate-pulse">LIVE</span>
             </div>
-            <div className="grid grid-cols-2 gap-1 text-[9px] font-mono text-on-surface-variant">
+            <div className="grid grid-cols-2 gap-1 text-[9px] font-mono text-white/70">
               <span>NODES: <span className="text-white">{cameras.length}</span></span>
               <span>API_KEY: <span className="text-secondary">SECURE</span></span>
-              <span>PROXY: <span className="text-on-tertiary-container">localhost:8002</span></span>
+              <span>PROXY: <span className="text-white">localhost:8002</span></span>
               <span>WINDY: <span className="text-secondary">v3</span></span>
             </div>
           </div>
         )}
 
-        {/* Regional Asset Breakdown */}
-        <div className="flex flex-col gap-2 mt-2">
-          <h3 className="text-[9px] font-mono text-on-surface-variant mb-1">REGIONAL NODE DISTRIBUTION</h3>
-          {sortedRegions.slice(0, 5).map(([region, count]) => {
+        <div className="flex flex-col gap-1.5 mt-1">
+          <h3 className="text-[9px] font-mono text-white/50 mb-1 uppercase tracking-widest">Regional Node Distribution</h3>
+          {sortedRegions.slice(0, 4).map(([region, count]) => {
             const percentage = totalNodes > 0 ? (count / totalNodes) * 100 : 0;
             return (
-              <div key={region} className="flex flex-col gap-1">
+              <div key={region} className="flex flex-col gap-0.5">
                 <div className="flex justify-between items-end">
                   <span className="text-[9px] font-mono text-white uppercase">{region}</span>
                   <span className="text-[9px] font-mono text-secondary">{count}</span>
                 </div>
-                <div className="w-full h-1 bg-surface-container-highest">
-                  <div className="h-full bg-[#66FCF1] transition-all duration-500" style={{ width: `${percentage}%` }}></div>
+                <div className="w-full h-1 bg-white/10">
+                  <div className="h-full bg-white transition-all duration-500" style={{ width: `${percentage}%` }}></div>
                 </div>
               </div>
             );
           })}
           {sortedRegions.length === 0 && (
-            <span className="text-[9px] font-mono text-on-surface-variant italic">Awaiting telemetry...</span>
+            <span className="text-[9px] font-mono text-white/40 italic">Awaiting telemetry...</span>
           )}
         </div>
       </div>
 
       {/* Alerts Feed */}
-      <div className="flex-1 flex flex-col p-5 overflow-hidden">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">System Alerts</h3>
+      <div className="fui-border p-3 flex-1 flex flex-col overflow-hidden">
+        <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+        <div className="flex items-center justify-between mb-3 border-b border-white/20 pb-2">
           <div className="flex items-center gap-2">
-            {isScanning && (
-              <span className="text-[8px] font-mono text-secondary animate-pulse">SCANNING...</span>
-            )}
+            <span className="w-2 h-2 rounded-full border border-red-500 bg-red-500/20"></span>
+            <h3 className="text-white font-bold tracking-widest text-[11px] uppercase">SYSTEM ALERTS</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            {isScanning && <span className="text-[8px] font-mono text-secondary animate-pulse">SCANNING...</span>}
             <div className="w-2 h-2 rounded-full bg-secondary animate-pulse"></div>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 overflow-y-auto pr-2">
+        <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-1">
           {mergedAlerts.map((alert) => {
-            const borderClass = BORDER_MAP[alert.border_color] || 'border-outline-variant';
+            const isCrit = alert.priority === 'CRITICAL';
             return (
               <div
                 key={alert.alert_id}
-                className={`p-3 bg-surface-container-high border-l-2 ${borderClass} transition-all duration-300 ${
-                  alert.glow
-                    ? 'shadow-[inset_0_0_12px_rgba(60,220,209,0.08),0_0_8px_rgba(195,31,41,0.15)]'
-                    : ''
-                }`}
+                className={`p-2 border-l-2 bg-white/5 ${isCrit ? 'border-red-500' : 'border-white/50'} transition-all`}
               >
                 <div className="flex justify-between items-start mb-1 gap-2">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-white uppercase font-headline">{alert.title}</span>
-                    {alert.priority === 'CRITICAL' && <AlertChip label="CRIT" type="critical" />}
+                    <span className={`text-[10px] font-bold uppercase font-headline ${isCrit ? 'text-red-400' : 'text-white'}`}>{alert.title}</span>
+                    {isCrit && <span className="text-[8px] bg-red-500/20 text-red-500 px-1 border border-red-500/30">CRIT</span>}
                   </div>
-                  <span className="text-[9px] font-mono text-on-surface-variant whitespace-nowrap" suppressHydrationWarning>
-                    {alert.timestamp.slice(11, 19)} Z
+                  <span className="text-[9px] font-mono text-white/40 whitespace-nowrap" suppressHydrationWarning>
+                    {alert.timestamp.slice(11, 16)} Z
                   </span>
                 </div>
-                <p className="text-[10px] font-mono text-on-surface-variant leading-tight mb-1.5">
+                <p className="text-[9px] font-mono text-white/70 leading-tight">
                   {alert.message}
                 </p>
                 {alert.confidence < 1.0 && (
-                  <ConfidenceChip confidence={alert.confidence} />
+                  <div className="mt-1 flex items-center gap-1">
+                    <span className="text-[8px] font-mono text-white/40">CONF:</span>
+                    <div className="w-16 h-1 bg-white/10 flex">
+                      <div className="h-full bg-secondary" style={{ width: `${alert.confidence * 100}%` }}></div>
+                    </div>
+                    <span className="text-[8px] font-mono text-secondary">{(alert.confidence * 100).toFixed(0)}%</span>
+                  </div>
                 )}
               </div>
             );
@@ -249,21 +249,22 @@ export function AnalyticsPanel({
       </div>
 
       {/* Footer Stats */}
-      <div className="p-4 bg-surface-container-lowest font-mono text-[9px] text-on-surface-variant grid grid-cols-2 gap-2 mt-auto">
-        <div className="flex justify-between border-b border-outline-variant/30 pb-1">
-          <span>UPTIME:</span>
+      <div className="fui-border p-3 grid grid-cols-2 gap-2">
+        <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+        <div className="flex justify-between border-b border-white/20 pb-1 text-[9px] font-mono">
+          <span className="text-white/50">UPTIME:</span>
           <span className="text-secondary">99.9%</span>
         </div>
-        <div className="flex justify-between border-b border-outline-variant/30 pb-1">
-          <span>LATENCY:</span>
+        <div className="flex justify-between border-b border-white/20 pb-1 text-[9px] font-mono">
+          <span className="text-white/50">LATENCY:</span>
           <span className="text-secondary">12ms</span>
         </div>
-        <div className="flex justify-between">
-          <span>API_ST:</span>
+        <div className="flex justify-between text-[9px] font-mono">
+          <span className="text-white/50">API_ST:</span>
           <span className="text-secondary">ACTIVE</span>
         </div>
-        <div className="flex justify-between">
-          <span>LOAD:</span>
+        <div className="flex justify-between text-[9px] font-mono">
+          <span className="text-white/50">LOAD:</span>
           <span className="text-secondary">1.43%</span>
         </div>
       </div>

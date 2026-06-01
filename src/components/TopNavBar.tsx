@@ -39,9 +39,11 @@ export function TopNavBar() {
   ];
 
   return (
-    <header className="flex justify-between items-center w-full px-6 h-16 bg-[#0d0e12] dark:bg-slate-950 fixed top-0 z-50 border-b-0 inner-glow-primary">
+    <header className="flex justify-between items-center w-full px-6 h-16 bg-black fixed top-0 z-50 border-b border-white/20">
       <div className="flex items-center gap-8">
-        <h1 className="text-xl font-black tracking-widest text-white uppercase font-headline">AEGIS COMMAND</h1>
+        <h1 className="text-2xl font-black tracking-widest text-white uppercase font-headline">
+          AEGIS
+        </h1>
         <nav className="hidden md:flex gap-6 items-center">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
@@ -49,10 +51,10 @@ export function TopNavBar() {
               <Link
                 key={link.name}
                 href={link.href}
-                className={`font-headline tracking-tighter uppercase text-sm transition-colors pb-1 ${
+                className={`font-mono tracking-widest uppercase text-[11px] transition-colors pb-1 ${
                   isActive
-                    ? 'text-white border-b-2 border-[#66FCF1]'
-                    : 'text-slate-500 hover:text-[#66FCF1] hover:bg-white/5 font-mono'
+                    ? 'text-white border-b-2 border-white'
+                    : 'text-white/50 hover:text-white hover:bg-white/5'
                 }`}
               >
                 {link.name}
@@ -61,51 +63,46 @@ export function TopNavBar() {
           })}
         </nav>
       </div>
+
+      <div 
+        className="absolute left-1/2 -translate-x-1/2 cursor-pointer transition-transform hover:scale-110 flex items-center justify-center"
+        onClick={() => (window as any).__aegisCameraReset?.()}
+        title="Reset Globe View"
+      >
+        <img src="/aegislogo.png" alt="Aegis Logo" className="h-8" />
+      </div>
+
       <div className="flex items-center gap-6">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center rounded-md overflow-hidden bg-[rgba(68,71,78,0.2)] backdrop-blur-md border border-[#3cdcd1]/20">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center border border-white/30 rounded-none bg-black">
             <button 
               onClick={() => (window as any).__aegisCameraZoomIn?.()}
-              className="w-10 h-8 flex items-center justify-center bg-[#3cdcd1]/30 text-[#3cdcd1] hover:bg-[#3cdcd1]/40 transition-colors"
+              className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 transition-colors border-r border-white/30"
               title="Zoom In"
             >
-              <span className="material-symbols-outlined text-[20px] font-bold">add</span>
+              <span className="material-symbols-outlined text-[18px]">add</span>
             </button>
             <button 
               onClick={() => (window as any).__aegisCameraZoomOut?.()}
-              className="w-10 h-8 flex items-center justify-center bg-[#0d0e12]/60 text-[#3cdcd1] hover:bg-[#0d0e12]/80 transition-colors"
+              className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
               title="Zoom Out"
             >
-              <span className="material-symbols-outlined text-[20px] font-bold">remove</span>
+              <span className="material-symbols-outlined text-[18px]">remove</span>
             </button>
           </div>
-
-          <button 
-            onClick={() => (window as any).__aegisCameraReset?.()}
-            className="w-8 h-8 flex items-center justify-center bg-[rgba(68,71,78,0.40)] text-[#3cdcd1] rounded-full cursor-pointer transition-all duration-150 hover:bg-[rgba(68,71,78,0.60)] border border-[#3cdcd1]/50 shadow-[0_0_10px_rgba(60,220,209,0.3)] hover:scale-110"
-            title="Reset Globe View"
-          >
-            <span className="material-symbols-outlined text-[16px]">public</span>
-          </button>
         </div>
 
-        <div className="hidden lg:flex flex-col items-end font-mono text-[10px] tracking-widest">
-          <span className="text-[#66FCF1]">{mounted ? zuluTime : 'ZULU: --:--:--'}</span>
-          <span className="text-on-surface-variant/60">SYST_HEALTH: OPTIMAL</span>
+        <div className="hidden lg:flex flex-col items-end font-mono text-[10px] tracking-widest border border-white/30 px-3 py-1">
+          <span className="text-white">{mounted ? zuluTime : 'ZULU: --:--:--'}</span>
+          <span className="text-green-500">SYST: OPTIMAL</span>
         </div>
 
-        <div className="hidden lg:flex flex-col items-end font-mono text-[10px] tracking-widest border-l border-outline-variant/30 pl-4">
-          <span className="text-[#3cdcd1]">UPTIME</span>
+        <div className="hidden lg:flex flex-col items-end font-mono text-[10px] tracking-widest border border-white/30 px-3 py-1">
+          <span className="text-white/50">UPTIME</span>
           <span className="text-white">{mounted ? formatUptime(uptime) : '00:00:00'}</span>
         </div>
 
-        <div className="flex items-center gap-4 text-on-surface-variant ml-2">
-          <div className="relative">
-            <span className="material-symbols-outlined cursor-pointer hover:text-white transition-colors">notifications</span>
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#66FCF1] rounded-full shadow-[0_0_5px_#66FCF1]"></span>
-          </div>
-          <span className="material-symbols-outlined cursor-pointer hover:text-white transition-colors">account_circle</span>
-        </div>
+
       </div>
     </header>
   );

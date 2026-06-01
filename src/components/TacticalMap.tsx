@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import Map, { Marker, Source, Layer, type MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useTacticalStore, SurveillanceNode } from '@/store/tactical-store';
@@ -769,6 +769,13 @@ export function TacticalMap({
             if (mapRef.current) mapRef.current.getCanvas().style.cursor = 'pointer';
           }
         }}
+        onMouseMove={(e) => {
+          if (coordsRef.current && e.lngLat) {
+            const lat = e.lngLat.lat;
+            const lng = e.lngLat.lng;
+            coordsRef.current.innerText = `CTR: ${Math.abs(lat).toFixed(6)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(6)}°${lng >= 0 ? 'E' : 'W'}`;
+          }
+        }}
         onMouseLeave={(e) => {
           if (mapRef.current) mapRef.current.getCanvas().style.cursor = '';
           if (coordsRef.current) {
@@ -787,7 +794,7 @@ export function TacticalMap({
           color: '#0d0e12',
           'high-color': '#0d0e12',
           'horizon-blend': 0.08,
-          'space-color': '#0d0e12',
+          'space-color': '#000000',
           'star-intensity': 0.3,
         }}
         style={{ width: '100%', height: '100%' }}
@@ -877,29 +884,9 @@ export function TacticalMap({
                 style={{ zIndex: 999999 }}
               >
                 <div
-                  className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-md shadow-2xl backdrop-blur-lg w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
-                  style={{
-                    boxShadow: flight.category === 'military'
-                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(239, 68, 68, 0.3)'
-                      : flight.category === 'jet'
-                        ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(236, 72, 153, 0.3)'
-                        : flight.category === 'private'
-                          ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(168, 85, 247, 0.3)'
-                          : '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(249, 115, 22, 0.3)'
-                  }}
-                >
-                  <div
-                    className="absolute top-0 left-0 right-0 h-1 rounded-t-md"
-                    style={{
-                      backgroundColor: flight.category === 'military'
-                        ? '#ef4444'
-                        : flight.category === 'jet'
-                          ? '#ec4899'
-                          : flight.category === 'private'
-                            ? '#a855f7'
-                            : '#f97316'
-                    }}
-                  />
+                  className="absolute top-4 left-4 fui-border bg-black/80 p-4 shadow-2xl backdrop-blur-md w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
+                  >
+                  <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
                   <div className="flex justify-between items-center mb-4 mt-1">
                     <div>
                       <h3
@@ -987,8 +974,8 @@ export function TacticalMap({
                 style={{ zIndex: 999999 }}
               >
                 <div
-                  className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-5 rounded-xl shadow-2xl backdrop-blur-lg w-[320px] pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
-                  style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${sat.color}4D` }}
+                  className="absolute top-4 left-4 fui-border bg-black/80 p-5 shadow-2xl backdrop-blur-md w-[320px] pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
+                  
                 >
                   <div className="flex justify-between items-start mb-5">
                     <div className="flex items-center gap-2.5">
@@ -1080,23 +1067,17 @@ export function TacticalMap({
                 style={{ zIndex: 999999 }}
               >
                 <div
-                  className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-5 rounded-xl shadow-2xl backdrop-blur-lg w-[320px] pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
-                  style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${themeShadow}` }}
+                  className="absolute top-4 left-4 fui-border bg-black/80 p-5 shadow-2xl backdrop-blur-md w-[320px] pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
+                  
                 >
-                  <div
-                    className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl"
-                    style={{ backgroundColor: themeColor }}
-                  />
+                  <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
 
                   {/* Header */}
                   <div className="flex justify-between items-start mb-4 mt-1">
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-[16px] transform -rotate-12">🚢</span>
-                        <h3
-                          className="font-headline font-bold tracking-widest text-[16px] uppercase"
-                          style={{ color: themeColor }}
-                        >
+                        <h3 className="font-headline font-bold tracking-widest text-[16px] uppercase text-white">
                           {ship.name}
                         </h3>
                       </div>
@@ -1149,43 +1130,33 @@ export function TacticalMap({
         {!isDived && layers.maritime && visiblePorts.map((port) => {
           const isActive = activeEntityId === (port.id || port.name);
           return (
+            <React.Fragment key={`port-${port.id || port.name}`}>
             <Marker
-              key={`port-${port.id || port.name}`}
               longitude={port.lng}
               latitude={port.lat}
               anchor="center"
-              style={{ zIndex: isActive ? 999999 : undefined }}
+              style={{ zIndex: isActive ? 999998 : undefined }}
             >
               <div className="relative flex flex-col items-center">
                 <div
-                  className={`w-3 h-3 rounded-full border border-black cursor-pointer shadow-[0_0_8px_currentColor] ${port.congestion === 'SEVERE' ? 'bg-red-500 text-red-500' : port.congestion === 'CONGESTED' ? 'bg-orange-500 text-orange-500' : 'bg-cyan-500 text-cyan-500'}`}
+                  className={`w-3 h-3 rounded-full border border-black cursor-pointer ${port.congestion === 'SEVERE' ? 'bg-red-500 text-red-500' : port.congestion === 'CONGESTED' ? 'bg-orange-500 text-orange-500' : 'bg-cyan-500 text-cyan-500'}`}
                   onClick={(e) => { e.stopPropagation(); setActiveEntityId(port.id || port.name); }}
                 />
                 <div className={`absolute top-full mt-1.5 text-[7px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                   {port.name}
                 </div>
               </div>
-              {isActive && (
-                <div
-                  className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-md shadow-2xl backdrop-blur-lg w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
-                  style={{
-                    boxShadow: port.congestion === 'SEVERE'
-                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(239, 68, 68, 0.3)'
-                      : port.congestion === 'CONGESTED'
-                        ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(249, 115, 22, 0.3)'
-                        : '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(6, 182, 212, 0.3)'
-                  }}
-                >
-                  <div
-                    className="absolute top-0 left-0 right-0 h-1 rounded-t-md"
-                    style={{
-                      backgroundColor: port.congestion === 'SEVERE'
-                        ? '#ef4444'
-                        : port.congestion === 'CONGESTED'
-                          ? '#f97316'
-                          : '#06b6d4'
-                    }}
-                  />
+            </Marker>
+            {isActive && (
+              <Marker
+                longitude={port.lng}
+                latitude={port.lat}
+                anchor="top-left"
+                style={{ zIndex: 999999 }}
+              >
+                <div className="absolute top-2 left-2 fui-border bg-black/80 p-4 shadow-2xl backdrop-blur-md w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
+                  >
+                  <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
                   <div className="flex justify-between items-center mb-4 mt-1">
                     <div>
                       <h3
@@ -1252,51 +1223,42 @@ export function TacticalMap({
                     )}
                   </div>
                 </div>
-              )}
-            </Marker>
+              </Marker>
+            )}
+          </React.Fragment>
           );
         })}
 
         {!isDived && layers.maritime && visibleChokepoints.map((chokepoint) => {
           const isActive = activeEntityId === chokepoint.name;
           return (
+            <React.Fragment key={`chokepoint-${chokepoint.name}`}>
             <Marker
-              key={`chokepoint-${chokepoint.name}`}
               longitude={chokepoint.lng}
               latitude={chokepoint.lat}
               anchor="center"
-              style={{ zIndex: isActive ? 999999 : undefined }}
+              style={{ zIndex: isActive ? 999998 : undefined }}
             >
               <div className="relative flex flex-col items-center">
                 <div
-                  className={`w-3 h-3 rotate-45 border border-black cursor-pointer shadow-[0_0_8px_currentColor] ${chokepoint.risk === 'CRITICAL' ? 'bg-red-600 text-red-600' : chokepoint.risk === 'HIGH' ? 'bg-orange-500 text-orange-500' : 'bg-yellow-500 text-yellow-500'}`}
+                  className={`w-3 h-3 rotate-45 border border-black cursor-pointer ${chokepoint.risk === 'CRITICAL' ? 'bg-red-600 text-red-600' : chokepoint.risk === 'HIGH' ? 'bg-orange-500 text-orange-500' : 'bg-yellow-500 text-yellow-500'}`}
                   onClick={(e) => { e.stopPropagation(); setActiveEntityId(chokepoint.name); }}
                 />
                 <div className={`absolute top-full mt-1.5 text-[7px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                   {chokepoint.name}
                 </div>
               </div>
-              {isActive && (
-                <div
-                  className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-md shadow-2xl backdrop-blur-lg w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
-                  style={{
-                    boxShadow: chokepoint.risk === 'CRITICAL'
-                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(239, 68, 68, 0.3)'
-                      : chokepoint.risk === 'HIGH'
-                        ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(249, 115, 22, 0.3)'
-                        : '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(234, 179, 8, 0.3)'
-                  }}
-                >
-                  <div
-                    className="absolute top-0 left-0 right-0 h-1 rounded-t-md"
-                    style={{
-                      backgroundColor: chokepoint.risk === 'CRITICAL'
-                        ? '#dc2626'
-                        : chokepoint.risk === 'HIGH'
-                          ? '#f97316'
-                          : '#eab308'
-                    }}
-                  />
+            </Marker>
+            {isActive && (
+              <Marker
+                longitude={chokepoint.lng}
+                latitude={chokepoint.lat}
+                anchor="top-left"
+                style={{ zIndex: 999999 }}
+              >
+                <div className="absolute top-2 left-2 fui-border bg-black/80 p-4 shadow-2xl backdrop-blur-md w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
+                  >
+                  <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
                   <div className="flex justify-between items-center mb-4 mt-1">
                     <div>
                       <h3
@@ -1346,8 +1308,9 @@ export function TacticalMap({
                     </div>
                   </div>
                 </div>
-              )}
-            </Marker>
+              </Marker>
+            )}
+          </React.Fragment>
           );
         })}
 
@@ -1359,7 +1322,8 @@ export function TacticalMap({
           const color = mag >= 6 ? '#ef4444' : mag >= 4.5 ? '#f97316' : '#eab308';
 
           return (
-            <Marker key={`eq-${eq.id}`} longitude={eq.lng} latitude={eq.lat} anchor="center" style={{ zIndex: isActive ? 999999 : 10 }}>
+            <React.Fragment key={`eq-${eq.id}`}>
+            <Marker longitude={eq.lng} latitude={eq.lat} anchor="center" style={{ zIndex: isActive ? 999998 : 10 }}>
               <div className="relative flex flex-col items-center">
                 <div
                   className="rounded-full cursor-pointer transition-transform relative flex items-center justify-center hover:scale-110"
@@ -1373,11 +1337,12 @@ export function TacticalMap({
                   {eq.place}
                 </div>
               </div>
-
-              {isActive && (
-                <div className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-xl shadow-2xl backdrop-blur-lg w-72 pointer-events-auto cursor-auto z-[999999]"
-                  style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${color}40` }}>
-                  <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl" style={{ backgroundColor: color }} />
+            </Marker>
+            {isActive && (
+              <Marker longitude={eq.lng} latitude={eq.lat} anchor="top-left" style={{ zIndex: 999999 }}>
+                <div className="absolute top-2 left-2 fui-border bg-black/80 p-4 shadow-2xl backdrop-blur-md w-72 pointer-events-auto cursor-auto z-[999999]"
+                  >
+                  <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
                   <div className="flex justify-between items-start mb-2 mt-1">
                     <div>
                       <h3 className="font-headline font-bold text-sm tracking-wider uppercase" style={{ color }}>{eq.place}</h3>
@@ -1408,8 +1373,9 @@ export function TacticalMap({
                     </a>
                   )}
                 </div>
-              )}
-            </Marker>
+              </Marker>
+            )}
+          </React.Fragment>
           );
         })}
 
@@ -1419,13 +1385,14 @@ export function TacticalMap({
           const color = '#ef4444'; // Red for conflict
 
           return (
-            <Marker key={incident.id} longitude={incident.lng} latitude={incident.lat} anchor="center" style={{ zIndex: isActive ? 999999 : 20 }}>
+            <React.Fragment key={incident.id}>
+            <Marker longitude={incident.lng} latitude={incident.lat} anchor="center" style={{ zIndex: isActive ? 999998 : 20 }}>
               <div className="relative flex flex-col items-center">
                 <div
                   className="cursor-pointer flex items-center justify-center hover:scale-110 transition-transform"
                   onClick={(e) => { e.stopPropagation(); setActiveEntityId(incident.id); }}
                 >
-                  <span className="material-symbols-outlined text-[20px]" style={{ color, textShadow: `0 0 10px ${color}80, 0 0 20px ${color}40` }}>crisis_alert</span>
+                  <span className="material-symbols-outlined text-[20px]" style={{ color }}>crisis_alert</span>
                 </div>
                 {/* Text visible only when zoomed in, limited to 4 words */}
                 <div 
@@ -1435,10 +1402,11 @@ export function TacticalMap({
                   {incident.name.split(' ').slice(0, 4).join(' ')}{incident.name.split(' ').length > 4 ? '...' : ''}
                 </div>
               </div>
-
-              {isActive && (
-                <div className="absolute top-6 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-xl shadow-2xl backdrop-blur-lg w-[300px] pointer-events-auto cursor-auto z-[999999]" style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${color}40` }}>
-                  <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl" style={{ backgroundColor: color }} />
+            </Marker>
+            {isActive && (
+              <Marker longitude={incident.lng} latitude={incident.lat} anchor="top-left" style={{ zIndex: 999999 }}>
+                <div className="absolute top-2 left-2 fui-border bg-black/80 p-4 shadow-2xl backdrop-blur-md w-[300px] pointer-events-auto cursor-auto z-[999999]" >
+                  <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
                   <div className="flex justify-between items-start mb-3 mt-1">
                     <div>
                       <div className="flex items-center gap-2">
@@ -1461,8 +1429,9 @@ export function TacticalMap({
                     VIEW SOURCE
                   </a>
                 </div>
-              )}
-            </Marker>
+              </Marker>
+            )}
+          </React.Fragment>
           );
         })}
 
@@ -1470,7 +1439,7 @@ export function TacticalMap({
         {nukeSimMode && nukeSimData?.target && (
           <Marker longitude={nukeSimData.target.lng} latitude={nukeSimData.target.lat} anchor="center">
             <div className="relative flex items-center justify-center pointer-events-none">
-              <span className="material-symbols-outlined text-red-500 text-2xl drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse">
+              <span className="material-symbols-outlined text-red-500 text-2xl animate-pulse">
                 radioactive
               </span>
             </div>
@@ -1567,29 +1536,31 @@ export function TacticalMap({
           const color = isDanger ? '#ef4444' : isWarning ? '#eab308' : '#22c55e';
 
           return (
-            <Marker key={`nuc-${nuc.id}`} longitude={nuc.lng} latitude={nuc.lat} anchor="center" style={{ zIndex: isActive ? 999999 : 20 }}>
+            <React.Fragment key={`nuc-${nuc.id}`}>
+            <Marker longitude={nuc.lng} latitude={nuc.lat} anchor="center" style={{ zIndex: isActive ? 999998 : 20 }}>
               <div className="relative flex flex-col items-center">
                 <div
                   className="cursor-pointer flex items-center justify-center hover:scale-110 transition-transform"
                   onClick={(e) => { e.stopPropagation(); setActiveEntityId(nuc.id); }}
                 >
-                  <span className="material-symbols-outlined text-[20px]" style={{ color, textShadow: `0 0 10px ${color}80, 0 0 20px ${color}40` }}>warning</span>
+                  <span className="material-symbols-outlined text-[20px]" style={{ color }}>warning</span>
                 </div>
                 <div className={`absolute top-full mt-1.5 text-[7px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                   {nuc.name}
                 </div>
               </div>
-
-              {isActive && (
-                <div className="absolute top-6 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-xl shadow-2xl backdrop-blur-lg w-[300px] pointer-events-auto cursor-auto z-[999999]" style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${color}40` }}>
-                  <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl" style={{ backgroundColor: color }} />
+            </Marker>
+            {isActive && (
+              <Marker longitude={nuc.lng} latitude={nuc.lat} anchor="top-left" style={{ zIndex: 999999 }}>
+                <div className="absolute top-2 left-2 fui-border bg-black/80 p-4 shadow-2xl backdrop-blur-md w-[300px] pointer-events-auto cursor-auto z-[999999]" >
+                  <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
                   <div className="flex justify-between items-start mb-3 mt-1">
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-[16px]" style={{ color }}>warning</span>
                         <h3 className="font-headline font-bold text-sm tracking-wider uppercase truncate max-w-[200px]" style={{ color }}>{nuc.name}</h3>
                       </div>
-                      <span className="text-slate-400 font-mono text-[9px] uppercase tracking-widest block mt-0.5">{nuc.city}, {nuc.country}</span>
+                      <span className="text-slate-400 font-mono text-[9px] uppercase tracking-widest block mt-0.5">NUCLEAR FACILITY // {nuc.city}, {nuc.country}</span>
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} className="text-slate-500 hover:text-white transition-colors">
                       <span className="material-symbols-outlined text-[16px]">close</span>
@@ -1615,8 +1586,9 @@ export function TacticalMap({
                     <span className="text-slate-500 font-mono text-[9px] uppercase">OWNER: <span className="text-slate-300">{nuc.owner}</span></span>
                   </div>
                 </div>
-              )}
-            </Marker>
+              </Marker>
+            )}
+          </React.Fragment>
           );
         })}
 
@@ -1624,52 +1596,57 @@ export function TacticalMap({
         {!isDived && layers.threats_strategic && strategicBases.map((base) => {
           const isActive = activeEntityId === base.id;
           const color = base.type === 'NUCLEAR_SUB_BASE' ? '#0ea5e9' : base.type === 'ICBM_SILO' ? '#f59e0b' : '#a855f7';
-          const iconStr = base.type === 'NUCLEAR_SUB_BASE' ? 'sailing' : base.type === 'ICBM_SILO' ? 'rocket_launch' : 'radar';
+          const iconStr = base.type === 'NUCLEAR_SUB_BASE' ? 'directions_boat' : base.type === 'ICBM_SILO' ? 'rocket_launch' : 'radar';
 
           return (
-            <Marker key={base.id} longitude={base.lng} latitude={base.lat} anchor="center" style={{ zIndex: isActive ? 999999 : 20 }}>
+            <React.Fragment key={base.id}>
+            <Marker longitude={base.lng} latitude={base.lat} anchor="center" style={{ zIndex: isActive ? 999998 : 20 }}>
               <div className="relative flex flex-col items-center">
                 <div
                   className="cursor-pointer flex items-center justify-center hover:scale-110 transition-transform"
                   onClick={(e) => { e.stopPropagation(); setActiveEntityId(base.id); }}
                 >
-                  <span className="material-symbols-outlined text-[20px]" style={{ color, textShadow: `0 0 10px ${color}80, 0 0 20px ${color}40` }}>{iconStr}</span>
+                  <span className="material-symbols-outlined text-[20px]" style={{ color }}>{iconStr}</span>
                 </div>
                 <div className={`absolute top-full mt-1.5 text-[7px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                   {base.callsign}
                 </div>
               </div>
-
-              {isActive && (
-                <div className="absolute top-6 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-xl shadow-2xl backdrop-blur-lg w-[300px] pointer-events-auto cursor-auto z-[999999]" style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${color}40` }}>
-                  <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl" style={{ backgroundColor: color }} />
+            </Marker>
+            {isActive && (
+              <Marker longitude={base.lng} latitude={base.lat} anchor="top-left" style={{ zIndex: 999999 }}>
+                <div className="absolute top-2 left-2 fui-border bg-black/80 p-4 shadow-2xl backdrop-blur-md w-[300px] pointer-events-auto cursor-auto z-[999999]" >
+                  <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
                   <div className="flex justify-between items-start mb-3 mt-1">
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-[16px]" style={{ color }}>{iconStr}</span>
-                        <h3 className="font-headline font-bold text-sm tracking-wider uppercase truncate max-w-[200px]" style={{ color }}>{base.callsign}</h3>
+                        <h3 className="text-white font-headline font-bold text-sm tracking-wider uppercase truncate max-w-[200px]">{base.callsign}</h3>
                       </div>
-                      <span className="text-slate-400 font-mono text-[9px] uppercase tracking-widest block mt-0.5">{base.country}</span>
+                      <span className="text-slate-400 font-mono text-[9px] uppercase tracking-widest block mt-0.5">STRATEGIC BASE // {base.country}</span>
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} className="text-slate-500 hover:text-white transition-colors">
                       <span className="material-symbols-outlined text-[16px]">close</span>
                     </button>
                   </div>
 
-                  <div className="bg-slate-900/50 border border-slate-800/80 rounded p-3 mb-3">
+                  <div className="fui-border bg-black/40 p-3 mb-3 flex flex-col items-center text-center">
+                    <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
                     <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">TYPE</span>
-                    <span className="font-mono text-xs font-bold uppercase truncate" style={{ color }}>{base.type.replace(/_/g, ' ')}</span>
+                    <span className="text-white font-mono text-xs font-bold uppercase truncate">{base.type.replace(/_/g, ' ')}</span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 mb-2">
-                    <div className="col-span-2 bg-slate-900/50 border border-slate-800 rounded p-2 text-center">
+                  <div className="grid grid-cols-1 mb-2">
+                    <div className="fui-border bg-black/40 p-3 flex flex-col items-center text-center">
+                      <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
                       <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">STATUS</span>
-                      <span className="text-white font-mono text-xs">{base.status}</span>
+                      <span className="text-white font-mono text-xs font-bold">{base.status}</span>
                     </div>
                   </div>
                 </div>
-              )}
-            </Marker>
+              </Marker>
+            )}
+          </React.Fragment>
           );
         })}
 
@@ -1683,11 +1660,12 @@ export function TacticalMap({
             style={{ zIndex: 100 }}
           >
             <div
-              className="bg-[#0b0c10]/95 border border-[#1f2937] rounded-lg shadow-2xl p-5 w-[500px] backdrop-blur-md cursor-default pointer-events-auto"
+              className="fui-border bg-black/80 shadow-2xl p-5 w-[500px] backdrop-blur-md cursor-default pointer-events-auto relative"
               onContextMenu={(e) => e.preventDefault()}
               onClick={(e) => e.stopPropagation()}
               onWheel={(e) => e.stopPropagation()}
             >
+              <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
               <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/5">
                 <h3 className="text-[#3cdcd1] font-headline font-bold text-sm uppercase tracking-widest">Region Intel</h3>
                 <button onClick={() => setDossierLngLat(null)} className="text-slate-500 hover:text-white material-symbols-outlined text-sm transition-colors">close</button>

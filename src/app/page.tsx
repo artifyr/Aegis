@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AnalyticsPanel } from '@/components/AnalyticsPanel';
 import { NukeSimPanel } from '@/components/NukeSimPanel';
 import { useInference } from '@/hooks/use-inference';
@@ -25,6 +25,10 @@ interface TrackedAsset {
 export default function GlobalSurveillanceHub() {
   const { alerts, latestScan, changeReport, isScanning, fetchTimelineImagery } = useInference();
   const [selectedAsset, setSelectedAsset] = useState<TrackedAsset | null>(null);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('aegisAssetSelected', { detail: selectedAsset }));
+  }, [selectedAsset]);
 
   const handleTimelineScrub = (dateStr: string) => {
     fetchTimelineImagery(dateStr);

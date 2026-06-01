@@ -48,7 +48,7 @@ export default function RootLayout({
         className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >
         <TopNavBar />
-        <div className="flex pt-16 h-screen overflow-hidden">
+        <div className="flex pt-16 h-screen w-screen overflow-hidden tactical-grid bg-black">
           <SideNavBar />
           {children}
         </div>
