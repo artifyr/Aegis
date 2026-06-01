@@ -5,10 +5,8 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 
-// Typewriter effect component
 const TypewriterText = ({ text, delay = 0 }: { text: string; delay?: number }) => {
   const [displayedText, setDisplayedText] = useState('');
-  const [showCursor, setShowCursor] = useState(true);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
@@ -31,18 +29,9 @@ const TypewriterText = ({ text, delay = 0 }: { text: string; delay?: number }) =
     };
   }, [text, delay]);
 
-  // Cursor blinking effect
-  useEffect(() => {
-    const cursorInterval = setInterval(() => {
-      setShowCursor((prev) => !prev);
-    }, 500);
-    return () => clearInterval(cursorInterval);
-  }, []);
-
   return (
     <div className="flex items-center justify-center">
       <span>{displayedText}</span>
-      <span className={`inline-block w-[3px] h-[1.1em] bg-white ml-1 ${showCursor ? 'opacity-100' : 'opacity-0'} transition-opacity duration-100`} />
     </div>
   );
 };
