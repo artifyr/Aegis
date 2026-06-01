@@ -1,7 +1,7 @@
 'use client';
 
 import { useTacticalStore } from '@/store/tactical-store';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 // Very rough approximation for regions due to lack of local client-side shapefiles
 const getRegionFromCoords = (lat: number, lng: number) => {
@@ -15,9 +15,9 @@ const getRegionFromCoords = (lat: number, lng: number) => {
 };
 
 export function SideNavBar() {
-  const { setDiveTarget, layers, toggleLayer, cameras, flights, ports, chokepoints, satellites, earthquakes, nuclearFacilities, strategicBases, incidents, setMapCommand, setActiveEntityId, nukeSimMode, setNukeSimMode } = useTacticalStore();
+  const { setDiveTarget, layers, toggleLayer, cameras, flights, ports, chokepoints, ships, satellites, earthquakes, nuclearFacilities, strategicBases, incidents, setMapCommand, activeEntityId, setActiveEntityId, activeCamera, nukeSimMode, setNukeSimMode } = useTacticalStore();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedAsset, setSelectedAsset] = useState<any>(null);
+  const [selectedAssetEvent, setSelectedAssetEvent] = useState<any>(null);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     aviation: true,
     maritime: true,
@@ -25,10 +25,44 @@ export function SideNavBar() {
   });
 
   useEffect(() => {
-    const handleSelected = (e: any) => setSelectedAsset(e.detail);
+    const handleSelected = (e: any) => setSelectedAssetEvent(e.detail);
     window.addEventListener('aegisAssetSelected', handleSelected);
     return () => window.removeEventListener('aegisAssetSelected', handleSelected);
   }, []);
+
+  const selectedAsset = useMemo(() => {
+    if (activeCamera) return { type: 'camera', ...activeCamera };
+    
+    if (activeEntityId) {
+      const flight = flights.find(f => f.icao24 === activeEntityId);
+      if (flight) return { type: 'flight', ...flight };
+      
+      const ship = ships?.find((s: any) => s.mmsi === activeEntityId || s.id === activeEntityId);
+      if (ship) return { type: 'maritime', ...ship };
+
+      const sat = satellites.find(s => s.noradId === activeEntityId);
+      if (sat) return { type: 'satellite', ...sat };
+
+      const port = ports.find(p => p.id === activeEntityId || p.name === activeEntityId);
+      if (port) return { type: 'port', ...port };
+      
+      const chokepoint = chokepoints.find(c => c.name === activeEntityId);
+      if (chokepoint) return { type: 'chokepoint', ...chokepoint };
+      
+      const quake = earthquakes.find(e => e.id === activeEntityId);
+      if (quake) return { type: 'earthquake', ...quake };
+      
+      const nuke = nuclearFacilities.find(n => n.id === activeEntityId);
+      if (nuke) return { type: 'nuclear', ...nuke };
+      
+      const strat = strategicBases.find(s => s.id === activeEntityId);
+      if (strat) return { type: 'strategic', ...strat };
+      
+      const inc = incidents.find(i => i.id === activeEntityId);
+      if (inc) return { type: 'incident', ...inc };
+    }
+    return selectedAssetEvent;
+  }, [selectedAssetEvent, activeCamera, activeEntityId, flights, ships, satellites, ports, chokepoints, earthquakes, nuclearFacilities, strategicBases, incidents]);
 
   const toggleGroup = (group: string) => {
     setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }));
@@ -184,13 +218,14 @@ export function SideNavBar() {
           <span className="material-symbols-outlined text-3xl text-secondary">
             {!selectedAsset ? 'satellite_alt'
               : selectedAsset.type === 'flight' || selectedAsset.category === 'commercial' || selectedAsset.category === 'military' || selectedAsset.category === 'private' ? 'flight'
-                : selectedAsset.type === 'port' || selectedAsset.type === 'chokepoint' ? 'directions_boat'
+                : selectedAsset.type === 'maritime' || selectedAsset.type === 'port' || selectedAsset.type === 'chokepoint' ? 'directions_boat'
                   : selectedAsset.type === 'camera' ? 'videocam'
                     : selectedAsset.type === 'earthquake' ? 'waves'
                       : selectedAsset.type === 'nuclear' ? 'science'
                         : selectedAsset.type === 'strategic' ? 'security'
                           : selectedAsset.type === 'incident' ? 'warning'
-                            : 'radar'}
+                            : selectedAsset.type === 'satellite' ? 'satellite_alt'
+                              : 'radar'}
           </span>
           <div className="absolute top-0 left-0 w-1 h-1 border-t border-l border-white"></div>
         </div>
