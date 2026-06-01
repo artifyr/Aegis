@@ -88,7 +88,7 @@ export function AnalyticsPanel({
   changeReport?: ChangeReport | null;
   isScanning?: boolean;
 }) {
-  const cameras = useTacticalStore(state => state.cameras);
+  const { cameras, mobileActiveTab, setMobileActiveTab } = useTacticalStore();
   
   // Merge static placeholder alerts with dynamic ones
   const staticAlerts: Alert[] = [
@@ -145,7 +145,21 @@ export function AnalyticsPanel({
   const sortedRegions = Object.entries(regionCounts).sort((a, b) => b[1] - a[1]);
 
   return (
-    <aside className="static flex-shrink-0 w-80 h-full flex flex-col gap-4 z-40 bg-transparent p-4 border-l border-white/10 overflow-hidden">
+    <aside className={`
+      ${mobileActiveTab === 'recon' || mobileActiveTab === 'intel'
+        ? 'fixed inset-x-0 bottom-[64px] top-[20%] bg-[#0a0a0c]/95 backdrop-blur-xl border-t border-white/20 rounded-t-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.8)] translate-y-0' 
+        : 'fixed inset-x-0 bottom-[64px] top-[20%] translate-y-[150%] md:translate-y-0 md:flex'
+      }
+      md:static md:inset-auto md:w-80 md:h-full md:bg-transparent md:border-t-0 md:rounded-none md:shadow-none md:border-l border-white/10
+      flex flex-col gap-4 z-[90] p-4 overflow-hidden flex-shrink-0 transition-transform duration-300
+    `}>
+      {/* Mobile Header */}
+      <div className="md:hidden flex items-center justify-between -mt-2 mb-2 pb-2 border-b border-white/10">
+        <h2 className="text-white font-headline font-bold tracking-widest text-sm uppercase">Intel & Recon</h2>
+        <button onClick={() => setMobileActiveTab('none')} className="text-white/50 hover:text-white transition-colors">
+          <span className="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
       
       {/* Network Status & Scan Summary */}
       <div className="fui-border p-3 flex flex-col gap-3">

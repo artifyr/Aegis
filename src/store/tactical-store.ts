@@ -114,6 +114,9 @@ interface TacticalStore {
     threats_incidents: boolean;
   };
   toggleLayer: (layerName: keyof TacticalStore['layers']) => void;
+
+  mobileActiveTab: 'none' | 'layers' | 'markets' | 'intel' | 'recon' | 'search';
+  setMobileActiveTab: (tab: 'none' | 'layers' | 'markets' | 'intel' | 'recon' | 'search') => void;
 }
 
 export const useTacticalStore = create<TacticalStore>()(
@@ -182,6 +185,9 @@ export const useTacticalStore = create<TacticalStore>()(
       toggleLayer: (layerName) => set((state) => ({
         layers: { ...state.layers, [layerName]: !state.layers[layerName] }
       })),
+
+      mobileActiveTab: 'none',
+      setMobileActiveTab: (tab) => set({ mobileActiveTab: tab }),
     }),
     {
       name: 'aegis-tactical-storage', // key in local storage
