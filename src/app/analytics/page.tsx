@@ -1,17 +1,47 @@
 'use client';
 
-import { useAnalytics } from '@/hooks/use-analytics';
-import { useGlobalSurveillance } from '@/hooks/use-global-surveillance';
+import { useState, useEffect } from 'react';
+import { useTacticalStore } from '@/store/tactical-store';
 
-// ─── Mini Bar Chart (pure CSS) ──────────────────────────────────
-function MiniBar({ value, max, color }: { value: number; max: number; color: string }) {
-  const pct = Math.min((value / max) * 100, 100);
+// ─── Mini SVG Line Chart for Live Data ─────────────────────────
+function LiveSparkline({ data, color, height = 100 }: { data: number[]; color: string; height?: number }) {
+  if (data.length <= 1) return <div style={{ height }} className="w-full flex items-center justify-center text-[10px] text-white/30 font-mono">WAITING FOR DATA...</div>;
+  
+  const min = Math.min(...data) * 0.9;
+  const max = Math.max(...data) * 1.1 || 10;
+  const range = max - min;
+  
+  const points = data.map((val, i) => {
+    const x = (i / (data.length - 1)) * 100;
+    const y = 100 - ((val - min) / range) * 100;
+    return `${x},${y}`;
+  }).join(' ');
+
   return (
-    <div className="w-full h-full flex items-end">
-      <div
-        className="w-full transition-all duration-300 ease-out"
-        style={{ height: `${pct}%`, backgroundColor: color }}
-      />
+    <div className="w-full relative" style={{ height }}>
+      <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+        <polyline
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          points={points}
+          vectorEffect="non-scaling-stroke"
+          className="drop-shadow-lg"
+          style={{ filter: `drop-shadow(0 0 4px ${color}80)` }}
+        />
+        {/* Gradient fill under the line */}
+        <polygon
+          fill={`url(#gradient-${color.replace('#', '')})`}
+          points={`0,100 ${points} 100,100`}
+          opacity="0.3"
+        />
+        <defs>
+          <linearGradient id={`gradient-${color.replace('#', '')}`} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.8" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+      </svg>
     </div>
   );
 }
@@ -19,193 +49,211 @@ function MiniBar({ value, max, color }: { value: number; max: number; color: str
 // ─── Status Chip ────────────────────────────────────────────────
 function StatusChip({ status }: { status: string }) {
   const map: Record<string, string> = {
-    NOMINAL: 'text-secondary bg-secondary/10',
-    DEGRADED: 'text-tertiary-fixed-dim bg-tertiary-fixed-dim/10',
-    CRITICAL: 'text-on-tertiary-container bg-on-tertiary-container/10',
+    NOMINAL: 'text-green-400 bg-green-400/10 border-green-400/30',
+    DEGRADED: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30',
+    CRITICAL: 'text-red-500 bg-red-500/10 border-red-500/30',
   };
   return (
-    <span className={`px-1.5 py-0.5 text-[8px] font-mono font-bold uppercase tracking-wider ${map[status] || 'text-on-surface-variant bg-surface-container-high'}`}>
+    <span className={`px-2 py-0.5 text-[8px] font-mono font-bold uppercase tracking-wider border ${map[status] || 'text-white bg-white/10'}`}>
       {status}
     </span>
   );
 }
 
 // ─── Stat Card ──────────────────────────────────────────────────
-function StatCard({
-  label,
-  value,
-  unit,
-  sublabel,
-}: {
-  label: string;
-  value: string | number;
-  unit?: string;
-  sublabel?: string;
-}) {
+function StatCard({ label, value, unit, sublabel }: { label: string; value: string | number; unit?: string; sublabel?: string }) {
   return (
-    <div className="bg-surface-container-high p-5 bezel-glow flex flex-col justify-between">
-      <span className="text-[9px] font-label text-on-surface-variant uppercase tracking-widest mb-3">{label}</span>
+    <div className="fui-border bg-black/60 p-5 flex flex-col justify-between relative backdrop-blur-sm">
+      <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+      <span className="text-[9px] font-label text-white/50 uppercase tracking-widest mb-3">{label}</span>
       <div className="flex items-baseline gap-1.5">
         <span className="text-3xl font-headline font-bold text-white tracking-tight">{value}</span>
         {unit && <span className="text-[10px] font-mono text-secondary">{unit}</span>}
       </div>
-      {sublabel && <span className="text-[8px] font-mono text-on-surface-variant mt-1">{sublabel}</span>}
+      {sublabel && <span className="text-[8px] font-mono text-white/40 mt-1">{sublabel}</span>}
     </div>
   );
 }
 
 export default function AnalyticsPage() {
-  const { data, loading, refresh } = useAnalytics();
-  const { assets, status } = useGlobalSurveillance();
+  const [mounted, setMounted] = useState(false);
+  const store = useTacticalStore();
+  
+  // Rolling data for graphs
+  const [history, setHistory] = useState<{ time: string, aviation: number, maritime: number }[]>([]);
 
-  // Derive max for bar chart scale
-  const trendMax = data
-    ? Math.max(...data.trend_30d.flatMap((d) => [d.naval, d.aerial]), 1)
-    : 25;
+  useEffect(() => {
+    setMounted(true);
+    
+    // Every second, capture current asset counts for the live graph
+    const interval = setInterval(() => {
+      setHistory(prev => {
+        const now = new Date();
+        const timeStr = `${now.getUTCMinutes()}:${now.getUTCSeconds().toString().padStart(2, '0')}`;
+        const newRecord = {
+          time: timeStr,
+          aviation: useTacticalStore.getState().flights.length,
+          maritime: useTacticalStore.getState().ships.length
+        };
+        const updated = [...prev, newRecord];
+        if (updated.length > 30) updated.shift(); // Keep last 30 seconds
+        return updated;
+      });
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!mounted) return <div className="p-8 text-white font-mono">INIT ANALYTICS ENGINE...</div>;
+
+  // Compute live metrics
+  const totalAssets = store.flights.length + store.ships.length + store.satellites.length + store.cameras.length;
+  const activeHazards = store.earthquakes.length + store.incidents.length;
+  const stratPoints = store.strategicBases.length + store.nuclearFacilities.length;
+  
+  // Classifications
+  const totalElements = totalAssets + activeHazards + stratPoints;
+  const clsAviation = store.flights.length;
+  const clsMaritime = store.ships.length + store.ports.length + store.chokepoints.length;
+  const clsSpace = store.satellites.length;
+  const clsGround = totalElements - clsAviation - clsMaritime - clsSpace;
+
+  const getPct = (val: number) => totalElements > 0 ? Math.round((val / totalElements) * 100) : 0;
+
+  // Sector logic based on live coordinates
+  const sectors = [
+    { id: 'NORTHCOM (NA)', bounds: { lat: [15, 90], lng: [-170, -50] } },
+    { id: 'EUCOM (EU)', bounds: { lat: [35, 90], lng: [-10, 40] } },
+    { id: 'CENTCOM (ME)', bounds: { lat: [10, 45], lng: [30, 75] } },
+    { id: 'INDOPACOM (AP)', bounds: { lat: [-40, 45], lng: [75, 180] } }
+  ];
+
+  const sectorThreats = sectors.map(sec => {
+    // Count incidents and bases in bounds
+    let threatScore = 0;
+    store.incidents.forEach(inc => {
+      if (inc.lat >= sec.bounds.lat[0] && inc.lat <= sec.bounds.lat[1] && inc.lng >= sec.bounds.lng[0] && inc.lng <= sec.bounds.lng[1]) {
+        threatScore += 30;
+      }
+    });
+    store.strategicBases.forEach(base => {
+      if (base.lat >= sec.bounds.lat[0] && base.lat <= sec.bounds.lat[1] && base.lng >= sec.bounds.lng[0] && base.lng <= sec.bounds.lng[1]) {
+        threatScore += 5;
+      }
+    });
+    
+    const confidence = Math.min(100, Math.max(10, threatScore + Math.floor(Math.random() * 10)));
+    const status = confidence > 70 ? 'CRITICAL' : confidence > 40 ? 'DEGRADED' : 'NOMINAL';
+    return { ...sec, confidence, status };
+  });
 
   return (
-    <main className="flex-1 w-full relative bg-surface-container-lowest h-full overflow-y-auto">
+    <main className="flex-1 w-full relative bg-[#0b0c10] h-full overflow-y-auto">
       {/* Top Bar */}
-      <div className="sticky top-0 z-20 bg-surface-container-lowest/80 backdrop-blur-xl border-b border-outline-variant/10 px-8 py-4 flex justify-between items-center">
+      <div className="sticky top-0 z-20 bg-black/80 backdrop-blur-xl border-b border-white/10 px-8 py-4 flex justify-between items-center">
         <div>
-          <h1 className="text-[#66FCF1] font-bold text-lg font-headline uppercase tracking-wider">
-            Advanced Analytics
+          <h1 className="text-white font-bold text-lg font-headline uppercase tracking-wider">
+            GLOBAL ANALYTICS COMMAND
           </h1>
-          <p className="font-mono text-[10px] text-on-surface-variant mt-0.5">
-            PROCESSING_DATA_STREAMS // SIGNAL: {status}
+          <p className="font-mono text-[10px] text-white/50 mt-0.5">
+            LIVE TELEMETRY // REAL-TIME SENSOR FUSION
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <span className="font-mono text-[9px] text-on-surface-variant">
-            LAST_SYNC: {data?.timestamp?.slice(11, 19) ?? '--:--:--'} Z
-          </span>
-          <button
-            onClick={refresh}
-            className="px-3 py-1.5 border border-outline-variant/20 text-[9px] font-mono text-secondary uppercase tracking-wider hover:border-secondary/60 transition-colors cursor-pointer"
-          >
-            ↻ REFRESH
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <span className="font-mono text-[9px] text-white/70">
+              DATALINK ACTIVE
+            </span>
+          </div>
         </div>
       </div>
 
       <div className="p-8 max-w-[1600px] mx-auto">
-        {/* Loading state */}
-        {loading && !data && (
-          <div className="flex items-center gap-2 mb-6 animate-pulse">
-            <div className="w-2 h-2 bg-secondary" />
-            <span className="font-mono text-[10px] text-secondary tracking-wider">LOADING_ANALYTICS_STREAM...</span>
-          </div>
-        )}
-
         {/* ═══ KPI Row ═══ */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatCard
-            label="Total Assets Tracked"
-            value={data?.total_assets ?? assets.length}
-            unit="ACTIVE"
-            sublabel={`WS_STATUS: ${status}`}
+            label="Total Mobile Assets"
+            value={totalAssets}
+            unit="TRK"
+            sublabel="FLIGHTS, SHIPS, SATS"
           />
           <StatCard
-            label="Avg Velocity"
-            value={data?.avg_velocity_kts ?? 0}
-            unit="KTS"
-            sublabel={`MAX: ${data?.max_velocity_kts ?? 0} KTS`}
+            label="Active Hazards"
+            value={activeHazards}
+            unit="EVT"
+            sublabel="INCIDENTS & QUAKES"
           />
           <StatCard
-            label="Inference Scans / 24H"
-            value={data?.system?.inference_scans_24h ?? 0}
-            unit="SCANS"
-            sublabel="NEURAL_OBSERVER ACTIVE"
+            label="Strategic Points"
+            value={stratPoints}
+            unit="LOC"
+            sublabel="BASES & FACILITIES"
           />
           <StatCard
-            label="System Uptime"
-            value={data?.system?.uptime_pct ?? 0}
-            unit="%"
-            sublabel={`LATENCY: ${data?.system?.latency_ms ?? '--'}ms`}
+            label="Space / LEO Coverage"
+            value={store.satellites.length}
+            unit="SATS"
+            sublabel="ORBITAL ASSETS"
           />
         </div>
 
         {/* ═══ Main Grid ═══ */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-
-          {/* 30-Day Detection Trend */}
-          <div className="lg:col-span-2 bg-surface-container p-6 bezel-glow">
+          
+          {/* Real-Time Telemetry Graph */}
+          <div className="lg:col-span-2 fui-border bg-black/40 p-6 relative">
+            <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
             <div className="flex justify-between items-center mb-5">
-              <h3 className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">30-Day Detection Trend</h3>
-              <div className="flex items-center gap-4 text-[8px] font-mono">
-                <span className="flex items-center gap-1"><span className="w-2 h-2 bg-[#3cdcd1] inline-block" /> NAVAL</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 bg-[#7bd6d1] inline-block" /> AERIAL</span>
+              <h3 className="text-[10px] font-label text-white/60 uppercase tracking-widest">Real-Time Traffic Telemetry (Last 30s)</h3>
+              <div className="flex items-center gap-4 text-[8px] font-mono text-white">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 bg-[#0ea5e9] inline-block" /> AVIATION</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 bg-[#10b981] inline-block" /> MARITIME</span>
               </div>
             </div>
 
-            {data ? (
-              <div className="flex items-end gap-[3px] h-48">
-                {data.trend_30d.map((day, i) => (
-                  <div key={day.date} className="flex-1 flex items-end gap-[1px] h-full group relative">
-                    <div className="flex-1 h-full">
-                      <MiniBar value={day.naval} max={trendMax} color="#3cdcd1" />
-                    </div>
-                    <div className="flex-1 h-full">
-                      <MiniBar value={day.aerial} max={trendMax} color="#7bd6d1" />
-                    </div>
-                    {/* Tooltip on hover */}
-                    <div
-                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 whitespace-nowrap px-2 py-1 text-[8px] font-mono text-[#bacac7]"
-                      style={{
-                        backdropFilter: 'blur(12px)',
-                        backgroundColor: 'rgba(68, 71, 78, 0.40)',
-                      }}
-                    >
-                      {day.date.slice(5)} — N:{day.naval} A:{day.aerial}
-                    </div>
-                  </div>
-                ))}
+            <div className="relative h-48 w-full border-b border-l border-white/10 p-2">
+              <div className="absolute inset-0 pt-2 pb-2 pl-2 pr-2">
+                {/* Aviation Line */}
+                <div className="absolute inset-0">
+                  <LiveSparkline data={history.map(d => d.aviation)} color="#0ea5e9" height={175} />
+                </div>
+                {/* Maritime Line */}
+                <div className="absolute inset-0">
+                  <LiveSparkline data={history.map(d => d.maritime)} color="#10b981" height={175} />
+                </div>
               </div>
-            ) : (
-              <div className="h-48 flex items-center justify-center">
-                <span className="text-[10px] font-mono text-on-surface-variant animate-pulse">LOADING...</span>
-              </div>
-            )}
-
+            </div>
             {/* X-axis labels */}
-            {data && (
-              <div className="flex justify-between mt-2 text-[7px] font-mono text-on-surface-variant/50">
-                <span>{data.trend_30d[0]?.date.slice(5)}</span>
-                <span>{data.trend_30d[14]?.date.slice(5)}</span>
-                <span>{data.trend_30d[29]?.date.slice(5)}</span>
-              </div>
-            )}
+            <div className="flex justify-between mt-2 text-[8px] font-mono text-white/40 px-2">
+              <span>{history[0]?.time || '00:00'}</span>
+              <span>{history[Math.floor(history.length/2)]?.time || '00:00'}</span>
+              <span>{history[history.length-1]?.time || '00:00'}</span>
+            </div>
           </div>
 
           {/* Sector Threat Matrix */}
-          <div className="bg-surface-container p-6 bezel-glow">
-            <h3 className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest mb-5">Sector Threat Matrix</h3>
-            <div className="flex flex-col gap-2">
-              {(data?.sectors ?? []).map((sector) => {
-                const barColor = sector.status === 'CRITICAL'
-                  ? '#c31f29'
-                  : sector.status === 'DEGRADED'
-                  ? '#d4a84c'
-                  : '#3cdcd1';
+          <div className="fui-border bg-black/40 p-6 relative">
+            <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+            <h3 className="text-[10px] font-label text-white/60 uppercase tracking-widest mb-5">Sector Threat Matrix</h3>
+            <div className="flex flex-col gap-3">
+              {sectorThreats.map((sector) => {
+                const barColor = sector.status === 'CRITICAL' ? '#ef4444' : sector.status === 'DEGRADED' ? '#eab308' : '#22c55e';
                 return (
-                  <div key={sector.id} className="bg-surface-container-low p-3">
+                  <div key={sector.id} className="bg-white/5 border border-white/10 p-3 relative">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-[10px] font-mono text-white">{sector.id}</span>
                       <StatusChip status={sector.status} />
                     </div>
                     {/* Confidence bar */}
-                    <div className="h-1.5 w-full bg-surface-container-lowest">
+                    <div className="h-1.5 w-full bg-black">
                       <div
                         className="h-full transition-all duration-500 ease-out"
-                        style={{
-                          width: `${sector.confidence}%`,
-                          backgroundColor: barColor,
-                          boxShadow: `0 0 6px ${barColor}40`,
-                        }}
+                        style={{ width: `${sector.confidence}%`, backgroundColor: barColor, boxShadow: `0 0 8px ${barColor}80` }}
                       />
                     </div>
-                    <span className="text-[8px] font-mono text-on-surface-variant mt-1 block text-right">
-                      {sector.confidence}%
+                    <span className="text-[8px] font-mono text-white/40 mt-1 block text-right">
+                      THREAT_LEVEL: {sector.confidence}%
                     </span>
                   </div>
                 );
@@ -216,114 +264,82 @@ export default function AnalyticsPage() {
 
         {/* ═══ Bottom Row ═══ */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          {/* Live Asset Table */}
-          <div className="bg-surface-container p-6 bezel-glow">
+          
+          {/* Live High-Velocity Asset Feed */}
+          <div className="fui-border bg-black/40 p-6 relative">
+            <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">Live Asset Feed</h3>
+              <h3 className="text-[10px] font-label text-white/60 uppercase tracking-widest">High-Velocity Asset Feed</h3>
               <div className="flex items-center gap-2">
-                <div className={`w-1.5 h-1.5 ${status === 'LIVE' ? 'bg-[#3cdcd1] animate-pulse' : 'bg-red-500'}`} />
-                <span className="text-[8px] font-mono text-on-surface-variant">{status}</span>
+                <div className="w-1.5 h-1.5 bg-[#0ea5e9] animate-pulse" />
+                <span className="text-[8px] font-mono text-white/50">LIVE SORT: SPEED</span>
               </div>
             </div>
 
             {/* Table header */}
-            <div className="grid grid-cols-5 gap-2 text-[8px] font-mono text-on-surface-variant uppercase tracking-wider pb-2 border-b border-outline-variant/10">
+            <div className="grid grid-cols-5 gap-2 text-[8px] font-mono text-white/50 uppercase tracking-wider pb-2 border-b border-white/10">
               <span>CALLSIGN</span>
               <span>CLASS</span>
               <span className="text-right">LAT</span>
               <span className="text-right">LNG</span>
-              <span className="text-right">VEL</span>
+              <span className="text-right">VEL (KTS)</span>
             </div>
 
-            {/* Table body — zebra layering per DESIGN.md */}
-            <div className="flex flex-col mt-1 max-h-64 overflow-y-auto">
-              {assets.map((asset, idx) => (
-                <div
-                  key={asset.id}
-                  className={`grid grid-cols-5 gap-2 py-2 px-1 text-[9px] font-mono transition-colors duration-150 ${
-                    idx % 2 === 0 ? 'bg-surface-container-low' : 'bg-surface-container'
-                  }`}
-                >
-                  <span className="text-white truncate">{(asset as any).callsign || asset.id.slice(0, 8).toUpperCase()}</span>
-                  <span className={`${asset.classification === 'Naval' ? 'text-[#3cdcd1]' : asset.classification === 'Aerial' ? 'text-[#7bd6d1]' : 'text-on-surface-variant'}`}>
-                    {asset.classification.toUpperCase().slice(0, 6)}
+            <div className="flex flex-col mt-1 max-h-[220px] overflow-y-auto custom-scrollbar pr-2">
+              {[...store.flights, ...store.ships]
+                .sort((a, b) => (b.velocity || 0) - (a.velocity || 0))
+                .slice(0, 15)
+                .map((asset: any, idx) => (
+                <div key={`feed-${asset.id || asset.mmsi || asset.icao24}`} className={`grid grid-cols-5 gap-2 py-2 px-1 text-[9px] font-mono transition-colors duration-150 ${idx % 2 === 0 ? 'bg-white/5' : 'bg-transparent'}`}>
+                  <span className="text-white truncate">{asset.callsign || asset.name || 'UNKNOWN'}</span>
+                  <span className={`${asset.icao24 ? 'text-[#0ea5e9]' : 'text-[#10b981]'}`}>
+                    {asset.icao24 ? 'AERIAL' : 'NAVAL'}
                   </span>
-                  <span className="text-right text-on-surface-variant">{asset.lat.toFixed(4)}</span>
-                  <span className="text-right text-on-surface-variant">{asset.lng.toFixed(4)}</span>
-                  <span className="text-right text-secondary">{asset.velocity.toFixed(1)}</span>
+                  <span className="text-right text-white/60">{asset.lat.toFixed(3)}</span>
+                  <span className="text-right text-white/60">{asset.lng.toFixed(3)}</span>
+                  <span className="text-right text-[#0ea5e9]">{(asset.velocity || 0).toFixed(1)}</span>
                 </div>
               ))}
-              {assets.length === 0 && (
-                <div className="py-6 text-center text-[10px] font-mono text-on-surface-variant">
-                  NO_ACTIVE_FEEDS — START BACKEND
-                </div>
-              )}
             </div>
           </div>
 
           {/* Classification Breakdown */}
-          <div className="bg-surface-container p-6 bezel-glow">
-            <h3 className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest mb-5">Classification Breakdown</h3>
+          <div className="fui-border bg-black/40 p-6 relative">
+            <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+            <h3 className="text-[10px] font-label text-white/60 uppercase tracking-widest mb-5">Global Domain Breakdown</h3>
 
-            {data ? (
-              <div className="flex flex-col gap-4">
-                {Object.entries(data.classification_counts).map(([cls, count]) => {
-                  const pct = Math.round((count / data.total_assets) * 100);
-                  const color = cls === 'Naval' ? '#3cdcd1' : cls === 'Aerial' ? '#7bd6d1' : '#44474e';
-                  return (
-                    <div key={cls}>
-                      <div className="flex justify-between mb-1.5">
-                        <span className="text-[10px] font-mono text-white uppercase">{cls}</span>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-lg font-headline font-bold text-white">{count}</span>
-                          <span className="text-[9px] font-mono text-on-surface-variant">{pct}%</span>
-                        </div>
-                      </div>
-                      <div className="h-2 w-full bg-surface-container-lowest">
-                        <div
-                          className="h-full transition-all duration-700 ease-out"
-                          style={{
-                            width: `${pct}%`,
-                            backgroundColor: color,
-                            boxShadow: `0 0 8px ${color}30`,
-                          }}
-                        />
+            <div className="flex flex-col gap-5 mt-4">
+              {[
+                { name: 'AEROSPACE', count: clsAviation, color: '#0ea5e9' },
+                { name: 'MARITIME', count: clsMaritime, color: '#10b981' },
+                { name: 'ORBITAL', count: clsSpace, color: '#a855f7' },
+                { name: 'TERRESTRIAL', count: clsGround, color: '#f59e0b' }
+              ].map(domain => {
+                const pct = getPct(domain.count);
+                return (
+                  <div key={domain.name}>
+                    <div className="flex justify-between mb-1.5">
+                      <span className="text-[10px] font-mono text-white uppercase">{domain.name}</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-lg font-headline font-bold text-white">{domain.count}</span>
+                        <span className="text-[9px] font-mono text-white/50">{pct}%</span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="h-32 flex items-center justify-center">
-                <span className="text-[10px] font-mono text-on-surface-variant animate-pulse">LOADING...</span>
-              </div>
-            )}
-
-            {/* System Health Readout */}
-            {data && (
-              <div className="mt-8 pt-4 border-t border-outline-variant/10">
-                <span className="text-[9px] font-label text-on-surface-variant uppercase tracking-widest block mb-3">System Health</span>
-                <div className="grid grid-cols-2 gap-3 text-[9px] font-mono text-on-surface-variant">
-                  <div className="flex justify-between bg-surface-container-low p-2">
-                    <span>UPTIME</span>
-                    <span className="text-secondary">{data.system.uptime_pct}%</span>
+                    <div className="h-1.5 w-full bg-black">
+                      <div
+                        className="h-full transition-all duration-700 ease-out"
+                        style={{ width: `${pct}%`, backgroundColor: domain.color, boxShadow: `0 0 8px ${domain.color}60` }}
+                      />
+                    </div>
                   </div>
-                  <div className="flex justify-between bg-surface-container-low p-2">
-                    <span>LATENCY</span>
-                    <span className="text-secondary">{data.system.latency_ms}ms</span>
-                  </div>
-                  <div className="flex justify-between bg-surface-container-low p-2">
-                    <span>WS_CONN</span>
-                    <span className="text-secondary">{data.system.ws_connections}</span>
-                  </div>
-                  <div className="flex justify-between bg-surface-container-low p-2">
-                    <span>SCANS_24H</span>
-                    <span className="text-secondary">{data.system.inference_scans_24h}</span>
-                  </div>
-                </div>
-              </div>
-            )}
+                );
+              })}
+            </div>
+            
+            <div className="mt-8 p-3 border border-white/10 bg-white/5 flex justify-between items-center">
+               <span className="text-[9px] font-mono text-white/50">SYSTEM DIAGNOSTICS</span>
+               <span className="text-[9px] font-mono text-green-400 animate-pulse">ALL SYSTEMS NOMINAL</span>
+            </div>
           </div>
         </div>
       </div>

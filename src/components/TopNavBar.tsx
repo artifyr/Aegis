@@ -35,7 +35,7 @@ export function TopNavBar() {
     { name: 'MAP', href: '/' },
     { name: 'ANALYTICS', href: '/analytics' },
     { name: 'ARCHIVE', href: '/archive' },
-    { name: 'MISSIONS', href: '/missions' },
+    { name: 'NEWS', href: '/news' },
   ];
 
   return (
