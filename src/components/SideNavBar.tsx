@@ -31,38 +31,38 @@ export function SideNavBar() {
   }, []);
 
   const selectedAsset = useMemo(() => {
-    if (activeCamera) return { type: 'camera', ...activeCamera };
+    if (activeCamera) return { ...activeCamera, type: 'camera' as const };
     
     if (activeEntityId) {
       const flight = flights.find(f => f.icao24 === activeEntityId);
-      if (flight) return { type: 'flight', ...flight };
+      if (flight) return { ...flight, type: 'flight' as const };
       
       const ship = ships?.find((s: any) => s.mmsi === activeEntityId || s.id === activeEntityId);
-      if (ship) return { type: 'maritime', ...ship };
+      if (ship) return { ...ship, type: 'maritime' as const };
 
       const sat = satellites.find(s => s.noradId === activeEntityId);
-      if (sat) return { type: 'satellite', ...sat };
+      if (sat) return { ...sat, type: 'satellite' as const };
 
       const port = ports.find(p => p.id === activeEntityId || p.name === activeEntityId);
-      if (port) return { type: 'port', ...port };
+      if (port) return { ...port, type: 'port' as const };
       
       const chokepoint = chokepoints.find(c => c.name === activeEntityId);
-      if (chokepoint) return { type: 'chokepoint', ...chokepoint };
+      if (chokepoint) return { ...chokepoint, type: 'chokepoint' as const };
       
       const quake = earthquakes.find(e => e.id === activeEntityId);
-      if (quake) return { type: 'earthquake', ...quake };
+      if (quake) return { ...quake, type: 'earthquake' as const };
       
       const nuke = nuclearFacilities.find(n => n.id === activeEntityId);
-      if (nuke) return { type: 'nuclear', ...nuke };
+      if (nuke) return { ...nuke, type: 'nuclear' as const };
       
       const strat = strategicBases.find(s => s.id === activeEntityId);
-      if (strat) return { type: 'strategic', ...strat };
+      if (strat) return { ...strat, type: 'strategic' as const };
       
       const inc = incidents.find(i => i.id === activeEntityId);
-      if (inc) return { type: 'incident', ...inc };
+      if (inc) return { ...inc, type: 'incident' as const };
     }
     return selectedAssetEvent;
-  }, [selectedAssetEvent, activeCamera, activeEntityId, flights, ships, satellites, ports, chokepoints, earthquakes, nuclearFacilities, strategicBases, incidents]);
+  }, [activeEntityId, activeCamera, flights, ships, satellites, ports, chokepoints, earthquakes, nuclearFacilities, strategicBases, incidents, selectedAssetEvent]);
 
   const toggleGroup = (group: string) => {
     setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }));
