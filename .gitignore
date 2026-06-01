@@ -71,3 +71,17 @@ graphify-out/
 # gemini
 .gemini/
 
+# tempdocs & scratch
+tempdocs/
+scratch/
+
+# root helper scripts (exclude config files)
+/*.js
+!/tailwind.config.js
+!/postcss.config.js
+!/postcss.config.mjs
+!/eslint.config.mjs
+
+# other unnecessary files
+old_map.txt
+

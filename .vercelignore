@@ -2,3 +2,22 @@ backend/
 venv/
 .venv/
 backend/venv/
+
+# tempdocs & scratch
+tempdocs/
+scratch/
+
+# graphify & gemini
+graphify-out/
+.graphify/
+.gemini/
+
+# root helper scripts
+/*.js
+!/tailwind.config.js
+!/postcss.config.js
+!/postcss.config.mjs
+!/eslint.config.mjs
+
+# other unnecessary files
+old_map.txt
