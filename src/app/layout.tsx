@@ -23,8 +23,11 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AEGIS COMMAND - Tactical War Room",
+  title: "Aegis - Tactical War Room",
   description: "Geospatial Intelligence Dashboard",
+  icons: {
+    icon: "/aegislogo.ico",
+  },
 };
 
 export default function RootLayout({

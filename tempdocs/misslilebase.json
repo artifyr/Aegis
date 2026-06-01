@@ -1,0 +1,666 @@
+[
+    {
+        "lat": 41.13306,
+        "lng": -104.86694,
+        "type": "CONTROL_CENTER",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "F.E.WARREN AFB"
+    },
+    {
+        "lat": 41.32889,
+        "lng": -104.26556,
+        "type": "CONTROL_CENTER",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-01"
+    },
+    {
+        "lat": 41.4175,
+        "lng": -104.19472,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-02"
+    },
+    {
+        "lat": 41.38806,
+        "lng": -104.07833,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-03"
+    },
+    {
+        "lat": 41.31778,
+        "lng": -104.17472,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-04"
+    },
+    {
+        "lat": 41.30306,
+        "lng": -104.07917,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-05"
+    },
+    {
+        "lat": 41.2425,
+        "lng": -104.25194,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-06"
+    },
+    {
+        "lat": 41.17361,
+        "lng": -104.30139,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-07"
+    },
+    {
+        "lat": 41.21528,
+        "lng": -104.38944,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-08"
+    },
+    {
+        "lat": 41.29,
+        "lng": -104.34778,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-09"
+    },
+    {
+        "lat": 41.36,
+        "lng": -104.35,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-10"
+    },
+    {
+        "lat": 41.41944,
+        "lng": -104.28444,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-11"
+    },
+    {
+        "lat": 41.51139,
+        "lng": -103.99472,
+        "type": "CONTROL_CENTER",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "B-01"
+    },
+    {
+        "lat": 41.63889,
+        "lng": -103.94528,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "B-02"
+    },
+    {
+        "lat": 41.63889,
+        "lng": -103.84306,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "B-03"
+    },
+    {
+        "lat": 41.53556,
+        "lng": -103.90667,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "B-04"
+    },
+    {
+        "lat": 41.4725,
+        "lng": -103.88806,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "B-05"
+    },
+    {
+        "lat": 41.42111,
+        "lng": -103.97722,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "B-06"
+    },
+    {
+        "lat": 41.43917,
+        "lng": -104.09083,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "B-07"
+    },
+    {
+        "lat": 41.50333,
+        "lng": -104.12611,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "B-08"
+    },
+    {
+        "lat": 41.65917,
+        "lng": -104.24194,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "B-09"
+    },
+    {
+        "lat": 41.62917,
+        "lng": -104.13194,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "B-10"
+    },
+    {
+        "lat": 41.63861,
+        "lng": -104.05444,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "B-11"
+    },
+    {
+        "lat": 41.58056,
+        "lng": -103.67361,
+        "type": "CONTROL_CENTER",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "C-01"
+    },
+    {
+        "lat": 41.68278,
+        "lng": -103.67528,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "C-02"
+    },
+    {
+        "lat": 41.64639,
+        "lng": -103.52028,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "C-03"
+    },
+    {
+        "lat": 41.58222,
+        "lng": -103.55333,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "C-04"
+    },
+    {
+        "lat": 41.51167,
+        "lng": -103.49444,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "C-05"
+    },
+    {
+        "lat": 41.465,
+        "lng": -103.42722,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "C-06"
+    },
+    {
+        "lat": 41.48278,
+        "lng": -103.58139,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "C-07"
+    },
+    {
+        "lat": 41.51639,
+        "lng": -103.65639,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "C-08"
+    },
+    {
+        "lat": 41.48611,
+        "lng": -103.79139,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "C-09"
+    },
+    {
+        "lat": 41.58111,
+        "lng": -103.80306,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "C-10"
+    },
+    {
+        "lat": 41.63917,
+        "lng": -103.75139,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "C-11"
+    },
+    {
+        "lat": 47.50472,
+        "lng": -111.18722,
+        "type": "CONTROL_CENTER",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "MALMSTROM AFB"
+    },
+    {
+        "lat": 47.28167,
+        "lng": -110.80083,
+        "type": "CONTROL_CENTER",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-01 MT"
+    },
+    {
+        "lat": 47.3725,
+        "lng": -110.79222,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-02 MT"
+    },
+    {
+        "lat": 47.33972,
+        "lng": -110.6725,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-03 MT"
+    },
+    {
+        "lat": 47.18222,
+        "lng": -110.72778,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-04 MT"
+    },
+    {
+        "lat": 47.05111,
+        "lng": -110.71972,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-05 MT"
+    },
+    {
+        "lat": 47.06167,
+        "lng": -110.81056,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-06 MT"
+    },
+    {
+        "lat": 47.1625,
+        "lng": -110.84361,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-07 MT"
+    },
+    {
+        "lat": 47.17889,
+        "lng": -110.97,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-08 MT"
+    },
+    {
+        "lat": 47.2775,
+        "lng": -111.15056,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-09 MT"
+    },
+    {
+        "lat": 47.30417,
+        "lng": -111.02139,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-10 MT"
+    },
+    {
+        "lat": 47.39167,
+        "lng": -110.91444,
+        "type": "ICBM_SILO",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "A-11 MT"
+    },
+    {
+        "lat": 48.41583,
+        "lng": -101.35806,
+        "type": "CONTROL_CENTER",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "MINOT AFB"
+    },
+    {
+        "lat": 53.7982,
+        "lng": 35.8039,
+        "type": "ICBM_SILO",
+        "country": "Russia",
+        "status": "ACTIVE",
+        "callsign": "KOZELSK"
+    },
+    {
+        "lat": 51.0934,
+        "lng": 59.8446,
+        "type": "ICBM_SILO",
+        "country": "Russia",
+        "status": "ACTIVE",
+        "callsign": "DOMBAROVSKY"
+    },
+    {
+        "lat": 52.5085,
+        "lng": 104.3933,
+        "type": "ICBM_SILO",
+        "country": "Russia",
+        "status": "ACTIVE",
+        "callsign": "IRKUTSK"
+    },
+    {
+        "lat": 42.34,
+        "lng": 92.52,
+        "type": "ICBM_SILO",
+        "country": "China",
+        "status": "ACTIVE",
+        "callsign": "HAMI"
+    },
+    {
+        "lat": 40.13,
+        "lng": 96.6,
+        "type": "ICBM_SILO",
+        "country": "China",
+        "status": "ACTIVE",
+        "callsign": "YUMEN"
+    },
+    {
+        "lat": 38.5847,
+        "lng": 126.1079,
+        "type": "CONVENTIONAL",
+        "country": "North Korea",
+        "status": "ACTIVE",
+        "callsign": "SAKKANMOL"
+    },
+    {
+        "lat": 40.31625,
+        "lng": 125.27651,
+        "type": "CONVENTIONAL",
+        "country": "North Korea",
+        "status": "ACTIVE",
+        "callsign": "SINPUNG-DONG"
+    },
+    {
+        "lat": 41.36988,
+        "lng": 126.91363,
+        "type": "CONVENTIONAL",
+        "country": "North Korea",
+        "status": "ACTIVE",
+        "callsign": "HOEJUNG-NI"
+    },
+    {
+        "lat": 38.67425,
+        "lng": 126.7277,
+        "type": "CONVENTIONAL",
+        "country": "North Korea",
+        "status": "ACTIVE",
+        "callsign": "KAL-GOL"
+    },
+    {
+        "lat": 51.0628,
+        "lng": 60.2119,
+        "type": "CONTROL_CENTER",
+        "country": "Russia",
+        "status": "ACTIVE",
+        "callsign": "DOMBAROVSKY CC"
+    },
+    {
+        "lat": 42.46,
+        "lng": 92.35,
+        "type": "CONTROL_CENTER",
+        "country": "China",
+        "status": "ACTIVE",
+        "callsign": "HAMI CC"
+    },
+    {
+        "lat": 51.767,
+        "lng": 45.568,
+        "type": "ICBM_SILO",
+        "country": "Russia",
+        "status": "ACTIVE",
+        "callsign": "TATISHCHEVO"
+    },
+    {
+        "lat": 55.289,
+        "lng": 89.816,
+        "type": "ICBM_SILO",
+        "country": "Russia",
+        "status": "ACTIVE",
+        "callsign": "UZHUR"
+    },
+    {
+        "lat": 62.927,
+        "lng": 40.574,
+        "type": "ICBM_SILO",
+        "country": "Russia",
+        "status": "ACTIVE",
+        "callsign": "PLESETSK"
+    },
+    {
+        "lat": 48.566,
+        "lng": 45.728,
+        "type": "CONVENTIONAL",
+        "country": "Russia",
+        "status": "ACTIVE",
+        "callsign": "KAPUSTIN YAR"
+    },
+    {
+        "lat": 56.873,
+        "lng": 40.551,
+        "type": "CONTROL_CENTER",
+        "country": "Russia",
+        "status": "ACTIVE",
+        "callsign": "TEIKOVO"
+    },
+    {
+        "lat": 39.782,
+        "lng": 105.845,
+        "type": "ICBM_SILO",
+        "country": "China",
+        "status": "ACTIVE",
+        "callsign": "JILANTAI"
+    },
+    {
+        "lat": 29.712,
+        "lng": 118.307,
+        "type": "CONTROL_CENTER",
+        "country": "China",
+        "status": "ACTIVE",
+        "callsign": "BASE 61 HUANGSHAN"
+    },
+    {
+        "lat": 27.55,
+        "lng": 109.967,
+        "type": "CONTROL_CENTER",
+        "country": "China",
+        "status": "ACTIVE",
+        "callsign": "BASE 63 HUAIHUA"
+    },
+    {
+        "lat": 26.233,
+        "lng": 109.783,
+        "type": "ICBM_SILO",
+        "country": "China",
+        "status": "ACTIVE",
+        "callsign": "TONGDAO"
+    },
+    {
+        "lat": 33.133,
+        "lng": 112.433,
+        "type": "ICBM_SILO",
+        "country": "China",
+        "status": "ACTIVE",
+        "callsign": "SUNDIAN"
+    },
+    {
+        "lat": 39.638,
+        "lng": 125.358,
+        "type": "CONVENTIONAL",
+        "country": "North Korea",
+        "status": "ACTIVE",
+        "callsign": "SINO-RI"
+    },
+    {
+        "lat": 38.842,
+        "lng": 126.115,
+        "type": "CONVENTIONAL",
+        "country": "North Korea",
+        "status": "ACTIVE",
+        "callsign": "SANGWON-NI"
+    },
+    {
+        "lat": 34.385,
+        "lng": 47.039,
+        "type": "ICBM_SILO",
+        "country": "Iran",
+        "status": "ACTIVE",
+        "callsign": "IMAM ALI BASE"
+    },
+    {
+        "lat": 38.073,
+        "lng": 46.213,
+        "type": "CONVENTIONAL",
+        "country": "Iran",
+        "status": "ACTIVE",
+        "callsign": "TABRIZ BASE"
+    },
+    {
+        "lat": 35.234,
+        "lng": 53.921,
+        "type": "CONTROL_CENTER",
+        "country": "Iran",
+        "status": "ACTIVE",
+        "callsign": "SEMNAN RANGE"
+    },
+    {
+        "lat": 31.738,
+        "lng": 34.921,
+        "type": "ICBM_SILO",
+        "country": "Israel",
+        "status": "ACTIVE",
+        "callsign": "SDOT MICHA"
+    },
+    {
+        "lat": 31.884,
+        "lng": 34.68,
+        "type": "CONTROL_CENTER",
+        "country": "Israel",
+        "status": "ACTIVE",
+        "callsign": "PALMACHIM"
+    },
+    {
+        "lat": 20.757,
+        "lng": 87.011,
+        "type": "CONTROL_CENTER",
+        "country": "India",
+        "status": "ACTIVE",
+        "callsign": "ABDUL KALAM IS"
+    },
+    {
+        "lat": 17.433,
+        "lng": 78.5,
+        "type": "CONVENTIONAL",
+        "country": "India",
+        "status": "ACTIVE",
+        "callsign": "SECUNDERABAD"
+    },
+    {
+        "lat": 32.0,
+        "lng": 72.54,
+        "type": "CONVENTIONAL",
+        "country": "Pakistan",
+        "status": "ACTIVE",
+        "callsign": "SARGODHA"
+    },
+    {
+        "lat": 27.8,
+        "lng": 66.601,
+        "type": "CONVENTIONAL",
+        "country": "Pakistan",
+        "status": "ACTIVE",
+        "callsign": "KHUZDAR"
+    },
+    {
+        "lat": 34.742,
+        "lng": -120.5724,
+        "type": "CONTROL_CENTER",
+        "country": "United States",
+        "status": "ACTIVE",
+        "callsign": "VANDENBERG SFB"
+    },
+    {
+        "lat": 44.012,
+        "lng": 5.495,
+        "type": "ICBM_SILO",
+        "country": "France",
+        "status": "INACTIVE",
+        "callsign": "PLATEAU D ALBION"
+    },
+    {
+        "lat": 43.523,
+        "lng": 4.923,
+        "type": "CONTROL_CENTER",
+        "country": "France",
+        "status": "ACTIVE",
+        "callsign": "ISTRES AB"
+    },
+    {
+        "lat": 47.048,
+        "lng": 2.632,
+        "type": "CONTROL_CENTER",
+        "country": "France",
+        "status": "ACTIVE",
+        "callsign": "AVORD AB"
+    }
+]

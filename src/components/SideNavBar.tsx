@@ -15,7 +15,7 @@ const getRegionFromCoords = (lat: number, lng: number) => {
 };
 
 export function SideNavBar() {
-  const { setDiveTarget, layers, toggleLayer, cameras, flights, ports, chokepoints, satellites, earthquakes, nuclearFacilities, setMapCommand, setActiveEntityId } = useTacticalStore();
+  const { setDiveTarget, layers, toggleLayer, cameras, flights, ports, chokepoints, satellites, earthquakes, nuclearFacilities, strategicBases, incidents, setMapCommand, setActiveEntityId, nukeSimMode, setNukeSimMode } = useTacticalStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     aviation: true,
@@ -25,6 +25,28 @@ export function SideNavBar() {
 
   const toggleGroup = (group: string) => {
     setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }));
+  };
+
+  const toggleGroupAll = (groupId: string, turnOn: boolean, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const groupLayers: Record<string, string[]> = {
+      aviation: ['aviation_commercial', 'aviation_private', 'aviation_jets', 'aviation_military'],
+      maritime: ['maritime', 'space_satellites'],
+      surveillance: ['cctv'],
+      hazards: ['hazards_earthquakes'],
+      threats: ['threats_nuclear', 'threats_incidents', 'threats_strategic'],
+    };
+
+    const targetLayers = groupLayers[groupId];
+    if (!targetLayers) return;
+
+    useTacticalStore.setState((state: any) => {
+      const newLayers = { ...state.layers };
+      targetLayers.forEach(l => {
+        newLayers[l] = turnOn;
+      });
+      return { layers: newLayers };
+    });
   };
 
   const searchResults = (() => {
@@ -102,7 +124,7 @@ export function SideNavBar() {
         </div>
       </div>
       <div className="flex items-center gap-3">
-        {count !== undefined && (
+        {count !== undefined && count > 0 && (
           <span className={`text-[10px] font-mono ${active ? 'text-secondary' : 'text-slate-600'}`}>
             {count.toLocaleString()}
           </span>
@@ -125,7 +147,10 @@ export function SideNavBar() {
         <div className="flex items-center gap-2">
           <span className="text-[9px] font-mono text-slate-500">{activeCount}/{totalCount}</span>
           <span className={`material-symbols-outlined text-[14px] text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
-          <div className={`w-3 h-3 rounded border flex items-center justify-center ${activeParent ? 'border-secondary/50' : 'border-slate-600'}`}>
+          <div 
+             className={`w-3 h-3 rounded border flex items-center justify-center hover:border-white transition-colors cursor-pointer ${activeParent ? 'border-secondary/50' : 'border-slate-600'}`}
+             onClick={(e) => toggleGroupAll(id, activeCount < totalCount, e)}
+          >
              <div className={`w-1.5 h-1.5 ${activeParent ? 'bg-secondary' : 'bg-transparent'}`} />
           </div>
         </div>
@@ -137,9 +162,9 @@ export function SideNavBar() {
   const maritimeActiveCount = [layers.maritime, layers.space_satellites].filter(Boolean).length;
   const survActiveCount = [layers.cctv, false].filter(Boolean).length;
   const hazardsActiveCount = [layers.hazards_earthquakes, false, false].filter(Boolean).length;
-  const threatsActiveCount = [layers.threats_nuclear, false, false].filter(Boolean).length;
+  const threatsActiveCount = [layers.threats_nuclear, layers.threats_incidents, layers.threats_strategic, false].filter(Boolean).length;
   
-  const totalEntities = cameras.length + flights.length + ports.length + chokepoints.length + satellites.length + earthquakes.length + nuclearFacilities.length;
+  const totalEntities = cameras.length + flights.length + ports.length + chokepoints.length + satellites.length + earthquakes.length + nuclearFacilities.length + incidents.length + strategicBases.length;
   const activeLayersTotal = aviationActiveCount + maritimeActiveCount + survActiveCount + hazardsActiveCount + threatsActiveCount;
 
   return (
@@ -251,11 +276,12 @@ export function SideNavBar() {
         
         {/* ═══ THREATS & INFRA ═══ */}
         <div className="flex flex-col gap-1">
-           <GroupHeader id="threats" label="THREATS & INFRA" icon="warning" activeCount={threatsActiveCount} totalCount={3} activeParent={threatsActiveCount > 0} />
+            <GroupHeader id="threats" label="THREATS & INFRA" icon="warning" activeCount={threatsActiveCount} totalCount={4} activeParent={threatsActiveCount > 0} />
            {expandedGroups['threats'] && (
              <div className="flex flex-col gap-0.5">
                <LayerSwitch label="Nuclear Facilities" active={layers.threats_nuclear} count={nuclearFacilities.length} dotColor="bg-green-500" onClick={() => toggleLayer('threats_nuclear')} />
-               <LayerSwitch label="Global Incidents" active={false} count={30} dotColor="bg-red-500" onClick={() => {}} />
+               <LayerSwitch label="Global Incidents" active={layers.threats_incidents} count={incidents.length} dotColor="bg-red-500" onClick={() => toggleLayer('threats_incidents')} />
+               <LayerSwitch label="Strategic Bases" active={layers.threats_strategic} count={strategicBases.length} dotColor="bg-yellow-500" onClick={() => toggleLayer('threats_strategic')} />
                <LayerSwitch label="GPS Jamming" active={false} count={0} dotColor="bg-slate-500" onClick={() => {}} />
              </div>
            )}

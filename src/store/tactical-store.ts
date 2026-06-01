@@ -90,6 +90,14 @@ interface TacticalStore {
   setEarthquakes: (earthquakes: any[]) => void;
   nuclearFacilities: any[];
   setNuclearFacilities: (facilities: any[]) => void;
+  strategicBases: any[];
+  setStrategicBases: (bases: any[]) => void;
+  incidents: any[];
+  setIncidents: (incidents: any[]) => void;
+  nukeSimMode: boolean;
+  setNukeSimMode: (mode: boolean) => void;
+  nukeSimData: any | null;
+  setNukeSimData: (data: any | null) => void;
 
   // UI Layers Visibility
   layers: {
@@ -102,6 +110,8 @@ interface TacticalStore {
     space_satellites: boolean;
     hazards_earthquakes: boolean;
     threats_nuclear: boolean;
+    threats_strategic: boolean;
+    threats_incidents: boolean;
   };
   toggleLayer: (layerName: keyof TacticalStore['layers']) => void;
 }
@@ -145,6 +155,17 @@ export const useTacticalStore = create<TacticalStore>()(
       nuclearFacilities: [],
       setNuclearFacilities: (nuclearFacilities) => set({ nuclearFacilities }),
 
+      strategicBases: [],
+      setStrategicBases: (strategicBases) => set({ strategicBases }),
+
+      incidents: [],
+      setIncidents: (incidents) => set({ incidents }),
+
+      nukeSimMode: false,
+      setNukeSimMode: (nukeSimMode) => set({ nukeSimMode }),
+      nukeSimData: null,
+      setNukeSimData: (nukeSimData) => set({ nukeSimData }),
+
       layers: {
         aviation_commercial: false,
         aviation_private: false,
@@ -155,6 +176,8 @@ export const useTacticalStore = create<TacticalStore>()(
         space_satellites: false,
         hazards_earthquakes: false,
         threats_nuclear: false,
+        threats_strategic: false,
+        threats_incidents: false,
       },
       toggleLayer: (layerName) => set((state) => ({
         layers: { ...state.layers, [layerName]: !state.layers[layerName] }

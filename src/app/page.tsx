@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { AnalyticsPanel } from '@/components/AnalyticsPanel';
+import { NukeSimPanel } from '@/components/NukeSimPanel';
 import { useInference } from '@/hooks/use-inference';
 
 // Dynamic import to prevent SSR of Mapbox GL (requires window/document)
@@ -37,6 +38,9 @@ export default function GlobalSurveillanceHub() {
           onAssetSelect={(asset) => setSelectedAsset(asset)}
           selectedAssetId={selectedAsset?.id ?? null}
         />
+
+        {/* Nuclear Simulator Panel (Disabled) */}
+        {/* <NukeSimPanel /> */}
 
         {/* Coordinate HUD corners */}
         <div className="absolute top-6 left-6 border-t-2 border-l-2 border-secondary w-8 h-8 opacity-50 z-20 pointer-events-none"></div>

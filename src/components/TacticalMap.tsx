@@ -4,6 +4,7 @@ import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import Map, { Marker, Source, Layer, type MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useTacticalStore, SurveillanceNode } from '@/store/tactical-store';
+import circle from '@turf/circle';
 
 // ─── Constants ────────────────────────────────────────────────────
 
@@ -44,10 +45,12 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 function CameraMarker({
   camera,
   isSelected,
+  isZoomedIn,
   onClick,
 }: {
   camera: SurveillanceNode;
   isSelected: boolean;
+  isZoomedIn: boolean;
   onClick: () => void;
 }) {
   const size = isSelected ? 48 : 36;
@@ -85,6 +88,10 @@ function CameraMarker({
         <path d="M26 22l6-3v8l-6-3" fill={color} opacity="0.8" />
         {isSelected && <circle cx="20" cy="24" r="1.5" fill="#0d0e12" />}
       </svg>
+
+      <div className={`absolute top-full mt-1.5 text-[7px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        CAMERA NODE {camera.id.toString().slice(0, 8)}
+      </div>
 
       {/* Active Track pulse ring — DESIGN.md: 2px primary_fixed_dim pulse */}
       {isSelected && (
@@ -241,7 +248,14 @@ export function TacticalMap({
   const setEarthquakes = useTacticalStore(state => state.setEarthquakes);
   const nuclearFacilities = useTacticalStore(state => state.nuclearFacilities);
   const setNuclearFacilities = useTacticalStore(state => state.setNuclearFacilities);
+  const strategicBases = useTacticalStore(state => state.strategicBases);
+  const setStrategicBases = useTacticalStore(state => state.setStrategicBases);
+  const incidents = useTacticalStore(state => state.incidents);
+  const setIncidents = useTacticalStore(state => state.setIncidents);
   const layers = useTacticalStore(state => state.layers);
+  const nukeSimMode = useTacticalStore(state => state.nukeSimMode);
+  const nukeSimData = useTacticalStore(state => state.nukeSimData);
+  const setNukeSimData = useTacticalStore(state => state.setNukeSimData);
 
   const activeEntityId = useTacticalStore(state => state.activeEntityId);
   const setActiveEntityId = useTacticalStore(state => state.setActiveEntityId);
@@ -250,6 +264,7 @@ export function TacticalMap({
 
   const [status, setStatus] = useState('AWAITING_MAP');
   const [isDived, setIsDived] = useState(false);
+  const [isZoomedIn, setIsZoomedIn] = useState(false);
   const [mapStyle, setMapStyle] = useState(DARK_STYLE);
   const [bounds, setBounds] = useState<{ sw: { lat: number, lng: number }, ne: { lat: number, lng: number } } | null>(null);
 
@@ -266,9 +281,9 @@ export function TacticalMap({
         fetch(`/api/region-dossier?lat=${lat}&lng=${lng}`),
         fetch(`/api/sentinel?lat=${lat}&lng=${lng}`)
       ]);
-      
+
       let finalData: any = {};
-      
+
       if (dossierRes.status === 'fulfilled' && dossierRes.value.ok) {
         finalData = await dossierRes.value.json();
       } else {
@@ -364,6 +379,24 @@ export function TacticalMap({
       c.lng >= bounds.sw.lng && c.lng <= bounds.ne.lng
     );
   }, [chokepoints, bounds]);
+  // Use turf.js to calculate accurate geodesic circles for Nuke Sim
+  const nukeSimGeoJson = useMemo(() => {
+    if (!nukeSimMode || !nukeSimData?.target || !nukeSimData?.radii) return null;
+
+    const { target, radii } = nukeSimData;
+    const center = [target.lng, target.lat];
+    const steps = 64; // smoothness
+
+    return {
+      type: 'FeatureCollection',
+      features: [
+        circle(center, radii.lightBlast, { steps, properties: { type: 'lightBlast' } }),
+        circle(center, radii.thermal, { steps, properties: { type: 'thermal' } }),
+        circle(center, radii.moderateBlast, { steps, properties: { type: 'moderateBlast' } }),
+        circle(center, radii.fireball, { steps, properties: { type: 'fireball' } }),
+      ]
+    };
+  }, [nukeSimMode, nukeSimData]);
 
   // Overpass fetch hook triggering onIdle
   const fetchCamerasInView = useCallback(() => {
@@ -459,7 +492,7 @@ export function TacticalMap({
     return () => clearInterval(intervalId);
   }, [setFlights]);
 
-  // Fetch Satellites data every 60 seconds if layer is active
+  // Fetch Satellites data
   useEffect(() => {
     if (!layers.space_satellites) return;
     const fetchSatellites = () => {
@@ -515,6 +548,44 @@ export function TacticalMap({
     const intervalId = setInterval(fetchNuclear, 300000); // 5 mins
     return () => clearInterval(intervalId);
   }, [layers.threats_nuclear, setNuclearFacilities]);
+
+  // Fetch Strategic Bases
+  useEffect(() => {
+    if (!layers.threats_strategic) return;
+    const fetchStrategic = () => {
+      fetch('/api/strategic')
+        .then(res => res.json())
+        .then(data => {
+          if (data.bases) {
+            setStrategicBases(data.bases);
+          }
+        })
+        .catch(err => console.error("Strategic bases fetch failed", err));
+    };
+
+    fetchStrategic();
+    const intervalId = setInterval(fetchStrategic, 300000); // 5 mins
+    return () => clearInterval(intervalId);
+  }, [layers.threats_strategic, setStrategicBases]);
+
+  // Fetch Global Incidents
+  useEffect(() => {
+    if (!layers.threats_incidents) return;
+    const fetchIncidents = () => {
+      fetch('/api/incidents')
+        .then(res => res.json())
+        .then(data => {
+          if (data.events) {
+            setIncidents(data.events);
+          }
+        })
+        .catch(err => console.error("Incidents fetch failed", err));
+    };
+
+    fetchIncidents();
+    const intervalId = setInterval(fetchIncidents, 300000); // 5 mins
+    return () => clearInterval(intervalId);
+  }, [layers.threats_incidents, setIncidents]);
 
   // Execute external dives from the Zustand store
   useEffect(() => {
@@ -634,6 +705,11 @@ export function TacticalMap({
           fetchDossier(lat, lng);
         }}
         onClick={(e) => {
+          if (nukeSimMode) {
+            setNukeSimData({ ...nukeSimData, target: { lat: e.lngLat.lat, lng: e.lngLat.lng } });
+            return;
+          }
+
           // If clicking elsewhere on map, close dossier
           if (dossierLngLat) setDossierLngLat(null);
 
@@ -650,6 +726,11 @@ export function TacticalMap({
         onMoveEnd={(e) => {
           const b = e.target.getBounds();
           if (b) setBounds({ sw: b.getSouthWest(), ne: b.getNorthEast() });
+        }}
+        onZoom={(e) => {
+          const z = e.viewState.zoom;
+          if (z >= 6 && !isZoomedIn) setIsZoomedIn(true);
+          else if (z < 6 && isZoomedIn) setIsZoomedIn(false);
         }}
         onLoad={(e) => {
           const map = e.target;
@@ -720,6 +801,7 @@ export function TacticalMap({
             <CameraMarker
               camera={camera}
               isSelected={selectedCamera?.id === camera.id || selectedAssetId === camera.id}
+              isZoomedIn={isZoomedIn}
               onClick={() => {
                 onAssetSelect?.(camera);
                 setSelectedCamera(camera);
@@ -760,6 +842,26 @@ export function TacticalMap({
                 'circle-stroke-color': '#0d0e12'
               }}
             />
+            <Layer
+              id="satellites-label-layer"
+              type="symbol"
+              layout={{
+                'text-field': ['get', 'name'],
+                'text-size': 8,
+                'text-offset': [0, 1],
+                'text-anchor': 'top'
+              }}
+              paint={{
+                'text-color': ['get', 'color'],
+                'text-halo-color': '#000000',
+                'text-halo-width': 1,
+                'text-opacity': [
+                  'interpolate', ['linear'], ['zoom'],
+                  5, 0,
+                  6, 1
+                ]
+              }}
+            />
           </Source>
         )}
 
@@ -768,56 +870,56 @@ export function TacticalMap({
           (() => {
             const flight = flights.find(f => f.icao24 === activeEntityId)!;
             return (
-              <Marker 
-                longitude={flight.lng} 
-                latitude={flight.lat} 
+              <Marker
+                longitude={flight.lng}
+                latitude={flight.lat}
                 anchor="center"
                 style={{ zIndex: 999999 }}
               >
-                <div 
+                <div
                   className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-md shadow-2xl backdrop-blur-lg w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
                   style={{
-                    boxShadow: flight.category === 'military' 
-                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(239, 68, 68, 0.3)' 
+                    boxShadow: flight.category === 'military'
+                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(239, 68, 68, 0.3)'
                       : flight.category === 'jet'
-                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(236, 72, 153, 0.3)'
-                      : flight.category === 'private'
-                      ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(168, 85, 247, 0.3)'
-                      : '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(249, 115, 22, 0.3)'
+                        ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(236, 72, 153, 0.3)'
+                        : flight.category === 'private'
+                          ? '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(168, 85, 247, 0.3)'
+                          : '0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(249, 115, 22, 0.3)'
                   }}
                 >
-                  <div 
+                  <div
                     className="absolute top-0 left-0 right-0 h-1 rounded-t-md"
                     style={{
-                      backgroundColor: flight.category === 'military' 
-                        ? '#ef4444' 
+                      backgroundColor: flight.category === 'military'
+                        ? '#ef4444'
                         : flight.category === 'jet'
-                        ? '#ec4899'
-                        : flight.category === 'private'
-                        ? '#a855f7'
-                        : '#f97316'
+                          ? '#ec4899'
+                          : flight.category === 'private'
+                            ? '#a855f7'
+                            : '#f97316'
                     }}
                   />
                   <div className="flex justify-between items-center mb-4 mt-1">
                     <div>
-                      <h3 
+                      <h3
                         className="font-headline font-bold tracking-wider text-xl uppercase"
                         style={{
-                          color: flight.category === 'military' 
-                            ? '#ef4444' 
+                          color: flight.category === 'military'
+                            ? '#ef4444'
                             : flight.category === 'jet'
-                            ? '#ec4899'
-                            : flight.category === 'private'
-                            ? '#a855f7'
-                            : '#f97316'
+                              ? '#ec4899'
+                              : flight.category === 'private'
+                                ? '#a855f7'
+                                : '#f97316'
                         }}
                       >
                         {flight.callsign || 'UNKNOWN'}
                       </h3>
                       <span className="text-slate-500 font-mono text-[10px] tracking-wider uppercase block mt-0.5">ICAO24: {flight.icao24}</span>
                     </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} 
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }}
                       className="text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800/80 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-150 border border-slate-800"
                     >
                       <span className="material-symbols-outlined text-base">close</span>
@@ -850,18 +952,18 @@ export function TacticalMap({
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <a 
-                      href={`https://www.flightaware.com/live/flight/${flight.callsign?.trim() || flight.icao24}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <a
+                      href={`https://www.flightaware.com/live/flight/${flight.callsign?.trim() || flight.icao24}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="flex-1 py-2 bg-slate-900 border border-orange-500/30 hover:border-orange-500/60 text-orange-400 text-[10px] font-bold font-mono tracking-wider rounded-lg transition-all duration-150 hover:bg-orange-500/10 flex items-center justify-center gap-1.5 shadow-[0_2px_8px_rgba(249,115,22,0.05)] hover:shadow-[0_2px_12px_rgba(249,115,22,0.15)]"
                     >
                       <span className="material-symbols-outlined text-xs">bolt</span> FLIGHTAWARE
                     </a>
-                    <a 
-                      href={`https://globe.adsbexchange.com/?icao=${flight.icao24}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <a
+                      href={`https://globe.adsbexchange.com/?icao=${flight.icao24}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="flex-1 py-2 bg-slate-900 border border-cyan-500/30 hover:border-cyan-500/60 text-cyan-400 text-[10px] font-bold font-mono tracking-wider rounded-lg transition-all duration-150 hover:bg-cyan-500/10 flex items-center justify-center gap-1.5 shadow-[0_2px_8px_rgba(6,182,212,0.05)] hover:shadow-[0_2px_12px_rgba(6,182,212,0.15)]"
                     >
                       <span className="material-symbols-outlined text-xs">satellite_alt</span> ADS-B
@@ -878,13 +980,13 @@ export function TacticalMap({
           (() => {
             const sat = satellites.find(s => s.noradId === activeEntityId)!;
             return (
-              <Marker 
-                longitude={sat.lng} 
-                latitude={sat.lat} 
+              <Marker
+                longitude={sat.lng}
+                latitude={sat.lat}
                 anchor="center"
                 style={{ zIndex: 999999 }}
               >
-                <div 
+                <div
                   className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-5 rounded-xl shadow-2xl backdrop-blur-lg w-[320px] pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
                   style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${sat.color}4D` }}
                 >
@@ -893,14 +995,14 @@ export function TacticalMap({
                       <span className="text-lg inline-block transform -rotate-12 filter drop-shadow-md">🛰️</span>
                       <h3 className="font-mono text-[16px] font-bold tracking-widest uppercase mt-1" style={{ color: sat.color }}>{sat.name}</h3>
                     </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} 
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }}
                       className="text-slate-500 hover:text-white transition-colors p-1 -mr-2 -mt-2"
                     >
                       <span className="material-symbols-outlined text-[16px]">close</span>
                     </button>
                   </div>
-                  
+
                   <div className="grid grid-cols-3 gap-2 mb-6">
                     <div>
                       <p className="text-slate-500 text-[10px] font-mono tracking-widest mb-1.5 uppercase">MISSION</p>
@@ -916,10 +1018,10 @@ export function TacticalMap({
                     </div>
                   </div>
 
-                  <a 
-                    href={`https://db.satnogs.org/satellite/${sat.noradId}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
+                  <a
+                    href={`https://db.satnogs.org/satellite/${sat.noradId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="w-full py-3 bg-cyan-950/20 border border-cyan-800/60 hover:border-[#3cdcd1]/80 text-[#3cdcd1] text-[10px] font-bold font-mono tracking-[0.2em] rounded transition-all duration-150 hover:bg-cyan-900/40 flex items-center justify-center gap-2 shadow-[0_2px_12px_rgba(6,182,212,0.05)]"
                   >
                     <span className="text-[14px]">🔭</span> SOURCE: SATNOGS
@@ -942,6 +1044,20 @@ export function TacticalMap({
                 'icon-allow-overlap': true,
                 'icon-ignore-placement': true,
                 'icon-size': 0.8,
+                'text-field': ['get', 'name'],
+                'text-size': 7,
+                'text-offset': [0, 1.2],
+                'text-anchor': 'top'
+              }}
+              paint={{
+                'text-color': '#94a3b8',
+                'text-halo-color': '#000000',
+                'text-halo-width': 1,
+                'text-opacity': [
+                  'interpolate', ['linear'], ['zoom'],
+                  5, 0,
+                  6, 1
+                ]
               }}
             />
           </Source>
@@ -957,27 +1073,27 @@ export function TacticalMap({
             const themeShadow = isMilitary ? 'rgba(239, 68, 68, 0.3)' : isTanker ? 'rgba(234, 179, 8, 0.3)' : 'rgba(6, 182, 212, 0.3)';
 
             return (
-              <Marker 
-                longitude={ship.lng} 
-                latitude={ship.lat} 
+              <Marker
+                longitude={ship.lng}
+                latitude={ship.lat}
                 anchor="center"
                 style={{ zIndex: 999999 }}
               >
-                <div 
+                <div
                   className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-5 rounded-xl shadow-2xl backdrop-blur-lg w-[320px] pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
                   style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${themeShadow}` }}
                 >
-                  <div 
+                  <div
                     className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl"
                     style={{ backgroundColor: themeColor }}
                   />
-                  
+
                   {/* Header */}
                   <div className="flex justify-between items-start mb-4 mt-1">
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-[16px] transform -rotate-12">🚢</span>
-                        <h3 
+                        <h3
                           className="font-headline font-bold tracking-widest text-[16px] uppercase"
                           style={{ color: themeColor }}
                         >
@@ -993,7 +1109,7 @@ export function TacticalMap({
                         </span>
                       </div>
                     </div>
-                    <button 
+                    <button
                       onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }}
                       className="text-slate-500 hover:text-white transition-colors"
                     >
@@ -1040,10 +1156,15 @@ export function TacticalMap({
               anchor="center"
               style={{ zIndex: isActive ? 999999 : undefined }}
             >
-              <div
-                className={`w-3 h-3 rounded-full border border-black cursor-pointer shadow-[0_0_8px_currentColor] ${port.congestion === 'SEVERE' ? 'bg-red-500 text-red-500' : port.congestion === 'CONGESTED' ? 'bg-orange-500 text-orange-500' : 'bg-cyan-500 text-cyan-500'}`}
-                onClick={(e) => { e.stopPropagation(); setActiveEntityId(port.id || port.name); }}
-              />
+              <div className="relative flex flex-col items-center">
+                <div
+                  className={`w-3 h-3 rounded-full border border-black cursor-pointer shadow-[0_0_8px_currentColor] ${port.congestion === 'SEVERE' ? 'bg-red-500 text-red-500' : port.congestion === 'CONGESTED' ? 'bg-orange-500 text-orange-500' : 'bg-cyan-500 text-cyan-500'}`}
+                  onClick={(e) => { e.stopPropagation(); setActiveEntityId(port.id || port.name); }}
+                />
+                <div className={`absolute top-full mt-1.5 text-[7px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                  {port.name}
+                </div>
+              </div>
               {isActive && (
                 <div
                   className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-md shadow-2xl backdrop-blur-lg w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
@@ -1146,10 +1267,15 @@ export function TacticalMap({
               anchor="center"
               style={{ zIndex: isActive ? 999999 : undefined }}
             >
-              <div
-                className={`w-3 h-3 rotate-45 border border-black cursor-pointer shadow-[0_0_8px_currentColor] ${chokepoint.risk === 'CRITICAL' ? 'bg-red-600 text-red-600' : chokepoint.risk === 'HIGH' ? 'bg-orange-500 text-orange-500' : 'bg-yellow-500 text-yellow-500'}`}
-                onClick={(e) => { e.stopPropagation(); setActiveEntityId(chokepoint.name); }}
-              />
+              <div className="relative flex flex-col items-center">
+                <div
+                  className={`w-3 h-3 rotate-45 border border-black cursor-pointer shadow-[0_0_8px_currentColor] ${chokepoint.risk === 'CRITICAL' ? 'bg-red-600 text-red-600' : chokepoint.risk === 'HIGH' ? 'bg-orange-500 text-orange-500' : 'bg-yellow-500 text-yellow-500'}`}
+                  onClick={(e) => { e.stopPropagation(); setActiveEntityId(chokepoint.name); }}
+                />
+                <div className={`absolute top-full mt-1.5 text-[7px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                  {chokepoint.name}
+                </div>
+              </div>
               {isActive && (
                 <div
                   className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-md shadow-2xl backdrop-blur-lg w-80 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
@@ -1231,21 +1357,26 @@ export function TacticalMap({
           const mag = eq.magnitude || 0;
           const size = Math.max(8, mag * 3);
           const color = mag >= 6 ? '#ef4444' : mag >= 4.5 ? '#f97316' : '#eab308';
-          
+
           return (
             <Marker key={`eq-${eq.id}`} longitude={eq.lng} latitude={eq.lat} anchor="center" style={{ zIndex: isActive ? 999999 : 10 }}>
-              <div 
-                className="rounded-full cursor-pointer transition-transform relative flex items-center justify-center hover:scale-110"
-                style={{ width: `${size}px`, height: `${size}px` }}
-                onClick={(e) => { e.stopPropagation(); setActiveEntityId(eq.id); }}
-              >
-                <div className="absolute inset-0 rounded-full animate-ping opacity-75" style={{ backgroundColor: color }}></div>
-                <div className="relative rounded-full border border-black shadow-[0_0_8px_currentColor] w-full h-full" style={{ backgroundColor: color, color }}></div>
+              <div className="relative flex flex-col items-center">
+                <div
+                  className="rounded-full cursor-pointer transition-transform relative flex items-center justify-center hover:scale-110"
+                  style={{ width: `${size}px`, height: `${size}px` }}
+                  onClick={(e) => { e.stopPropagation(); setActiveEntityId(eq.id); }}
+                >
+                  <div className="absolute inset-0 rounded-full animate-ping opacity-75" style={{ backgroundColor: color }}></div>
+                  <div className="relative rounded-full border border-black shadow-[0_0_8px_currentColor] w-full h-full" style={{ backgroundColor: color, color }}></div>
+                </div>
+                <div className={`absolute top-full mt-1 text-[7px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                  {eq.place}
+                </div>
               </div>
-              
+
               {isActive && (
                 <div className="absolute top-4 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-xl shadow-2xl backdrop-blur-lg w-72 pointer-events-auto cursor-auto z-[999999]"
-                     style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${color}40` }}>
+                  style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${color}40` }}>
                   <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl" style={{ backgroundColor: color }} />
                   <div className="flex justify-between items-start mb-2 mt-1">
                     <div>
@@ -1267,9 +1398,9 @@ export function TacticalMap({
                     </div>
                   </div>
                   {eq.alert && (
-                     <div className="bg-red-900/20 border border-red-500/30 rounded p-2 text-center mt-2">
-                       <span className="text-red-400 text-[9px] font-mono uppercase">Alert Level: {eq.alert}</span>
-                     </div>
+                    <div className="bg-red-900/20 border border-red-500/30 rounded p-2 text-center mt-2">
+                      <span className="text-red-400 text-[9px] font-mono uppercase">Alert Level: {eq.alert}</span>
+                    </div>
                   )}
                   {eq.url && (
                     <a href={eq.url} target="_blank" rel="noopener noreferrer" className="mt-3 text-cyan-400 text-[10px] font-mono hover:underline flex items-center justify-center gap-1 w-full bg-slate-900/50 p-2 rounded">
@@ -1282,23 +1413,173 @@ export function TacticalMap({
           );
         })}
 
+        {/* Render Global Incidents */}
+        {!isDived && layers.threats_incidents && incidents.map((incident) => {
+          const isActive = activeEntityId === incident.id;
+          const color = '#ef4444'; // Red for conflict
+
+          return (
+            <Marker key={incident.id} longitude={incident.lng} latitude={incident.lat} anchor="center" style={{ zIndex: isActive ? 999999 : 20 }}>
+              <div className="relative flex flex-col items-center">
+                <div
+                  className="cursor-pointer flex items-center justify-center hover:scale-110 transition-transform"
+                  onClick={(e) => { e.stopPropagation(); setActiveEntityId(incident.id); }}
+                >
+                  <span className="material-symbols-outlined text-[20px]" style={{ color, textShadow: `0 0 10px ${color}80, 0 0 20px ${color}40` }}>crisis_alert</span>
+                </div>
+                {/* Text visible only when zoomed in, limited to 4 words */}
+                <div 
+                  className={`absolute top-full mt-0.5 text-[7px] font-headline font-bold whitespace-nowrap transition-opacity duration-300 uppercase ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                  style={{ color }}
+                >
+                  {incident.name.split(' ').slice(0, 4).join(' ')}{incident.name.split(' ').length > 4 ? '...' : ''}
+                </div>
+              </div>
+
+              {isActive && (
+                <div className="absolute top-6 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-xl shadow-2xl backdrop-blur-lg w-[300px] pointer-events-auto cursor-auto z-[999999]" style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${color}40` }}>
+                  <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl" style={{ backgroundColor: color }} />
+                  <div className="flex justify-between items-start mb-3 mt-1">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[16px]" style={{ color }}>crisis_alert</span>
+                        <h3 className="font-headline font-bold text-sm tracking-wider uppercase truncate max-w-[200px]" style={{ color }}>Global Incident</h3>
+                      </div>
+                      <span className="text-slate-400 font-mono text-[9px] uppercase tracking-widest block mt-0.5">{incident.type}</span>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} className="text-slate-500 hover:text-white transition-colors">
+                      <span className="material-symbols-outlined text-[16px]">close</span>
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-900/50 border border-slate-800/80 rounded p-3 mb-3">
+                    <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">INCIDENT DETAILS</span>
+                    <div className="text-[10px] font-mono text-slate-300 whitespace-normal leading-relaxed break-words" dangerouslySetInnerHTML={{ __html: incident.html }} />
+                  </div>
+                  
+                  <a href={incident.url} target="_blank" rel="noopener noreferrer" className="block w-full py-1.5 rounded text-[10px] font-mono text-center transition-colors bg-secondary/10 text-secondary hover:bg-secondary/20">
+                    VIEW SOURCE
+                  </a>
+                </div>
+              )}
+            </Marker>
+          );
+        })}
+
+        {/* Render Nuke Sim Circles */}
+        {nukeSimMode && nukeSimData?.target && (
+          <Marker longitude={nukeSimData.target.lng} latitude={nukeSimData.target.lat} anchor="center">
+            <div className="relative flex items-center justify-center pointer-events-none">
+              <span className="material-symbols-outlined text-red-500 text-2xl drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse">
+                radioactive
+              </span>
+            </div>
+          </Marker>
+        )}
+
+        {/* Nuke Sim GeoJSON Layers */}
+        {nukeSimGeoJson && (
+          <Source type="geojson" data={nukeSimGeoJson as any}>
+            <Layer
+              id="nukesim-lightBlast"
+              type="fill"
+              filter={['==', 'type', 'lightBlast']}
+              paint={{
+                'fill-color': '#aaaaaa',
+                'fill-opacity': 0.1,
+              }}
+            />
+            <Layer
+              id="nukesim-lightBlast-line"
+              type="line"
+              filter={['==', 'type', 'lightBlast']}
+              paint={{
+                'line-color': '#aaaaaa',
+                'line-width': 1,
+                'line-opacity': 0.3,
+              }}
+            />
+            <Layer
+              id="nukesim-thermal"
+              type="fill"
+              filter={['==', 'type', 'thermal']}
+              paint={{
+                'fill-color': '#ff9900',
+                'fill-opacity': 0.15,
+              }}
+            />
+            <Layer
+              id="nukesim-thermal-line"
+              type="line"
+              filter={['==', 'type', 'thermal']}
+              paint={{
+                'line-color': '#ff9900',
+                'line-width': 1,
+                'line-opacity': 0.4,
+              }}
+            />
+            <Layer
+              id="nukesim-moderateBlast"
+              type="fill"
+              filter={['==', 'type', 'moderateBlast']}
+              paint={{
+                'fill-color': '#ff3300',
+                'fill-opacity': 0.2,
+              }}
+            />
+            <Layer
+              id="nukesim-moderateBlast-line"
+              type="line"
+              filter={['==', 'type', 'moderateBlast']}
+              paint={{
+                'line-color': '#ff3300',
+                'line-width': 1.5,
+                'line-opacity': 0.5,
+              }}
+            />
+            <Layer
+              id="nukesim-fireball"
+              type="fill"
+              filter={['==', 'type', 'fireball']}
+              paint={{
+                'fill-color': '#fff700',
+                'fill-opacity': 0.4,
+              }}
+            />
+            <Layer
+              id="nukesim-fireball-line"
+              type="line"
+              filter={['==', 'type', 'fireball']}
+              paint={{
+                'line-color': '#fff700',
+                'line-width': 2,
+                'line-opacity': 0.8,
+              }}
+            />
+          </Source>
+        )}
+
         {/* Render Nuclear Facilities */}
         {!isDived && layers.threats_nuclear && nuclearFacilities.map((nuc) => {
           const isActive = activeEntityId === nuc.id;
           const isDanger = nuc.status.includes('SEISMIC') || nuc.status.includes('Conflict') || nuc.status.includes('Destroyed');
           const isWarning = nuc.status.includes('Shutdown') || nuc.status.includes('Suspended');
           const color = isDanger ? '#ef4444' : isWarning ? '#eab308' : '#22c55e';
-          
+
           return (
             <Marker key={`nuc-${nuc.id}`} longitude={nuc.lng} latitude={nuc.lat} anchor="center" style={{ zIndex: isActive ? 999999 : 20 }}>
-              <div 
-                className="cursor-pointer flex items-center justify-center bg-[#0d0e12]/80 rounded border border-white/20 p-1.5 hover:scale-110 transition-transform"
-                onClick={(e) => { e.stopPropagation(); setActiveEntityId(nuc.id); }}
-                style={{ boxShadow: `0 0 10px ${color}40` }}
-              >
-                <span className="material-symbols-outlined text-[16px]" style={{ color }}>warning</span>
+              <div className="relative flex flex-col items-center">
+                <div
+                  className="cursor-pointer flex items-center justify-center hover:scale-110 transition-transform"
+                  onClick={(e) => { e.stopPropagation(); setActiveEntityId(nuc.id); }}
+                >
+                  <span className="material-symbols-outlined text-[20px]" style={{ color, textShadow: `0 0 10px ${color}80, 0 0 20px ${color}40` }}>warning</span>
+                </div>
+                <div className={`absolute top-full mt-1.5 text-[7px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                  {nuc.name}
+                </div>
               </div>
-              
+
               {isActive && (
                 <div className="absolute top-6 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-xl shadow-2xl backdrop-blur-lg w-[300px] pointer-events-auto cursor-auto z-[999999]" style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${color}40` }}>
                   <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl" style={{ backgroundColor: color }} />
@@ -1314,12 +1595,12 @@ export function TacticalMap({
                       <span className="material-symbols-outlined text-[16px]">close</span>
                     </button>
                   </div>
-                  
+
                   <div className="bg-slate-900/50 border border-slate-800/80 rounded p-3 mb-3">
                     <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">STATUS</span>
                     <span className="font-mono text-xs font-bold uppercase truncate" style={{ color }}>{nuc.status}</span>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-2 mb-2">
                     <div className="bg-slate-900/50 border border-slate-800 rounded p-2 text-center">
                       <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">REACTORS</span>
@@ -1331,148 +1612,202 @@ export function TacticalMap({
                     </div>
                   </div>
                   <div className="text-center mt-2 pt-2 border-t border-slate-800/50">
-                     <span className="text-slate-500 font-mono text-[9px] uppercase">OWNER: <span className="text-slate-300">{nuc.owner}</span></span>
+                    <span className="text-slate-500 font-mono text-[9px] uppercase">OWNER: <span className="text-slate-300">{nuc.owner}</span></span>
                   </div>
                 </div>
               )}
             </Marker>
           );
         })}
-      {/* Region Dossier Modal - Pinned to Map */}
-      {dossierLngLat && (
-        <Marker
-          longitude={dossierLngLat.lng}
-          latitude={dossierLngLat.lat}
-          anchor="bottom"
-          offset={[0, -10]}
-          style={{ zIndex: 100 }}
-        >
-          <div 
-            className="bg-[#0b0c10]/95 border border-[#1f2937] rounded-lg shadow-2xl p-5 w-[500px] backdrop-blur-md cursor-default pointer-events-auto"
-            onContextMenu={(e) => e.preventDefault()}
-            onClick={(e) => e.stopPropagation()}
-            onWheel={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/5">
-              <h3 className="text-[#3cdcd1] font-headline font-bold text-sm uppercase tracking-widest">Region Intel</h3>
-              <button onClick={() => setDossierLngLat(null)} className="text-slate-500 hover:text-white material-symbols-outlined text-sm transition-colors">close</button>
-            </div>
-            
-            {isFetchingDossier ? (
-               <div className="flex flex-col items-center justify-center py-8 text-[#3cdcd1] animate-pulse">
-                 <span className="material-symbols-outlined text-4xl mb-3">radar</span>
-                 <span className="font-mono text-[10px] tracking-widest">TRANSMITTING INTEL...</span>
-               </div>
-            ) : dossier && !dossier.error ? (
-               <div className="flex flex-col gap-4 text-left">
-                 {/* Location Row */}
-                 <div className="flex flex-col">
-                   <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-1">Location</span>
-                   <span className="text-white text-[12px] font-headline tracking-wide">{dossier.location?.display_name || 'UNKNOWN TERRITORY'}</span>
-                 </div>
-                 
-                 {/* Grid for Country details */}
-                 {dossier.country ? (
-                   <div className="grid grid-cols-2 gap-y-3 gap-x-4">
-                     <div className="flex flex-col">
-                       <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-1">Country</span>
-                       <div className="flex items-center gap-2">
-                         {dossier.country.flag_url ? (
-                           <img src={dossier.country.flag_url} alt="Flag" className="w-5 h-3.5 object-cover rounded-[2px]" />
-                         ) : <span className="text-sm leading-none">{dossier.country.flag}</span>}
-                         <span className="text-white text-[11px] font-headline">{dossier.country.official_name || dossier.country.name}</span>
-                       </div>
-                     </div>
-                     <div className="flex flex-col">
-                       <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-1">Capital</span>
-                       <span className="text-white text-[11px] font-headline truncate">{dossier.country.capital || 'N/A'}</span>
-                     </div>
-                     
-                     <div className="flex flex-col">
-                       <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-1">Population</span>
-                       <span className="text-white text-[11px] font-headline">{dossier.country.population?.toLocaleString() || 'N/A'}</span>
-                     </div>
-                     <div className="flex flex-col">
-                       <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-1">Region</span>
-                       <span className="text-white text-[11px] font-headline truncate">{dossier.country.region}</span>
-                     </div>
-                     
-                     <div className="flex flex-col">
-                       <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-1">Languages</span>
-                       <span className="text-white text-[11px] font-headline truncate">{dossier.country.languages?.join(', ') || 'N/A'}</span>
-                     </div>
-                     <div className="flex flex-col">
-                       <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-1">Area</span>
-                       <span className="text-white text-[11px] font-headline">{dossier.country.area?.toLocaleString()} km²</span>
-                     </div>
-                   </div>
-                 ) : (
-                   <div className="text-red-400 p-3 bg-red-900/10 border border-red-500/20 rounded-md font-mono text-[9px]">NO SOVEREIGN DATA FOUND (INTERNATIONAL WATERS)</div>
-                 )}
-                 
-                 {/* Head of State */}
-                 {dossier.head_of_state && (
-                   <div className="flex flex-col">
-                     <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-1">Head of State</span>
-                     <span className="text-[#3cdcd1] text-[12px] font-headline">{dossier.head_of_state.name}</span>
-                     <span className="text-slate-500 text-[9px] mt-0.5 lowercase">{dossier.head_of_state.position}</span>
-                   </div>
-                 )}
-                 
-                 {/* Intelligence Brief */}
-                 {dossier.wikipedia && (
-                   <div className="flex flex-col">
-                     <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-2">Intelligence Brief</span>
-                     <div className="flex gap-4 items-start">
-                       {dossier.country?.flag_url ? (
-                         <img src={dossier.country.flag_url} alt="Flag" className="w-14 h-10 rounded border border-white/10 object-cover shrink-0 mt-0.5" />
-                       ) : dossier.wikipedia.thumbnail ? (
-                         <img src={dossier.wikipedia.thumbnail} alt="Thumb" className="w-12 h-12 rounded border border-white/10 object-cover shrink-0 mt-0.5" />
-                       ) : null}
-                       <div className="text-[10px] leading-relaxed text-slate-400 text-justify line-clamp-4">
-                         {dossier.wikipedia.extract}
-                       </div>
-                     </div>
-                   </div>
-                 )}
 
-                 {/* Sentinel SAR Recent Overpasses */}
-                 {dossier.sentinel && dossier.sentinel.scenes && dossier.sentinel.scenes.length > 0 && (
-                   <div className="mt-4 pt-3 border-t border-slate-800/30">
-                     <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-2 flex items-center gap-1">
-                       <span className="material-symbols-outlined text-[10px]">satellite_alt</span> Recent Sentinel Overpasses ({dossier.sentinel.total})
-                     </span>
-                     <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
-                       {dossier.sentinel.scenes.slice(0, 3).map((scene: any, i: number) => (
-                         <div 
-                           key={i} 
-                           className="flex-shrink-0 relative group rounded overflow-hidden border border-slate-800/60 hover:border-cyan-500/50 transition-all cursor-pointer bg-slate-900"
-                           style={{ width: '80px', height: '60px' }}
-                           onClick={() => window.open(`https://browser.dataspace.copernicus.eu/?zoom=12&lat=${dossierLngLat?.lat}&lng=${dossierLngLat?.lng}&themeId=DEFAULT-THEME&datasetId=S1_GRD_IW`, '_blank')}
-                         >
-                           {scene.preview || scene.thumbnail ? (
-                             <img src={scene.preview || scene.thumbnail} alt="SAR" className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
-                           ) : (
-                             <div className="w-full h-full flex flex-col items-center justify-center text-[8px] text-slate-500 font-mono">
-                               <span className="material-symbols-outlined text-[14px] mb-1">image_not_supported</span>
-                               NO IMG
-                             </div>
-                           )}
-                           <div className="absolute bottom-0 left-0 right-0 bg-black/80 px-1 py-0.5 text-[7px] text-white font-mono truncate text-center">
-                             {new Date(scene.datetime).toLocaleDateString()}
-                           </div>
-                         </div>
-                       ))}
-                     </div>
-                   </div>
-                 )}
-               </div>
-            ) : (
-               <div className="text-red-400 py-4 text-center">INTEL UNAVAILABLE</div>
-            )}
-          </div>
-        </Marker>
-      )}
+        {/* Render Strategic Bases */}
+        {!isDived && layers.threats_strategic && strategicBases.map((base) => {
+          const isActive = activeEntityId === base.id;
+          const color = base.type === 'NUCLEAR_SUB_BASE' ? '#0ea5e9' : base.type === 'ICBM_SILO' ? '#f59e0b' : '#a855f7';
+          const iconStr = base.type === 'NUCLEAR_SUB_BASE' ? 'sailing' : base.type === 'ICBM_SILO' ? 'rocket_launch' : 'radar';
+
+          return (
+            <Marker key={base.id} longitude={base.lng} latitude={base.lat} anchor="center" style={{ zIndex: isActive ? 999999 : 20 }}>
+              <div className="relative flex flex-col items-center">
+                <div
+                  className="cursor-pointer flex items-center justify-center hover:scale-110 transition-transform"
+                  onClick={(e) => { e.stopPropagation(); setActiveEntityId(base.id); }}
+                >
+                  <span className="material-symbols-outlined text-[20px]" style={{ color, textShadow: `0 0 10px ${color}80, 0 0 20px ${color}40` }}>{iconStr}</span>
+                </div>
+                <div className={`absolute top-full mt-1.5 text-[7px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                  {base.callsign}
+                </div>
+              </div>
+
+              {isActive && (
+                <div className="absolute top-6 left-4 bg-[#0d0e12]/95 border border-slate-800/60 p-4 rounded-xl shadow-2xl backdrop-blur-lg w-[300px] pointer-events-auto cursor-auto z-[999999]" style={{ boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 0 1px ${color}40` }}>
+                  <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl" style={{ backgroundColor: color }} />
+                  <div className="flex justify-between items-start mb-3 mt-1">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[16px]" style={{ color }}>{iconStr}</span>
+                        <h3 className="font-headline font-bold text-sm tracking-wider uppercase truncate max-w-[200px]" style={{ color }}>{base.callsign}</h3>
+                      </div>
+                      <span className="text-slate-400 font-mono text-[9px] uppercase tracking-widest block mt-0.5">{base.country}</span>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} className="text-slate-500 hover:text-white transition-colors">
+                      <span className="material-symbols-outlined text-[16px]">close</span>
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-900/50 border border-slate-800/80 rounded p-3 mb-3">
+                    <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">TYPE</span>
+                    <span className="font-mono text-xs font-bold uppercase truncate" style={{ color }}>{base.type.replace(/_/g, ' ')}</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div className="col-span-2 bg-slate-900/50 border border-slate-800 rounded p-2 text-center">
+                      <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">STATUS</span>
+                      <span className="text-white font-mono text-xs">{base.status}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </Marker>
+          );
+        })}
+
+        {/* Region Dossier Modal - Pinned to Map */}
+        {dossierLngLat && (
+          <Marker
+            longitude={dossierLngLat.lng}
+            latitude={dossierLngLat.lat}
+            anchor="bottom"
+            offset={[0, -10]}
+            style={{ zIndex: 100 }}
+          >
+            <div
+              className="bg-[#0b0c10]/95 border border-[#1f2937] rounded-lg shadow-2xl p-5 w-[500px] backdrop-blur-md cursor-default pointer-events-auto"
+              onContextMenu={(e) => e.preventDefault()}
+              onClick={(e) => e.stopPropagation()}
+              onWheel={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/5">
+                <h3 className="text-[#3cdcd1] font-headline font-bold text-sm uppercase tracking-widest">Region Intel</h3>
+                <button onClick={() => setDossierLngLat(null)} className="text-slate-500 hover:text-white material-symbols-outlined text-sm transition-colors">close</button>
+              </div>
+
+              {isFetchingDossier ? (
+                <div className="flex flex-col items-center justify-center py-8 text-[#3cdcd1] animate-pulse">
+                  <span className="material-symbols-outlined text-4xl mb-3">radar</span>
+                  <span className="font-mono text-[10px] tracking-widest">TRANSMITTING INTEL...</span>
+                </div>
+              ) : dossier && !dossier.error ? (
+                <div className="flex flex-col gap-4 text-left">
+                  {/* Location Row */}
+                  <div className="flex flex-col">
+                    <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-1">Location</span>
+                    <span className="text-white text-[12px] font-headline tracking-wide">{dossier.location?.display_name || 'UNKNOWN TERRITORY'}</span>
+                  </div>
+
+                  {/* Grid for Country details */}
+                  {dossier.country ? (
+                    <div className="grid grid-cols-2 gap-y-3 gap-x-4">
+                      <div className="flex flex-col">
+                        <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-1">Country</span>
+                        <div className="flex items-center gap-2">
+                          {dossier.country.flag_url ? (
+                            <img src={dossier.country.flag_url} alt="Flag" className="w-5 h-3.5 object-cover rounded-[2px]" />
+                          ) : <span className="text-sm leading-none">{dossier.country.flag}</span>}
+                          <span className="text-white text-[11px] font-headline">{dossier.country.official_name || dossier.country.name}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-1">Capital</span>
+                        <span className="text-white text-[11px] font-headline truncate">{dossier.country.capital || 'N/A'}</span>
+                      </div>
+
+                      <div className="flex flex-col">
+                        <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-1">Population</span>
+                        <span className="text-white text-[11px] font-headline">{dossier.country.population?.toLocaleString() || 'N/A'}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-1">Region</span>
+                        <span className="text-white text-[11px] font-headline truncate">{dossier.country.region}</span>
+                      </div>
+
+                      <div className="flex flex-col">
+                        <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-1">Languages</span>
+                        <span className="text-white text-[11px] font-headline truncate">{dossier.country.languages?.join(', ') || 'N/A'}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-1">Area</span>
+                        <span className="text-white text-[11px] font-headline">{dossier.country.area?.toLocaleString()} km²</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-red-400 p-3 bg-red-900/10 border border-red-500/20 rounded-md font-mono text-[9px]">NO SOVEREIGN DATA FOUND (INTERNATIONAL WATERS)</div>
+                  )}
+
+                  {/* Head of State */}
+                  {dossier.head_of_state && (
+                    <div className="flex flex-col">
+                      <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-1">Head of State</span>
+                      <span className="text-[#3cdcd1] text-[12px] font-headline">{dossier.head_of_state.name}</span>
+                      <span className="text-slate-500 text-[9px] mt-0.5 lowercase">{dossier.head_of_state.position}</span>
+                    </div>
+                  )}
+
+                  {/* Intelligence Brief */}
+                  {dossier.wikipedia && (
+                    <div className="flex flex-col">
+                      <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-2">Intelligence Brief</span>
+                      <div className="flex gap-4 items-start">
+                        {dossier.country?.flag_url ? (
+                          <img src={dossier.country.flag_url} alt="Flag" className="w-14 h-10 rounded border border-white/10 object-cover shrink-0 mt-0.5" />
+                        ) : dossier.wikipedia.thumbnail ? (
+                          <img src={dossier.wikipedia.thumbnail} alt="Thumb" className="w-12 h-12 rounded border border-white/10 object-cover shrink-0 mt-0.5" />
+                        ) : null}
+                        <div className="text-[10px] leading-relaxed text-slate-400 text-justify line-clamp-4">
+                          {dossier.wikipedia.extract}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sentinel SAR Recent Overpasses */}
+                  {dossier.sentinel && dossier.sentinel.scenes && dossier.sentinel.scenes.length > 0 && (
+                    <div className="mt-4 pt-3 border-t border-slate-800/30">
+                      <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase mb-2 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[10px]">satellite_alt</span> Recent Sentinel Overpasses ({dossier.sentinel.total})
+                      </span>
+                      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                        {dossier.sentinel.scenes.slice(0, 3).map((scene: any, i: number) => (
+                          <div
+                            key={i}
+                            className="flex-shrink-0 relative group rounded overflow-hidden border border-slate-800/60 hover:border-cyan-500/50 transition-all cursor-pointer bg-slate-900"
+                            style={{ width: '80px', height: '60px' }}
+                            onClick={() => window.open(`https://browser.dataspace.copernicus.eu/?zoom=12&lat=${dossierLngLat?.lat}&lng=${dossierLngLat?.lng}&themeId=DEFAULT-THEME&datasetId=S1_GRD_IW`, '_blank')}
+                          >
+                            {scene.preview || scene.thumbnail ? (
+                              <img src={scene.preview || scene.thumbnail} alt="SAR" className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
+                            ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center text-[8px] text-slate-500 font-mono">
+                                <span className="material-symbols-outlined text-[14px] mb-1">image_not_supported</span>
+                                NO IMG
+                              </div>
+                            )}
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/80 px-1 py-0.5 text-[7px] text-white font-mono truncate text-center">
+                              {new Date(scene.datetime).toLocaleDateString()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-red-400 py-4 text-center">INTEL UNAVAILABLE</div>
+              )}
+            </div>
+          </Marker>
+        )}
 
       </Map>
 

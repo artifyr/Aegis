@@ -10,11 +10,15 @@ Aegis Tactical Dashboard is a high-performance, real-time geospatial intelligenc
 *   **Custom HUD Coordinate Overlays**: Standard map markers replaced with dynamic SVG targeting brackets and centered pulse rings that animate upon target lock.
 *   **Camera Dive & Ghost Grid**: Clicking an asset initiates a high-velocity, cinematic `flyTo` animation. The view seamlessly transitions from a global holographic map to a high-resolution satellite perspective with an overlaid "Ghost Border" targeting grid.
 *   **Glassmorphic Tooltips**: Real-time tactical data drops down in frosted-glass tooltips adhering to specific design rules (12px backdrop blur, 40% opacity surface variants).
+*   **Dynamic Zoom-dependent Labels**: Map labels (e.g., Global Incident summaries, camera tags) remain completely hidden at high altitude/macro zoom levels to avoid UI clutter. They fade in smoothly and become visible only upon zooming in (Zoom >= 6).
+*   **Global Incidents OSINT Markers**: Interactive crisis alert markers mapped from the global feed. The icons are clean, borderless symbols with a custom text-shadow glow effect (no pulse, no background square box) and display up to 4 words of the incident heading.
 
 ### 2. Intelligent Side Navigation (Frontend)
 *   **Live Asset Feed**: Dynamically populates categorized lists of active **Naval** and **Aerial** contacts.
 *   **Asset Details**: Displays generated `callsigns` (e.g., "X-RAY 492", "SIGMA 14"), abbreviated ID strings, velocities, and coordinates updated in real-time. (Note: Ground vehicles were explicitly removed to focus on specific domains).
 *   **Target Interaction**: Clickable feed components driving the Map's Camera Dive lock-on mechanism.
+*   **Functional Group Header Toggles**: Fully operational "Show All/Hide All" checkboxes next to category group headers (Aviation, Maritime, Surveillance, Natural Hazards, Threats & Infra) to toggle all child layers simultaneously.
+*   **Conditional Entry Counts**: Active counts next to data layers are hidden during initial loading or when the count is 0, showing up only when loaded active entries are > 0.
 
 ### 3. Advanced Analytics Engine (Frontend & Backend)
 *   **Telemetry Dashboard**: A dedicated `/analytics` route consuming aggregated data from the backend.
@@ -33,19 +37,26 @@ Aegis Tactical Dashboard is a high-performance, real-time geospatial intelligenc
 *   **Change Detection Tooling**: Calculates Intersection over Union (IoU) across sequential frames to accurately flag *New Signatures* vs *Known Entities*. Priorities feed directly into frontend Alert Chips styled with "Instrumentation Glows."
 *   **Mock Sentinel Hub API**: Stubs for fetching imagery localized to user-requested geographic bounded boxes or timestamps.
 
-### 6. Production Deployment, Viewport HUD & Aviation Optimizations
+### 6. Global Incidents OSINT Stream (Backend Fallback)
+*   **RSS OSINT Parsing**: Falls back to parsing major news RSS channels (BBC World, Al Jazeera, NYT World) due to unreliable external GDELT v2 endpoints.
+*   **Geographical Keyword Dictionary**: Maps news description/title conflict keywords to coordinate vectors, applying deterministic spatial jitter based on event indices to avoid overlapping markers.
+
+### 7. Nuclear Strike Simulator (Disabled & Kept in Codebase)
+*   **Detonation Presets**: Developed a complete simulator leveraging yield metrics based on Nukemap scaling laws (presets range from Davy Crockett [20 t] to Tsar Bomba [50 Mt]).
+*   **Geodesic Radii Projections**: Employs `@turf/circle` to compute mathematically accurate spherical concentric polygons representing blast zones (Fireball, Moderate Blast, Thermal, Light Blast) rather than flat 2D maps.
+*   **Casualty Estimator**: Uses coordinates and latitude/longitude-based city density heuristics to estimate fatalities and injuries.
+*   **Decoupled State**: Commented out and disabled in the default UI (`page.tsx`) and navigation panels (`SideNavBar.tsx`) as requested, leaving the API route (`/api/nukesim/route.ts`) and panel (`NukeSimPanel.tsx`) intact.
+
+### 8. Production Deployment, Viewport HUD & Aviation Optimizations
 *   **Vercel Cloud Integration**: Production deployment on Vercel (`aegisint.vercel.app`) using `.vercelignore` exclusions to bypass standard 500MB serverless Lambda size limits (ignoring heavy local Python dependencies). Added production environment configurations for Windy API & Mapbox GL JS.
 *   **Disabled ISR**: Disabled ISR caching behaviors on heavy/dynamic pages to minimize Vercel runtime compute costs.
 *   **Precision Viewport HUD Widget**: Integrated a custom, cyan-colored reset globe utility inside the viewport frame to zoom out to a complete global overview. Enhanced default map Zoom behavior to center zoom directly onto the mouse cursor, and placed real-time Latitude & Longitude coordinate tracking at the bottom dashboard controller.
 *   **Branding & Initial Layer Controls**: Rebranded "Geoint Command" to "Aegis Command" and configured dashboard layers to remain disabled on boot by default (unless past user preferences exist).
 *   **High-Performance Aviation Layers**: Scaled down flight markers to 14x14px SVGs for visual efficiency, optimized loading latency by applying pre-filtering on active military/commercial layers before limiting active DOM marker limits to 300 to maintain a smooth 60fps.
-
-
-## Design System & UX Principles
-*   **The "Kinetic Monolith"**: Strictly enforced UI rules requiring `0px` border radiuses for all containers and data boxes.
-*   **Glass & Gradient Rule**: Implementation of `backdrop-blur(12px)` paired with deeply translucent dark palettes (`surface_variant`).
-*   **Technical Typography**: Widespread use of monospace fonts (`font-mono`) and uppercase tagging.
-*   **Micro-animations**: "Ping"/Pulse states on active targets, zebra-striped rapid-refresh tables, and precision absolute centering of targeting reticles logic without relying on erratic transforms.
+*   **Aegis Branding Favicon**: Replaced the default Next.js tab logo with the custom `aegislogo.ico` to match the Aegis Command theme.
+*   **Strategic Bases Layer**: Implemented a unified "Strategic Bases" layer containing global missile bases and nuclear submarine bases, with custom-styled map markers and toggle logic. Removed square black backgrounds from tactical icons for clean, drop-shadow glow aesthetics.
+*   **Conditional Count Badges**: Configured count indicators next to layer toggles to be completely hidden on initial loading or when they have 0 entries.
+*   **Nuke Simulator Commented Out**: Disabled the Nuke Sim component and side navigation links per system instructions.
 
 ## APIs & Libraries Used
 **Frontend Environment**:
@@ -53,6 +64,7 @@ Aegis Tactical Dashboard is a high-performance, real-time geospatial intelligenc
 *   React 19 (`use client` architectures, hooks)
 *   Mapbox GL JS (`react-map-gl`, mapbox maps)
 *   Tailwind CSS (Utility-first styling, absolute positioning models)
+*   Turf.js (`@turf/circle` for precise geospatial geometries)
 
 **Backend Environment**:
 *   Python FastAPI (RESTful routing and comprehensive WebSockets)
@@ -64,4 +76,6 @@ Aegis Tactical Dashboard is a high-performance, real-time geospatial intelligenc
 ## Endpoints Active
 *   `GET /health`: Standard systemic boot-check.
 *   `GET /api/analytics/summary`: Polling endpoint for aggregated dashboard trend matrices.
+*   `GET /api/incidents`: OSINT parser for conflict keywords mapped to coordinates.
+*   `GET /api/nukesim` *(Disabled)*: Tactical calculations for nuclear blast yields and casualty estimates.
 *   `WS /ws/global-surveillance`: High-frequency WebSocket protocol broadcasting atomic movements.
