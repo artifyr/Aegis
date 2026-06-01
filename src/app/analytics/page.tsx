@@ -129,22 +129,52 @@ export default function AnalyticsPage() {
   ];
 
   const sectorThreats = sectors.map(sec => {
-    // Count incidents and bases in bounds
     let threatScore = 0;
+    let incidentCount = 0;
+    let militaryFlightCount = 0;
+    let hazardCount = 0;
+    
+    const inBounds = (lat: number, lng: number) => 
+      lat >= sec.bounds.lat[0] && lat <= sec.bounds.lat[1] && 
+      lng >= sec.bounds.lng[0] && lng <= sec.bounds.lng[1];
+
     store.incidents.forEach(inc => {
-      if (inc.lat >= sec.bounds.lat[0] && inc.lat <= sec.bounds.lat[1] && inc.lng >= sec.bounds.lng[0] && inc.lng <= sec.bounds.lng[1]) {
-        threatScore += 30;
+      if (inBounds(inc.lat, inc.lng)) {
+        threatScore += 15; // Incidents have high weight
+        incidentCount++;
       }
     });
+
+    store.earthquakes.forEach(eq => {
+      if (inBounds(eq.lat, eq.lng)) {
+        threatScore += 5; // Moderate weight for natural hazards
+        hazardCount++;
+      }
+    });
+
+    store.flights.forEach(f => {
+      if (f.category === 'military' && inBounds(f.lat, f.lng)) {
+        threatScore += 0.2; // Low weight due to high volume (especially in NA)
+        militaryFlightCount++;
+      }
+    });
+
+    store.nuclearFacilities.forEach(nf => {
+      if (inBounds(nf.lat, nf.lng)) {
+        threatScore += 2; // Baseline strategic tension
+      }
+    });
+
     store.strategicBases.forEach(base => {
-      if (base.lat >= sec.bounds.lat[0] && base.lat <= sec.bounds.lat[1] && base.lng >= sec.bounds.lng[0] && base.lng <= sec.bounds.lng[1]) {
-        threatScore += 5;
+      if (inBounds(base.lat, base.lng)) {
+        threatScore += 1; // Baseline strategic tension
       }
     });
     
-    const confidence = Math.min(100, Math.max(10, threatScore + Math.floor(Math.random() * 10)));
-    const status = confidence > 70 ? 'CRITICAL' : confidence > 40 ? 'DEGRADED' : 'NOMINAL';
-    return { ...sec, confidence, status };
+    // Calculate final threat score normalized against a baseline of 300
+    const confidence = Math.min(100, Math.max(0, Math.round((threatScore / 300) * 100)));
+    const status = confidence >= 75 ? 'CRITICAL' : confidence >= 40 ? 'DEGRADED' : 'NOMINAL';
+    return { ...sec, confidence, status, details: { incidents: incidentCount, milFlights: militaryFlightCount, hazards: hazardCount } };
   });
 
   return (
@@ -252,9 +282,10 @@ export default function AnalyticsPage() {
                         style={{ width: `${sector.confidence}%`, backgroundColor: barColor, boxShadow: `0 0 8px ${barColor}80` }}
                       />
                     </div>
-                    <span className="text-[8px] font-mono text-white/40 mt-1 block text-right">
-                      THREAT_LEVEL: {sector.confidence}%
-                    </span>
+                    <div className="text-[8px] font-mono text-white/40 mt-1 flex justify-between items-center">
+                      <span>MIL:{sector.details.milFlights} HAZ:{sector.details.hazards} INC:{sector.details.incidents}</span>
+                      <span>THREAT_LEVEL: {sector.confidence}%</span>
+                    </div>
                   </div>
                 );
               })}

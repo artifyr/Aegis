@@ -62,6 +62,7 @@ module.exports = {
         body: ["var(--font-body)"],
         label: ["var(--font-label)"],
         mono: ["var(--font-mono)"],
+        nothing: ["var(--font-nothing)", "sans-serif"],
       },
       borderRadius: {
         DEFAULT: "0",

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { TopNavBar } from "@/components/TopNavBar";
-import { SideNavBar } from "@/components/SideNavBar";
+import { nothingFont } from "@/fonts/nothing-font";
+import { NavigationWrapper } from "@/components/NavigationWrapper";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-headline",
@@ -45,13 +45,11 @@ export default function RootLayout({
       </head>
       <body
         suppressHydrationWarning
-        className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} antialiased`}
+        className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} ${nothingFont.variable} antialiased`}
       >
-        <TopNavBar />
-        <div className="flex pt-16 h-screen w-screen overflow-hidden tactical-grid bg-black">
-          <SideNavBar />
+        <NavigationWrapper>
           {children}
-        </div>
+        </NavigationWrapper>
       </body>
     </html>
   );

@@ -102,7 +102,15 @@ export function TopNavBar() {
           <span className="text-white">{mounted ? formatUptime(uptime) : '00:00:00'}</span>
         </div>
 
-
+        <button 
+          onClick={async () => {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
+          }}
+          className="font-mono text-[10px] tracking-widest text-white/50 hover:text-white transition-colors"
+        >
+          LOGOUT
+        </button>
       </div>
     </header>
   );

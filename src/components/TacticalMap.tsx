@@ -235,23 +235,14 @@ export function TacticalMap({
 
   // New stores for Maritime and Aviation
   const flights = useTacticalStore(state => state.flights);
-  const setFlights = useTacticalStore(state => state.setFlights);
   const ports = useTacticalStore(state => state.ports);
-  const setPorts = useTacticalStore(state => state.setPorts);
   const chokepoints = useTacticalStore(state => state.chokepoints);
-  const setChokepoints = useTacticalStore(state => state.setChokepoints);
   const ships = useTacticalStore(state => state.ships);
-  const setShips = useTacticalStore(state => state.setShips);
   const satellites = useTacticalStore(state => state.satellites);
-  const setSatellites = useTacticalStore(state => state.setSatellites);
   const earthquakes = useTacticalStore(state => state.earthquakes);
-  const setEarthquakes = useTacticalStore(state => state.setEarthquakes);
   const nuclearFacilities = useTacticalStore(state => state.nuclearFacilities);
-  const setNuclearFacilities = useTacticalStore(state => state.setNuclearFacilities);
   const strategicBases = useTacticalStore(state => state.strategicBases);
-  const setStrategicBases = useTacticalStore(state => state.setStrategicBases);
   const incidents = useTacticalStore(state => state.incidents);
-  const setIncidents = useTacticalStore(state => state.setIncidents);
   const layers = useTacticalStore(state => state.layers);
   const nukeSimMode = useTacticalStore(state => state.nukeSimMode);
   const nukeSimData = useTacticalStore(state => state.nukeSimData);
@@ -451,141 +442,7 @@ export function TacticalMap({
 
   }, []);
 
-  // Fetch Maritime data every 60 seconds if layer is active
-  useEffect(() => {
-    if (!layers.maritime) return;
-    const fetchMaritime = () => {
-      fetch('/api/maritime')
-        .then(res => res.json())
-        .then(data => {
-          setPorts(data.ports || []);
-          setChokepoints(data.chokepoints || []);
-          setShips(data.ships || []);
-        })
-        .catch(err => console.error("Maritime fetch failed", err));
-    };
 
-    fetchMaritime();
-    const intervalId = setInterval(fetchMaritime, 60000);
-    return () => clearInterval(intervalId);
-  }, [layers.maritime, setPorts, setChokepoints, setShips]);
-
-  // Fetch Aviation data every 5 minutes (300,000 ms)
-  useEffect(() => {
-    const fetchAviation = () => {
-      fetch('/api/aviation')
-        .then(res => res.json())
-        .then(data => {
-          const allFlights = [
-            ...(data.commercial_flights || []),
-            ...(data.private_flights || []),
-            ...(data.private_jets || []),
-            ...(data.military_flights || [])
-          ];
-          setFlights(allFlights);
-        })
-        .catch(err => console.error("Aviation fetch failed", err));
-    };
-
-    fetchAviation();
-    const intervalId = setInterval(fetchAviation, 90000); // 1.5 mins
-    return () => clearInterval(intervalId);
-  }, [setFlights]);
-
-  // Fetch Satellites data
-  useEffect(() => {
-    if (!layers.space_satellites) return;
-    const fetchSatellites = () => {
-      fetch('/api/satellites')
-        .then(res => res.json())
-        .then(data => {
-          if (data.satellites) {
-            setSatellites(data.satellites);
-          }
-        })
-        .catch(err => console.error("Satellites fetch failed", err));
-    };
-
-    fetchSatellites();
-    const intervalId = setInterval(fetchSatellites, 60000);
-    return () => clearInterval(intervalId);
-  }, [layers.space_satellites, setSatellites]);
-
-  // Fetch Earthquakes
-  useEffect(() => {
-    if (!layers.hazards_earthquakes) return;
-    const fetchEarthquakes = () => {
-      fetch('/api/earthquakes')
-        .then(res => res.json())
-        .then(data => {
-          if (data.earthquakes) {
-            setEarthquakes(data.earthquakes);
-          }
-        })
-        .catch(err => console.error("Earthquakes fetch failed", err));
-    };
-
-    fetchEarthquakes();
-    const intervalId = setInterval(fetchEarthquakes, 300000); // 5 mins
-    return () => clearInterval(intervalId);
-  }, [layers.hazards_earthquakes, setEarthquakes]);
-
-  // Fetch Nuclear Facilities
-  useEffect(() => {
-    if (!layers.threats_nuclear) return;
-    const fetchNuclear = () => {
-      fetch('/api/infrastructure')
-        .then(res => res.json())
-        .then(data => {
-          if (data.infrastructure) {
-            setNuclearFacilities(data.infrastructure);
-          }
-        })
-        .catch(err => console.error("Nuclear fetch failed", err));
-    };
-
-    fetchNuclear();
-    const intervalId = setInterval(fetchNuclear, 300000); // 5 mins
-    return () => clearInterval(intervalId);
-  }, [layers.threats_nuclear, setNuclearFacilities]);
-
-  // Fetch Strategic Bases
-  useEffect(() => {
-    if (!layers.threats_strategic) return;
-    const fetchStrategic = () => {
-      fetch('/api/strategic')
-        .then(res => res.json())
-        .then(data => {
-          if (data.bases) {
-            setStrategicBases(data.bases);
-          }
-        })
-        .catch(err => console.error("Strategic bases fetch failed", err));
-    };
-
-    fetchStrategic();
-    const intervalId = setInterval(fetchStrategic, 300000); // 5 mins
-    return () => clearInterval(intervalId);
-  }, [layers.threats_strategic, setStrategicBases]);
-
-  // Fetch Global Incidents
-  useEffect(() => {
-    if (!layers.threats_incidents) return;
-    const fetchIncidents = () => {
-      fetch('/api/incidents')
-        .then(res => res.json())
-        .then(data => {
-          if (data.events) {
-            setIncidents(data.events);
-          }
-        })
-        .catch(err => console.error("Incidents fetch failed", err));
-    };
-
-    fetchIncidents();
-    const intervalId = setInterval(fetchIncidents, 300000); // 5 mins
-    return () => clearInterval(intervalId);
-  }, [layers.threats_incidents, setIncidents]);
 
   // Execute external dives from the Zustand store
   useEffect(() => {
