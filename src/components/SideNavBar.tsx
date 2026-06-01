@@ -60,7 +60,7 @@ export function SideNavBar() {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
     const results: any[] = [];
-    
+
     // Search Flights
     flights.forEach(f => {
       if (f.callsign?.toLowerCase().includes(q) || f.icao24.toLowerCase().includes(q) || f.airline_code?.toLowerCase().includes(q)) {
@@ -91,7 +91,7 @@ export function SideNavBar() {
         results.push({ id: s.noradId, type: 'satellite', name: s.name, lat: s.lat, lng: s.lng, sub: s.mission });
       }
     });
-    
+
     return results.slice(0, 8); // Limit to 8 results
   })();
 
@@ -104,7 +104,7 @@ export function SideNavBar() {
         setSearchQuery('');
         return;
       }
-      
+
       const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
       if (!token) return;
       try {
@@ -154,11 +154,11 @@ export function SideNavBar() {
         <div className="flex items-center gap-2">
           <span className="text-[9px] font-mono text-slate-500">{activeCount}/{totalCount}</span>
           <span className={`material-symbols-outlined text-[14px] text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
-          <div 
-             className={`w-3 h-3 rounded border flex items-center justify-center hover:border-white transition-colors cursor-pointer ${activeParent ? 'border-secondary/50' : 'border-slate-600'}`}
-             onClick={(e) => toggleGroupAll(id, activeCount < totalCount, e)}
+          <div
+            className={`w-3 h-3 rounded border flex items-center justify-center hover:border-white transition-colors cursor-pointer ${activeParent ? 'border-secondary/50' : 'border-slate-600'}`}
+            onClick={(e) => toggleGroupAll(id, activeCount < totalCount, e)}
           >
-             <div className={`w-1.5 h-1.5 ${activeParent ? 'bg-secondary' : 'bg-transparent'}`} />
+            <div className={`w-1.5 h-1.5 ${activeParent ? 'bg-secondary' : 'bg-transparent'}`} />
           </div>
         </div>
       </div>
@@ -170,27 +170,27 @@ export function SideNavBar() {
   const survActiveCount = [layers.cctv, false].filter(Boolean).length;
   const hazardsActiveCount = [layers.hazards_earthquakes, false, false].filter(Boolean).length;
   const threatsActiveCount = [layers.threats_nuclear, layers.threats_incidents, layers.threats_strategic, false].filter(Boolean).length;
-  
+
   const totalEntities = cameras.length + flights.length + ports.length + chokepoints.length + satellites.length + earthquakes.length + nuclearFacilities.length + incidents.length + strategicBases.length;
   const activeLayersTotal = aviationActiveCount + maritimeActiveCount + survActiveCount + hazardsActiveCount + threatsActiveCount;
 
   return (
     <aside className="static flex-shrink-0 w-80 h-full flex flex-col gap-4 z-40 bg-transparent p-4 border-r border-white/10 overflow-hidden">
-      
+
       {/* Box 1: AEGIS SDK */}
       <div className="fui-border p-3 flex gap-4 items-center">
         <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
         <div className="w-20 h-16 bg-white/10 flex items-center justify-center border border-white/20 relative">
           <span className="material-symbols-outlined text-3xl text-secondary">
-            {!selectedAsset ? 'satellite_alt' 
+            {!selectedAsset ? 'satellite_alt'
               : selectedAsset.type === 'flight' || selectedAsset.category === 'commercial' || selectedAsset.category === 'military' || selectedAsset.category === 'private' ? 'flight'
-              : selectedAsset.type === 'port' || selectedAsset.type === 'chokepoint' ? 'directions_boat'
-              : selectedAsset.type === 'camera' ? 'videocam'
-              : selectedAsset.type === 'earthquake' ? 'waves'
-              : selectedAsset.type === 'nuclear' ? 'science'
-              : selectedAsset.type === 'strategic' ? 'security'
-              : selectedAsset.type === 'incident' ? 'warning'
-              : 'radar'}
+                : selectedAsset.type === 'port' || selectedAsset.type === 'chokepoint' ? 'directions_boat'
+                  : selectedAsset.type === 'camera' ? 'videocam'
+                    : selectedAsset.type === 'earthquake' ? 'waves'
+                      : selectedAsset.type === 'nuclear' ? 'science'
+                        : selectedAsset.type === 'strategic' ? 'security'
+                          : selectedAsset.type === 'incident' ? 'warning'
+                            : 'radar'}
           </span>
           <div className="absolute top-0 left-0 w-1 h-1 border-t border-l border-white"></div>
         </div>
@@ -216,37 +216,37 @@ export function SideNavBar() {
 
       {/* Watchlist Input */}
       <div className="fui-border p-2">
-         <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
-         <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearch}
-              placeholder="CMD: LOCATE"
-              className="w-full bg-transparent border-b border-white/30 focus:border-white rounded-none text-[11px] font-mono py-1 px-1 placeholder:text-white/30 outline-none text-white transition-colors"
-            />
-            <span className="material-symbols-outlined absolute right-1 top-0.5 text-[14px] text-white/50">search</span>
+        <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearch}
+            placeholder="CMD: LOCATE"
+            className="w-full bg-transparent border-b border-white/30 focus:border-white rounded-none text-[11px] font-mono py-1 px-1 placeholder:text-white/30 outline-none text-white transition-colors"
+          />
+          <span className="material-symbols-outlined absolute right-1 top-0.5 text-[14px] text-white/50">search</span>
+        </div>
+        {searchQuery.trim() && searchResults.length > 0 && (
+          <div className="absolute top-[100%] left-0 right-0 mt-1 bg-black/80 border border-white/30 z-[999] max-h-64 overflow-y-auto">
+            {searchResults.map((res, i) => (
+              <button
+                key={`${res.type}-${res.id}-${i}`}
+                className="w-full text-left px-2 py-1 hover:bg-white/10 border-b border-white/10 flex items-center justify-between group"
+                onClick={() => {
+                  setMapCommand({ type: 'flyTo', lat: res.lat, lng: res.lng, zoom: 12 });
+                  setActiveEntityId(res.id);
+                  setSearchQuery('');
+                }}
+              >
+                <div className="flex flex-col overflow-hidden">
+                  <span className="text-white text-[10px] tracking-wide uppercase truncate">{res.name}</span>
+                </div>
+              </button>
+            ))}
           </div>
-          {searchQuery.trim() && searchResults.length > 0 && (
-            <div className="absolute top-[100%] left-0 right-0 mt-1 bg-black/80 border border-white/30 z-[999] max-h-64 overflow-y-auto">
-              {searchResults.map((res, i) => (
-                <button 
-                  key={`${res.type}-${res.id}-${i}`}
-                  className="w-full text-left px-2 py-1 hover:bg-white/10 border-b border-white/10 flex items-center justify-between group"
-                  onClick={() => {
-                    setMapCommand({ type: 'flyTo', lat: res.lat, lng: res.lng, zoom: 12 });
-                    setActiveEntityId(res.id);
-                    setSearchQuery('');
-                  }}
-                >
-                  <div className="flex flex-col overflow-hidden">
-                    <span className="text-white text-[10px] tracking-wide uppercase truncate">{res.name}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+        )}
       </div>
 
       <div className="flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-1">
@@ -257,7 +257,7 @@ export function SideNavBar() {
             <h3 className="text-white font-bold tracking-widest text-sm">AVIATION TRAFFIC</h3>
             <span className="text-white/40 text-[9px] uppercase">Live airborne assets</span>
           </div>
-          
+
           <div className="flex flex-col gap-1.5">
             <LayerSwitch label="COMMERCIAL" active={layers.aviation_commercial} count={flights.filter(f => f.category === 'commercial').length} dotColor="bg-white" onClick={() => toggleLayer('aviation_commercial')} />
             <LayerSwitch label="MILITARY" active={layers.aviation_military} count={flights.filter(f => f.category === 'military').length} dotColor="bg-red-500" onClick={() => toggleLayer('aviation_military')} />
@@ -272,7 +272,7 @@ export function SideNavBar() {
             <h3 className="text-white font-bold tracking-widest text-sm">SURFACE & LEO</h3>
             <span className="text-white/40 text-[9px] uppercase">Maritime and Space</span>
           </div>
-          
+
           <div className="flex flex-col gap-1.5">
             <LayerSwitch label="MARITIME NAVAL" active={layers.maritime} count={ports.length + chokepoints.length} dotColor="bg-white" onClick={() => toggleLayer('maritime')} />
             <LayerSwitch label="SATELLITES" active={layers.space_satellites} count={satellites.length} dotColor="bg-white" onClick={() => toggleLayer('space_satellites')} />
@@ -287,9 +287,9 @@ export function SideNavBar() {
             <h3 className="text-white font-bold tracking-widest text-sm">THREAT MATRIX</h3>
             <span className="text-white/40 text-[9px] uppercase">Hazards and Targets</span>
           </div>
-          
+
           <div className="flex flex-col gap-1.5">
-            <LayerSwitch label="NUCLEAR FACIL" active={layers.threats_nuclear} count={nuclearFacilities.length} dotColor="bg-red-500" onClick={() => toggleLayer('threats_nuclear')} />
+            <LayerSwitch label="NUCLEAR FACILITIES" active={layers.threats_nuclear} count={nuclearFacilities.length} dotColor="bg-red-500" onClick={() => toggleLayer('threats_nuclear')} />
             <LayerSwitch label="STRAT BASES" active={layers.threats_strategic} count={strategicBases.length} dotColor="bg-red-500" onClick={() => toggleLayer('threats_strategic')} />
             <LayerSwitch label="INCIDENTS" active={layers.threats_incidents} count={incidents.length} dotColor="bg-orange-500" onClick={() => toggleLayer('threats_incidents')} />
             <LayerSwitch label="SEISMIC 24H" active={layers.hazards_earthquakes} count={earthquakes.length} dotColor="bg-yellow-500" onClick={() => toggleLayer('hazards_earthquakes')} />
