@@ -10,7 +10,7 @@ import circle from '@turf/circle';
 
 // DESIGN.md: surface_container_lowest (#0d0e12) for global background
 const DARK_STYLE = 'mapbox://styles/mapbox/dark-v11';
-const SATELLITE_STYLE = 'mapbox://styles/mapbox/satellite-streets-v12';
+const SATELLITE_STYLE = 'mapbox://styles/mapbox/standard-satellite';
 
 const INITIAL_VIEW = {
   longitude: -74.006, // NYC as initial zoomed view for cameras
@@ -523,11 +523,13 @@ export function TacticalMap({
     (window as any).__aegisCameraReset = cameraReset;
     (window as any).__aegisCameraZoomIn = () => { mapRef.current?.zoomIn({ duration: 500 }); };
     (window as any).__aegisCameraZoomOut = () => { mapRef.current?.zoomOut({ duration: 500 }); };
+    (window as any).__aegisToggleMapStyle = () => { setMapStyle(prev => prev === DARK_STYLE ? SATELLITE_STYLE : DARK_STYLE); };
     return () => {
       delete (window as any).__aegisCameraDive;
       delete (window as any).__aegisCameraReset;
       delete (window as any).__aegisCameraZoomIn;
       delete (window as any).__aegisCameraZoomOut;
+      delete (window as any).__aegisToggleMapStyle;
     };
   }, [cameraDive, cameraReset]);
 

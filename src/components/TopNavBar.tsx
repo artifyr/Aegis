@@ -76,6 +76,13 @@ export function TopNavBar() {
         <div className="flex items-center gap-2">
           <div className="flex items-center border border-white/30 rounded-none bg-black">
             <button 
+              onClick={() => (window as any).__aegisToggleMapStyle?.()}
+              className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 transition-colors border-r border-white/30"
+              title="Toggle Satellite View"
+            >
+              <span className="material-symbols-outlined text-[18px]">satellite_alt</span>
+            </button>
+            <button 
               onClick={() => (window as any).__aegisCameraZoomIn?.()}
               className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 transition-colors border-r border-white/30"
               title="Zoom In"
