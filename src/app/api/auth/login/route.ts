@@ -6,9 +6,16 @@ export async function POST(request: Request) {
 
     const validUsername = process.env.AUTH_USER || 'Zer0';
     const validPassword = process.env.AUTH_PASS || 'Aegis@123';
+    
+    const validUsername2 = process.env.AUTH_USER_2 || 'nyx';
+    const validPassword2 = process.env.AUTH_PASS_2 || 'qwerty@69';
+    
     const isEnvConfigured = !!(process.env.AUTH_USER && process.env.AUTH_PASS);
 
-    if (username === validUsername && password === validPassword) {
+    const isPrimaryValid = username === validUsername && password === validPassword;
+    const isSecondaryValid = username === validUsername2 && password === validPassword2;
+
+    if (isPrimaryValid || isSecondaryValid) {
       // Create response and set cookie
       const response = NextResponse.json({ 
         success: true,
