@@ -1,35 +1,74 @@
 'use client';
 
 import { useTacticalStore } from '@/store/tactical-store';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+
+type SortOption = 'date-desc' | 'date-asc' | 'a-z' | 'z-a';
 
 export default function NewsPage() {
   const { news, setMapCommand, setActiveEntityId } = useTacticalStore();
   const [mounted, setMounted] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const sortedNews = useMemo(() => {
+    return [...news].sort((a, b) => {
+      switch (sortBy) {
+        case 'date-desc':
+          return new Date(b.published).getTime() - new Date(a.published).getTime();
+        case 'date-asc':
+          return new Date(a.published).getTime() - new Date(b.published).getTime();
+        case 'a-z':
+          return (a.title || '').localeCompare(b.title || '');
+        case 'z-a':
+          return (b.title || '').localeCompare(a.title || '');
+        default:
+          return 0;
+      }
+    });
+  }, [news, sortBy]);
 
   if (!mounted) return <div className="p-8 text-white font-mono">INIT NEWS ENGINE...</div>;
 
   return (
     <main className="flex-1 w-full relative bg-[#0b0c10] h-full overflow-y-auto p-4 md:p-8 custom-scrollbar">
       <div className="max-w-[1600px] mx-auto pb-20 md:pb-8">
-        <h1 className="text-white font-bold text-2xl font-headline mb-2 uppercase tracking-wider">
-          Global News & Intel
-        </h1>
-        <p className="font-mono text-sm text-white/50 mb-8">
-          LIVE_FEED // SYNDICATED_SOURCES: {news.length || '---'}
-        </p>
+        
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 gap-4">
+          <div>
+            <h1 className="text-white font-bold text-2xl font-headline mb-2 uppercase tracking-wider">
+              Global News & Intel
+            </h1>
+            <p className="font-mono text-sm text-white/50">
+              LIVE_FEED // SYNDICATED_SOURCES: {news.length || '---'}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2 border border-white/20 bg-black/40 px-3 py-1.5 font-mono text-xs">
+            <span className="text-white/50 material-symbols-outlined text-[16px]">sort</span>
+            <select 
+              className="bg-transparent text-white outline-none cursor-pointer"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+            >
+              <option value="date-desc" className="bg-[#0b0c10] text-white">LATEST FIRST</option>
+              <option value="date-asc" className="bg-[#0b0c10] text-white">OLDEST FIRST</option>
+              <option value="a-z" className="bg-[#0b0c10] text-white">TITLE (A-Z)</option>
+              <option value="z-a" className="bg-[#0b0c10] text-white">TITLE (Z-A)</option>
+            </select>
+          </div>
+        </div>
 
-        {news.length === 0 ? (
+        {sortedNews.length === 0 ? (
           <div className="text-center py-20 font-mono text-white/50 text-sm">
             NO INTELLIGENCE FEEDS AVAILABLE
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 auto-rows-[250px]">
-            {news.map((item, i) => {
+            {sortedNews.map((item, i) => {
               // Bento styling: make some critical/first items larger
               const isHero = i % 7 === 0; 
               const isCritical = item.risk_score >= 8;
