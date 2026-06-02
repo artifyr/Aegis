@@ -27,7 +27,7 @@ export function GlobalDataLoader() {
         .catch(err => console.error("Maritime fetch failed", err));
     };
     fetchMaritime();
-    const intervalId = setInterval(fetchMaritime, 60000);
+    const intervalId = setInterval(fetchMaritime, 90000);
     return () => clearInterval(intervalId);
   }, [setPorts, setChokepoints, setShips]);
 
