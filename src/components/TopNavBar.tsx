@@ -41,9 +41,11 @@ export function TopNavBar() {
   return (
     <header className="flex justify-between items-center w-full px-6 h-16 bg-black fixed top-0 z-50 border-b border-white/20">
       <div className="flex items-center gap-8">
-        <h1 className="text-2xl font-black tracking-widest text-white uppercase font-headline">
-          AEGIS
-        </h1>
+        <Link href="/">
+          <h1 className="text-2xl font-black tracking-widest text-white uppercase font-headline hover:text-white/80 transition-colors">
+            AEGIS
+          </h1>
+        </Link>
         <nav className="hidden md:flex gap-6 items-center">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;

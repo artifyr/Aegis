@@ -1,34 +1,108 @@
+'use client';
+
+import { useTacticalStore } from '@/store/tactical-store';
+import { useEffect, useState } from 'react';
+
 export default function NewsPage() {
+  const { news, setMapCommand, setActiveEntityId } = useTacticalStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return <div className="p-8 text-white font-mono">INIT NEWS ENGINE...</div>;
+
   return (
-    <main className="flex-1 w-full relative bg-[#0b0c10] h-full overflow-y-auto p-8 custom-scrollbar">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-white font-bold text-2xl font-headline mb-4 uppercase tracking-wider">
+    <main className="flex-1 w-full relative bg-[#0b0c10] h-full overflow-y-auto p-4 md:p-8 custom-scrollbar">
+      <div className="max-w-[1600px] mx-auto pb-20 md:pb-8">
+        <h1 className="text-white font-bold text-2xl font-headline mb-2 uppercase tracking-wider">
           Global News & Intel
         </h1>
         <p className="font-mono text-sm text-white/50 mb-8">
-          LIVE_FEED // SYNDICATED_SOURCES: 42
+          LIVE_FEED // SYNDICATED_SOURCES: {news.length || '---'}
         </p>
 
-        <div className="fui-border bg-black/40 p-6 relative">
-          <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
-          <div className="flex flex-col gap-4 font-mono text-xs text-white/70">
-            <div className="flex justify-between items-center bg-white/5 p-3 border-l-2 border-white/20 hover:bg-white/10 cursor-pointer transition-colors">
-              <span className="text-white">OPERATION_SILENT_DAWN_UPDATE</span>
-              <span className="text-[#0ea5e9]">STATUS: ONGOING</span>
-              <span>12.OCT.2023</span>
-            </div>
-            <div className="flex justify-between items-center bg-white/5 p-3 border-l-2 border-white/20 hover:bg-white/10 cursor-pointer transition-colors">
-              <span className="text-white">REGION_7_RECON_REPORT</span>
-              <span className="text-yellow-400">STATUS: PENDING_REVIEW</span>
-              <span>11.OCT.2023</span>
-            </div>
-            <div className="flex justify-between items-center bg-white/5 p-3 border-l-2 border-[#10b981] hover:bg-white/10 cursor-pointer transition-colors">
-              <span className="text-white">SATELLITE_DEPLOYMENT_SUCCESS</span>
-              <span className="text-[#10b981]">STATUS: COMPLETED</span>
-              <span>10.OCT.2023</span>
-            </div>
+        {news.length === 0 ? (
+          <div className="text-center py-20 font-mono text-white/50 text-sm">
+            NO INTELLIGENCE FEEDS AVAILABLE
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 auto-rows-[250px]">
+            {news.map((item, i) => {
+              // Bento styling: make some critical/first items larger
+              const isHero = i % 7 === 0; 
+              const isCritical = item.risk_score >= 8;
+              const color = isCritical ? 'red' : item.risk_score >= 5 ? 'yellow' : 'emerald';
+
+              return (
+                <div 
+                  key={item.id} 
+                  className={`fui-border relative flex flex-col justify-between overflow-hidden group cursor-pointer ${
+                    isHero ? 'sm:col-span-2 sm:row-span-2' : ''
+                  } ${
+                    isCritical ? 'bg-red-950/20 hover:bg-red-950/40' : 'bg-black/40 hover:bg-black/60'
+                  } transition-colors p-5`}
+                  onClick={() => {
+                    if (item.coords) {
+                      setMapCommand({ type: 'flyTo', lat: item.coords[0], lng: item.coords[1], zoom: 6 });
+                      setActiveEntityId(item.id);
+                      window.location.href = '/'; // send back to map
+                    } else if (item.link) {
+                      window.open(item.link, '_blank');
+                    }
+                  }}
+                >
+                  <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+                  
+                  {/* Top Bar */}
+                  <div className="flex justify-between items-start mb-4 z-10">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full bg-${color}-500 ${isCritical ? 'animate-pulse' : ''}`}></div>
+                      <span className={`text-[10px] font-mono tracking-widest uppercase text-${color}-500`}>
+                        {isCritical ? 'CRITICAL ALERT' : 'INTEL'}
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-mono text-white/40 uppercase">
+                      {new Date(item.published).toLocaleDateString()} {new Date(item.published).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}Z
+                    </span>
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 overflow-hidden z-10 flex flex-col justify-center">
+                    <h2 className={`font-headline font-bold text-white mb-2 leading-tight ${isHero ? 'text-2xl lg:text-3xl line-clamp-3' : 'text-sm sm:text-base line-clamp-2'}`}>
+                      {item.title}
+                    </h2>
+                    <p className={`font-mono text-white/60 leading-relaxed ${isHero ? 'text-xs sm:text-sm line-clamp-4' : 'text-[10px] sm:text-xs line-clamp-3'}`}>
+                      {item.description}
+                    </p>
+                  </div>
+
+                  {/* Bottom Bar */}
+                  <div className="flex justify-between items-end mt-4 z-10 border-t border-white/10 pt-3">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] font-mono text-white/40 uppercase tracking-wider">SOURCE</span>
+                      <span className="text-[10px] font-mono text-white/70 truncate max-w-[120px]">{item.source}</span>
+                    </div>
+                    {item.machine_assessment && (
+                      <div className="bg-red-500/10 border border-red-500/20 px-2 py-1 text-[8px] font-mono text-red-400">
+                        AI ASSESSED
+                      </div>
+                    )}
+                    {item.coords && (
+                      <span className="material-symbols-outlined text-white/30 group-hover:text-secondary transition-colors text-lg" title="View on Map">
+                        travel_explore
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Background Accents */}
+                  <div className={`absolute -bottom-10 -right-10 w-40 h-40 bg-${color}-500/5 blur-[50px] pointer-events-none transition-opacity opacity-50 group-hover:opacity-100`}></div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </main>
   );
