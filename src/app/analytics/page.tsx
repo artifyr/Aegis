@@ -201,12 +201,18 @@ export default function AnalyticsPage() {
 
       <div className="p-4 md:p-8 max-w-[1600px] mx-auto pb-20 md:pb-8">
         {/* ═══ KPI Row ═══ */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 md:gap-4 mb-4 md:mb-8">
           <StatCard
             label="Total Mobile Assets"
             value={totalAssets}
             unit="TRK"
             sublabel="FLIGHTS, SHIPS, SATS"
+          />
+          <StatCard
+            label="Maritime Vessels"
+            value={store.ships.length}
+            unit="VSL"
+            sublabel="LIVE AIS TRACKING"
           />
           <StatCard
             label="Active Hazards"
