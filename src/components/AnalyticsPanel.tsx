@@ -147,7 +147,7 @@ export function AnalyticsPanel({
 
   return (
     <aside className={`
-      ${mobileActiveTab === 'recon' || mobileActiveTab === 'intel'
+      ${mobileActiveTab === 'news' || mobileActiveTab === 'status'
         ? 'fixed inset-x-0 bottom-[64px] top-[20%] bg-[#0a0a0c]/95 backdrop-blur-xl border-t border-white/20 rounded-t-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.8)] translate-y-0' 
         : 'fixed inset-x-0 bottom-[64px] top-[20%] translate-y-[150%] md:translate-y-0 md:flex'
       }
@@ -156,14 +156,16 @@ export function AnalyticsPanel({
     `}>
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between -mt-2 mb-2 pb-2 border-b border-white/10">
-        <h2 className="text-white font-headline font-bold tracking-widest text-sm uppercase">Intel & Recon</h2>
+        <h2 className="text-white font-headline font-bold tracking-widest text-sm uppercase">
+          {mobileActiveTab === 'news' ? 'LIVE NEWS' : 'SYSTEM STATUS'}
+        </h2>
         <button onClick={() => setMobileActiveTab('none')} className="text-white/50 hover:text-white transition-colors">
           <span className="material-symbols-outlined text-[20px]">close</span>
         </button>
       </div>
       
       {/* Network Status & Scan Summary */}
-      <div className="fui-border p-3 flex flex-col gap-3">
+      <div className={`fui-border p-3 flex-col gap-3 ${mobileActiveTab === 'news' ? 'hidden md:flex' : 'flex'}`}>
         <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
         
         <div className="flex items-center justify-between border-b border-white/20 pb-2">
@@ -215,7 +217,7 @@ export function AnalyticsPanel({
       </div>
 
       {/* Alerts Feed */}
-      <div className="fui-border p-3 flex-1 flex flex-col overflow-hidden min-h-[150px]">
+      <div className={`fui-border p-3 flex-1 flex-col overflow-hidden min-h-[150px] ${mobileActiveTab === 'news' ? 'hidden md:flex' : 'flex'}`}>
         <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
         <div className="flex items-center justify-between mb-3 border-b border-white/20 pb-2">
           <div className="flex items-center gap-2">
@@ -264,7 +266,7 @@ export function AnalyticsPanel({
       </div>
 
       {/* Live Alerts (News) Feed */}
-      <div className="fui-border p-3 flex-[1.5] flex flex-col overflow-hidden min-h-[250px]">
+      <div className={`fui-border p-3 flex-[1.5] flex-col overflow-hidden min-h-[250px] ${mobileActiveTab === 'status' ? 'hidden md:flex' : 'flex'}`}>
         <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
         <div className="flex items-center justify-between mb-3 border-b border-white/20 pb-2">
           <div className="flex items-center gap-2">
@@ -319,7 +321,7 @@ export function AnalyticsPanel({
       </div>
 
       {/* Footer Stats */}
-      <div className="fui-border p-3 grid grid-cols-2 gap-2 flex-shrink-0">
+      <div className={`fui-border p-3 grid-cols-2 gap-2 flex-shrink-0 ${mobileActiveTab === 'news' ? 'hidden md:grid' : 'grid'}`}>
         <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
         <div className="flex justify-between border-b border-white/20 pb-1 text-[9px] font-mono">
           <span className="text-white/50">UPTIME:</span>

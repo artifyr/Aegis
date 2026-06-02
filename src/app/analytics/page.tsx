@@ -314,11 +314,11 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Table header */}
-            <div className="grid grid-cols-5 gap-2 text-[8px] font-mono text-white/50 uppercase tracking-wider pb-2 border-b border-white/10">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 text-[8px] font-mono text-white/50 uppercase tracking-wider pb-2 border-b border-white/10">
               <span>CALLSIGN</span>
               <span>CLASS</span>
-              <span className="text-right">LAT</span>
-              <span className="text-right">LNG</span>
+              <span className="text-right hidden sm:block">LAT</span>
+              <span className="text-right hidden sm:block">LNG</span>
               <span className="text-right">VEL (KTS)</span>
             </div>
 
@@ -327,13 +327,13 @@ export default function AnalyticsPage() {
                 .sort((a, b) => (b.velocity || 0) - (a.velocity || 0))
                 .slice(0, 15)
                 .map((asset: any, idx) => (
-                <div key={`feed-${asset.id || asset.mmsi || asset.icao24}`} className={`grid grid-cols-5 gap-2 py-2 px-1 text-[9px] font-mono transition-colors duration-150 ${idx % 2 === 0 ? 'bg-white/5' : 'bg-transparent'}`}>
+                <div key={`feed-${asset.id || asset.mmsi || asset.icao24}`} className={`grid grid-cols-3 sm:grid-cols-5 gap-2 py-2 px-1 text-[9px] font-mono transition-colors duration-150 ${idx % 2 === 0 ? 'bg-white/5' : 'bg-transparent'}`}>
                   <span className="text-white truncate">{asset.callsign || asset.name || 'UNKNOWN'}</span>
                   <span className={`${asset.icao24 ? 'text-[#0ea5e9]' : 'text-[#10b981]'}`}>
                     {asset.icao24 ? 'AERIAL' : 'NAVAL'}
                   </span>
-                  <span className="text-right text-white/60">{asset.lat.toFixed(3)}</span>
-                  <span className="text-right text-white/60">{asset.lng.toFixed(3)}</span>
+                  <span className="text-right text-white/60 hidden sm:block">{asset.lat.toFixed(3)}</span>
+                  <span className="text-right text-white/60 hidden sm:block">{asset.lng.toFixed(3)}</span>
                   <span className="text-right text-[#0ea5e9]">{(asset.velocity || 0).toFixed(1)}</span>
                 </div>
               ))}

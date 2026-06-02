@@ -120,8 +120,8 @@ interface TacticalStore {
   };
   toggleLayer: (layerName: keyof TacticalStore['layers']) => void;
 
-  mobileActiveTab: 'none' | 'layers' | 'markets' | 'intel' | 'recon' | 'search';
-  setMobileActiveTab: (tab: 'none' | 'layers' | 'markets' | 'intel' | 'recon' | 'search') => void;
+  mobileActiveTab: 'none' | 'layers' | 'status' | 'news' | 'search';
+  setMobileActiveTab: (tab: 'none' | 'layers' | 'status' | 'news' | 'search') => void;
 }
 
 export const useTacticalStore = create<TacticalStore>()(

@@ -7,9 +7,9 @@ export function BottomNavBar() {
 
   const tabs = [
     { id: 'layers', label: 'LAYERS', icon: 'layers' },
-    { id: 'markets', label: 'MARKETS', icon: 'bar_chart' },
-    { id: 'intel', label: 'INTEL', icon: 'newspaper' },
-    { id: 'recon', label: 'RECON', icon: 'radar' },
+    { id: 'analytics', label: 'ANALYTICS', icon: 'bar_chart' },
+    { id: 'status', label: 'STATUS', icon: 'router' },
+    { id: 'news', label: 'NEWS', icon: 'newspaper' },
     { id: 'search', label: 'SEARCH', icon: 'search' },
   ] as const;
 
@@ -20,7 +20,13 @@ export function BottomNavBar() {
         return (
           <button
             key={tab.id}
-            onClick={() => setMobileActiveTab(isActive ? 'none' : tab.id)}
+            onClick={() => {
+              if (tab.id === 'analytics') {
+                window.location.href = '/analytics';
+              } else {
+                setMobileActiveTab(isActive ? 'none' : (tab.id as any));
+              }
+            }}
             className={`flex flex-col items-center justify-center w-16 gap-1 transition-colors ${
               isActive ? 'text-secondary' : 'text-slate-500'
             }`}
