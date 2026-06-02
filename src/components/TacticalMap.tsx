@@ -300,13 +300,7 @@ export function TacticalMap({
   const flightGeoJson = useMemo(() => {
     return {
       type: 'FeatureCollection',
-      features: flights.filter((flight) => {
-        if (flight.category === 'commercial' && !layers.aviation_commercial) return false;
-        if (flight.category === 'private' && !layers.aviation_private) return false;
-        if (flight.category === 'jet' && !layers.aviation_jets) return false;
-        if (flight.category === 'military' && !layers.aviation_military) return false;
-        return true;
-      }).map(f => ({
+      features: flights.map(f => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [f.lng, f.lat] },
         properties: {
@@ -316,13 +310,13 @@ export function TacticalMap({
         }
       }))
     };
-  }, [flights, layers.aviation_commercial, layers.aviation_private, layers.aviation_jets, layers.aviation_military]);
+  }, [flights]);
 
   // Convert satellites to GeoJSON
   const satelliteGeoJson = useMemo(() => {
     return {
       type: 'FeatureCollection',
-      features: satellites.filter(() => layers.space_satellites).map(s => ({
+      features: satellites.map(s => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [s.lng, s.lat] },
         properties: {
@@ -334,13 +328,13 @@ export function TacticalMap({
         }
       }))
     };
-  }, [satellites, layers.space_satellites]);
+  }, [satellites]);
 
   // Convert ships to GeoJSON
   const shipGeoJson = useMemo(() => {
     return {
       type: 'FeatureCollection',
-      features: ships.filter(() => layers.maritime).map(s => ({
+      features: ships.map(s => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [s.lng, s.lat] },
         properties: {
@@ -355,7 +349,7 @@ export function TacticalMap({
         }
       }))
     };
-  }, [ships, layers.maritime]);
+  }, [ships]);
 
   const visiblePorts = useMemo(() => {
     if (!bounds) return ports;
@@ -668,7 +662,7 @@ export function TacticalMap({
         {/* Default zoom controls removed in favor of TopNavBar custom zoom buttons */}
 
         {/* HUD Markers projected directly onto WebGL Globe via Mapbox Marker */}
-        {!isDived && layers.cctv && cameras.map((camera) => (
+        {!isDived && cameras.map((camera) => (
           <Marker key={`cam-${camera.id}`} longitude={camera.lon} latitude={camera.lat} anchor="center">
             <CameraMarker
               camera={camera}
@@ -701,7 +695,7 @@ export function TacticalMap({
         )}
 
         {/* GeoJSON Satellites Layer */}
-        {!isDived && layers.space_satellites && (
+        {!isDived && (
           <Source id="satellites-source" type="geojson" data={satelliteGeoJson as any}>
             <Layer
               id="satellites-layer"
@@ -885,7 +879,7 @@ export function TacticalMap({
         )}
 
         {/* GeoJSON Ships Layer */}
-        {!isDived && layers.maritime && (
+        {!isDived && (
           <Source id="ships-source" type="geojson" data={shipGeoJson as any}>
             <Layer
               id="ships-layer"
@@ -992,7 +986,7 @@ export function TacticalMap({
           })()
         )}
 
-        {!isDived && layers.maritime && visiblePorts.map((port) => {
+        {!isDived && visiblePorts.map((port) => {
           const isActive = activeEntityId === (port.id || port.name);
           return (
             <React.Fragment key={`port-${port.id || port.name}`}>
@@ -1094,7 +1088,7 @@ export function TacticalMap({
           );
         })}
 
-        {!isDived && layers.maritime && visibleChokepoints.map((chokepoint) => {
+        {!isDived && visibleChokepoints.map((chokepoint) => {
           const isActive = activeEntityId === chokepoint.name;
           return (
             <React.Fragment key={`chokepoint-${chokepoint.name}`}>
@@ -1180,7 +1174,7 @@ export function TacticalMap({
         })}
 
         {/* Render Earthquakes */}
-        {!isDived && layers.hazards_earthquakes && earthquakes.map((eq) => {
+        {!isDived && earthquakes.map((eq) => {
           const isActive = activeEntityId === eq.id;
           const mag = eq.magnitude || 0;
           const size = Math.max(8, mag * 3);
@@ -1245,7 +1239,7 @@ export function TacticalMap({
         })}
 
         {/* Render Global Incidents */}
-        {!isDived && layers.threats_incidents && incidents.map((incident) => {
+        {!isDived && incidents.map((incident) => {
           const isActive = activeEntityId === incident.id;
           const color = '#ef4444'; // Red for conflict
 
@@ -1301,7 +1295,7 @@ export function TacticalMap({
         })}
 
         {/* Render News Live Alerts */}
-        {!isDived && layers.threats_news && news.filter(n => n.coords).map((item) => {
+        {!isDived && news.filter(n => n.coords).map((item) => {
           const isActive = activeEntityId === item.id;
           const color = item.risk_score >= 8 ? '#ef4444' : item.risk_score >= 5 ? '#eab308' : '#10b981';
 
@@ -1359,7 +1353,7 @@ export function TacticalMap({
         })}
 
         {/* Render Severe Weather */}
-        {!isDived && layers.hazards_weather && weatherEvents?.map((item: any) => {
+        {!isDived && weatherEvents?.map((item: any) => {
           const isActive = activeEntityId === item.id;
           const color = item.severity === 'high' ? '#ef4444' : item.severity === 'medium' ? '#f97316' : '#eab308';
           let icon = 'storm';
@@ -1535,7 +1529,7 @@ export function TacticalMap({
         )}
 
         {/* Render Nuclear Facilities */}
-        {!isDived && layers.threats_nuclear && nuclearFacilities.map((nuc) => {
+        {!isDived && nuclearFacilities.map((nuc) => {
           const isActive = activeEntityId === nuc.id;
           const isDanger = nuc.status.includes('SEISMIC') || nuc.status.includes('Conflict') || nuc.status.includes('Destroyed');
           const isWarning = nuc.status.includes('Shutdown') || nuc.status.includes('Suspended');
@@ -1599,7 +1593,7 @@ export function TacticalMap({
         })}
 
         {/* Render Strategic Bases */}
-        {!isDived && layers.threats_strategic && strategicBases.map((base) => {
+        {!isDived && strategicBases.map((base) => {
           const isActive = activeEntityId === base.id;
           const color = base.type === 'NUCLEAR_SUB_BASE' ? '#0ea5e9' : base.type === 'ICBM_SILO' ? '#f59e0b' : '#a855f7';
           const iconStr = base.type === 'NUCLEAR_SUB_BASE' ? 'directions_boat' : base.type === 'ICBM_SILO' ? 'rocket_launch' : 'radar';
