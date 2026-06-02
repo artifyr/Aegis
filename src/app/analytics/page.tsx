@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTacticalStore } from '@/store/tactical-store';
+import { getThreatSeverity } from '@/lib/ai-engine';
 
 // ─── Mini SVG Line Chart for Live Data ─────────────────────────
 function LiveSparkline({ data, color, height = 100 }: { data: number[]; color: string; height?: number }) {
@@ -199,12 +200,12 @@ export default function AnalyticsPage() {
         type: 'OSINT_INCIDENT',
         title: inc.name || 'Active Incident',
         description: inc.html || '',
-        severity: 'HIGH',
-        region: inc.country || 'Global',
-        latitude: inc.lat,
-        longitude: inc.lng,
-        timestamp: new Date().toISOString(),
-        source: 'OSINT RSS Mapping',
+        severity: getThreatSeverity(inc.name || '', inc.html || ''),
+        region: 'Global',
+        latitude: inc.lat || 0,
+        longitude: inc.lng || 0,
+        timestamp: inc.date || new Date().toISOString(),
+        source: 'AEGIS OSINT Mapper'
       });
     });
 

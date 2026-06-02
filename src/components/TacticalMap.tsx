@@ -5,6 +5,7 @@ import Map, { Marker, Source, Layer, type MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useTacticalStore, SurveillanceNode } from '@/store/tactical-store';
 import circle from '@turf/circle';
+import { getThreatSeverity } from '@/lib/ai-engine';
 
 // ─── Constants ────────────────────────────────────────────────────
 
@@ -1245,7 +1246,10 @@ export function TacticalMap({
         })}
 
         {/* Render Global Incidents */}
-        {!isDived && layers.threats_incidents && incidents.map((incident) => {
+        {!isDived && incidents.map((incident) => {
+          const isCritical = getThreatSeverity(incident.name || '', incident.html || '') === 'CRITICAL';
+          if (!layers.threats_incidents && !isCritical) return null;
+
           const isActive = activeEntityId === incident.id;
           const color = '#ef4444'; // Red for conflict
 
@@ -1257,7 +1261,11 @@ export function TacticalMap({
                   className="cursor-pointer flex items-center justify-center hover:scale-110 transition-transform"
                   onClick={(e) => { e.stopPropagation(); setActiveEntityId(incident.id); }}
                 >
-                  <span className="material-symbols-outlined text-[20px]" style={{ color }}>crisis_alert</span>
+                  {isCritical ? (
+                    <span className="text-[20px]">⚠️</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-[20px]" style={{ color }}>crisis_alert</span>
+                  )}
                 </div>
                 {/* Text visible only when zoomed in, limited to 4 words */}
                 <div 

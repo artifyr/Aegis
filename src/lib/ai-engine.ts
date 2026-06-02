@@ -69,6 +69,25 @@ export interface IntelligenceContext {
   timestamp: string;
 }
 
+export function getThreatSeverity(title: string, description: string = ''): 'CRITICAL' | 'HIGH' | 'ELEVATED' | 'LOW' {
+  const text = (title + ' ' + description).toLowerCase();
+  // Critical threats: Myanmar conflict, Strait of Hormuz, Palestine/Gaza, Israel, general war
+  if (text.includes('war') || 
+      text.includes('myanmar') || 
+      text.includes('hormuz') || 
+      text.includes('palestine') || 
+      text.includes('gaza') || 
+      text.includes('israel') ||
+      text.includes('russia') ||
+      text.includes('ukraine')) {
+    return 'CRITICAL';
+  }
+  if (text.includes('conflict') || text.includes('strike') || text.includes('attack') || text.includes('military')) {
+    return 'HIGH';
+  }
+  return 'ELEVATED';
+}
+
 /* ─────────────────────────────────────────────────────────────
    System Prompt — Palantir-grade analyst persona
    ───────────────────────────────────────────────────────────── */
