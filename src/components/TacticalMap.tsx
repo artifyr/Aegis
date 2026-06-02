@@ -509,15 +509,26 @@ export function TacticalMap({
   // Expose cameraDive via window for SideNavBar integration
   useEffect(() => {
     if (mapCommand && mapRef.current) {
-      if (mapCommand.type === 'flyTo') {
-        mapRef.current.flyTo({
-          center: [mapCommand.lng, mapCommand.lat],
-          zoom: mapCommand.zoom || 10,
-          duration: 2500,
-          essential: true
-        });
+      const map = mapRef.current.getMap();
+      if (!map) return;
+
+      const executeCommand = () => {
+        if (mapCommand.type === 'flyTo') {
+          map.flyTo({
+            center: [mapCommand.lng, mapCommand.lat],
+            zoom: mapCommand.zoom || 16,
+            duration: 2500,
+            essential: true
+          });
+        }
+        setMapCommand(null);
+      };
+
+      if (map.loaded()) {
+        executeCommand();
+      } else {
+        map.once('load', executeCommand);
       }
-      setMapCommand(null);
     }
   }, [mapCommand, setMapCommand]);
 

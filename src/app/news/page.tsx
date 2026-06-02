@@ -2,6 +2,7 @@
 
 import { useTacticalStore } from '@/store/tactical-store';
 import { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 
 type SortOption = 'date-desc' | 'date-asc' | 'a-z' | 'z-a';
 
@@ -9,6 +10,7 @@ export default function NewsPage() {
   const { news, setMapCommand, setActiveEntityId } = useTacticalStore();
   const [mounted, setMounted] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
@@ -92,9 +94,9 @@ export default function NewsPage() {
                   } transition-colors p-5`}
                   onClick={() => {
                     if (item.coords) {
-                      setMapCommand({ type: 'flyTo', lat: item.coords[0], lng: item.coords[1], zoom: 6 });
+                      setMapCommand({ type: 'flyTo', lat: item.coords[0], lng: item.coords[1], zoom: 14 });
                       setActiveEntityId(item.id);
-                      window.location.href = '/'; // send back to map
+                      router.push('/');
                     } else if (item.link) {
                       window.open(item.link, '_blank');
                     }

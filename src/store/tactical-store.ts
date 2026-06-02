@@ -66,8 +66,8 @@ interface TacticalStore {
   setActiveEntityId: (id: string | null) => void;
 
   // Generic map commands (e.g. flyTo)
-  mapCommand: { type: 'flyTo'; lat: number; lng: number; zoom?: number } | null;
-  setMapCommand: (cmd: { type: 'flyTo'; lat: number; lng: number; zoom?: number } | null) => void;
+  mapCommand: { type: 'flyTo'; lat: number; lng: number; zoom?: number; bbox?: [[number, number], [number, number]] } | null;
+  setMapCommand: (cmd: { type: 'flyTo'; lat: number; lng: number; zoom?: number; bbox?: [[number, number], [number, number]] } | null) => void;
 
   // Aviation
   flights: FlightNode[];

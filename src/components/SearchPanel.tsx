@@ -2,11 +2,14 @@
 
 import { useTacticalStore } from '@/store/tactical-store';
 import { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 
 export function SearchPanel() {
   const { flights, ports, chokepoints, cameras, satellites, news, setMapCommand, setActiveEntityId, mobileActiveTab, setMobileActiveTab } = useTacticalStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [externalResults, setExternalResults] = useState<any[]>([]);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const fetchExternal = async () => {
@@ -14,19 +17,21 @@ export function SearchPanel() {
         setExternalResults([]);
         return;
       }
-      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-      if (!token) return;
       try {
-        const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${token}&types=place,region,country,locality`);
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`);
         const data = await res.json();
-        if (data.features) {
-          const formatted = data.features.map((f: any) => ({
-            id: f.id,
+        if (Array.isArray(data)) {
+          const formatted = data.slice(0, 5).map((f: any) => ({
+            id: f.place_id,
             type: 'location',
-            name: f.text,
-            lat: f.center[1],
-            lng: f.center[0],
-            sub: f.place_name
+            name: f.display_name.split(',')[0],
+            lat: parseFloat(f.lat),
+            lng: parseFloat(f.lon),
+            bbox: f.boundingbox ? [
+              [parseFloat(f.boundingbox[2]), parseFloat(f.boundingbox[0])],
+              [parseFloat(f.boundingbox[3]), parseFloat(f.boundingbox[1])]
+            ] : undefined,
+            sub: f.display_name
           }));
           setExternalResults(formatted);
         }
@@ -86,12 +91,36 @@ export function SearchPanel() {
 
   const handleSearch = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
-      if (searchResults.length > 0) {
-        const best = searchResults[0];
-        setMapCommand({ type: 'flyTo', lat: best.lat, lng: best.lng, zoom: best.type === 'location' ? 8 : 12 });
+      let best = searchResults.length > 0 ? searchResults[0] : null;
+      
+      if (!best || best.type === 'location') {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`);
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const f = data[0];
+            best = {
+              id: f.place_id,
+              type: 'location',
+              name: f.display_name.split(',')[0],
+              lat: parseFloat(f.lat),
+              lng: parseFloat(f.lon),
+              bbox: f.boundingbox ? [
+                [parseFloat(f.boundingbox[2]), parseFloat(f.boundingbox[0])],
+                [parseFloat(f.boundingbox[3]), parseFloat(f.boundingbox[1])]
+              ] : undefined,
+              sub: f.display_name
+            };
+          }
+        } catch (err) {}
+      }
+
+      if (best) {
+        setMapCommand({ type: 'flyTo', lat: best.lat, lng: best.lng, zoom: 17 });
         if (best.type !== 'location') setActiveEntityId(best.id);
         setSearchQuery('');
         setMobileActiveTab('none');
+        if (pathname !== '/') router.push('/');
       }
     }
   };
@@ -150,10 +179,11 @@ export function SearchPanel() {
                 key={`${res.type}-${res.id}-${i}`}
                 className="w-full text-left px-3 py-2 hover:bg-white/10 border-b border-white/10 flex items-center justify-between group"
                 onClick={() => {
-                  setMapCommand({ type: 'flyTo', lat: res.lat, lng: res.lng, zoom: res.type === 'location' ? 8 : 12 });
+                  setMapCommand({ type: 'flyTo', lat: res.lat, lng: res.lng, zoom: 17 });
                   if (res.type !== 'location') setActiveEntityId(res.id);
                   setSearchQuery('');
                   setMobileActiveTab('none');
+                  if (pathname !== '/') router.push('/');
                 }}
               >
                 <div className="flex flex-col overflow-hidden">
