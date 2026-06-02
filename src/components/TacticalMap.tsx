@@ -243,6 +243,7 @@ export function TacticalMap({
   const nuclearFacilities = useTacticalStore(state => state.nuclearFacilities);
   const strategicBases = useTacticalStore(state => state.strategicBases);
   const incidents = useTacticalStore(state => state.incidents);
+  const news = useTacticalStore(state => state.news);
   const layers = useTacticalStore(state => state.layers);
   const nukeSimMode = useTacticalStore(state => state.nukeSimMode);
   const nukeSimData = useTacticalStore(state => state.nukeSimData);
@@ -1267,16 +1268,56 @@ export function TacticalMap({
               </div>
             </Marker>
             {isActive && (
-              <Marker longitude={incident.lng} latitude={incident.lat} anchor="top-left" style={{ zIndex: 999999 }}>
+              <div className="absolute z-[999999]">
+                <EntityInfoModal 
+                  entityId={incident.id} 
+                  type="incident"
+                  onClose={() => setActiveEntityId(null)} 
+                  onDblClick={() => {
+                     setMapCommand({ type: 'flyTo', lat: incident.lat, lng: incident.lng, zoom: 14 });
+                  }}
+                />
+              </div>
+            )}
+          </React.Fragment>
+          );
+        })}
+
+        {/* Render News Live Alerts */}
+        {!isDived && layers.threats_news && news.filter(n => n.coords).map((item) => {
+          const isActive = activeEntityId === item.id;
+          const color = item.risk_score >= 8 ? '#ef4444' : item.risk_score >= 5 ? '#eab308' : '#10b981';
+
+          return (
+            <React.Fragment key={item.id}>
+            <Marker longitude={item.coords[1]} latitude={item.coords[0]} anchor="center" style={{ zIndex: isActive ? 999998 : 20 }}>
+              <div className="relative flex flex-col items-center">
+                <div
+                  className="cursor-pointer flex items-center justify-center hover:scale-110 transition-transform bg-black/50 border border-white/20 p-1 rounded-full backdrop-blur-sm"
+                  onClick={(e) => { e.stopPropagation(); setActiveEntityId(item.id); }}
+                >
+                  <span className="material-symbols-outlined text-[16px]" style={{ color }}>newspaper</span>
+                </div>
+                {/* Text visible only when zoomed in, limited to 4 words */}
+                <div 
+                  className={`absolute top-full mt-1 text-[7px] font-mono whitespace-nowrap transition-opacity duration-300 uppercase bg-black/60 px-1 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                  style={{ color }}
+                >
+                  {item.source}
+                </div>
+              </div>
+            </Marker>
+            {isActive && (
+              <Marker longitude={item.coords[1]} latitude={item.coords[0]} anchor="top-left" style={{ zIndex: 999999 }}>
                 <div className="absolute top-2 left-2 fui-border bg-black/80 p-4 shadow-2xl backdrop-blur-md w-[300px] pointer-events-auto cursor-auto z-[999999]" >
                   <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
                   <div className="flex justify-between items-start mb-3 mt-1">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[16px]" style={{ color }}>crisis_alert</span>
-                        <h3 className="font-headline font-bold text-sm tracking-wider uppercase truncate max-w-[200px]" style={{ color }}>Global Incident</h3>
+                        <span className="material-symbols-outlined text-[16px]" style={{ color }}>newspaper</span>
+                        <h3 className="font-headline font-bold text-sm tracking-wider uppercase truncate max-w-[200px]" style={{ color }}>Live Alert</h3>
                       </div>
-                      <span className="text-slate-400 font-mono text-[9px] uppercase tracking-widest block mt-0.5">{incident.type}</span>
+                      <span className="text-slate-400 font-mono text-[9px] uppercase tracking-widest block mt-0.5">{item.source}</span>
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} className="text-slate-500 hover:text-white transition-colors">
                       <span className="material-symbols-outlined text-[16px]">close</span>
@@ -1284,11 +1325,13 @@ export function TacticalMap({
                   </div>
 
                   <div className="bg-slate-900/50 border border-slate-800/80 rounded p-3 mb-3">
-                    <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">INCIDENT DETAILS</span>
-                    <div className="text-[10px] font-mono text-slate-300 whitespace-normal leading-relaxed break-words" dangerouslySetInnerHTML={{ __html: incident.html }} />
+                    <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">ALERT DETAILS</span>
+                    <div className="text-[10px] font-mono text-slate-300 whitespace-normal leading-relaxed break-words">
+                      {item.description || item.title}
+                    </div>
                   </div>
                   
-                  <a href={incident.url} target="_blank" rel="noopener noreferrer" className="block w-full py-1.5 rounded text-[10px] font-mono text-center transition-colors bg-secondary/10 text-secondary hover:bg-secondary/20">
+                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="block w-full py-1.5 rounded text-[10px] font-mono text-center transition-colors bg-secondary/10 text-secondary hover:bg-secondary/20">
                     VIEW SOURCE
                   </a>
                 </div>

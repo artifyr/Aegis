@@ -13,6 +13,22 @@ export function GlobalDataLoader() {
   const setNuclearFacilities = useTacticalStore(state => state.setNuclearFacilities);
   const setStrategicBases = useTacticalStore(state => state.setStrategicBases);
   const setIncidents = useTacticalStore(state => state.setIncidents);
+  const setNews = useTacticalStore(state => state.setNews);
+
+  // News
+  useEffect(() => {
+    const fetchNews = () => {
+      fetch('/api/news')
+        .then(res => res.json())
+        .then(data => {
+          if (data.news) setNews(data.news);
+        })
+        .catch(err => console.error("News fetch failed", err));
+    };
+    fetchNews();
+    const intervalId = setInterval(fetchNews, 60000);
+    return () => clearInterval(intervalId);
+  }, [setNews]);
 
   // Maritime
   useEffect(() => {

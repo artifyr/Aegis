@@ -89,30 +89,8 @@ export function AnalyticsPanel({
   changeReport?: ChangeReport | null;
   isScanning?: boolean;
 }) {
-  const { cameras, mobileActiveTab, setMobileActiveTab } = useTacticalStore();
-  const [news, setNews] = useState<any[]>([]);
-  const [isFetchingNews, setIsFetchingNews] = useState(false);
-
-  useEffect(() => {
-    const fetchNews = async () => {
-      setIsFetchingNews(true);
-      try {
-        const res = await fetch('/api/news');
-        if (res.ok) {
-          const data = await res.json();
-          setNews(data.news || []);
-        }
-      } catch (e) {
-        console.error("Failed to fetch news", e);
-      } finally {
-        setIsFetchingNews(false);
-      }
-    };
-    fetchNews();
-    const int = setInterval(fetchNews, 60000); // refresh every minute
-    return () => clearInterval(int);
-  }, []);
-  
+  const { cameras, mobileActiveTab, setMobileActiveTab, news } = useTacticalStore();
+  const isFetchingNews = false; // We can let GlobalDataLoader handle the loading state or just keep it simple.
   // Merge static placeholder alerts with dynamic ones
   const staticAlerts: Alert[] = [
     {
@@ -300,19 +278,19 @@ export function AnalyticsPanel({
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-1">
+        <div className="flex flex-col gap-2 overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
           {news.length === 0 && !isFetchingNews && (
             <div className="text-[9px] font-mono text-white/40 text-center py-4">NO ALERTS FOUND</div>
           )}
           {news.map((item) => (
             <div key={item.id} className="p-2 border-l-2 border-white/20 bg-white/5 mb-1.5 hover:bg-white/10 transition-colors">
               <div className="flex gap-2">
-                <div className="flex items-start gap-1 pt-0.5">
+                <div className="flex items-start gap-1 pt-0.5 flex-shrink-0">
                   <div className={`w-1.5 h-1.5 rounded-full ${item.risk_score >= 8 ? 'bg-red-500' : item.risk_score >= 5 ? 'bg-yellow-500' : 'bg-[#10b981]'} mt-1`}></div>
                   <span className="material-symbols-outlined text-[11px] text-white/50">newspaper</span>
                 </div>
-                <div className="flex flex-col flex-1 gap-1.5">
-                  <p className="text-[9px] font-mono text-white/80 leading-tight break-words">
+                <div className="flex flex-col flex-1 gap-1.5 min-w-0">
+                  <p className="text-[9px] font-mono text-white/80 leading-tight break-words whitespace-normal">
                     {item.description || item.title}
                   </p>
                   {item.machine_assessment && (

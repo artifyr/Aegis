@@ -15,7 +15,7 @@ const getRegionFromCoords = (lat: number, lng: number) => {
 };
 
 export function SideNavBar() {
-  const { setDiveTarget, layers, toggleLayer, cameras, flights, ports, chokepoints, ships, satellites, earthquakes, nuclearFacilities, strategicBases, incidents, setMapCommand, activeEntityId, setActiveEntityId, activeCamera, nukeSimMode, setNukeSimMode, mobileActiveTab, setMobileActiveTab } = useTacticalStore();
+  const { setDiveTarget, layers, toggleLayer, cameras, flights, ports, chokepoints, ships, satellites, earthquakes, nuclearFacilities, strategicBases, incidents, news, setMapCommand, activeEntityId, setActiveEntityId, activeCamera, nukeSimMode, setNukeSimMode, mobileActiveTab, setMobileActiveTab } = useTacticalStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAssetEvent, setSelectedAssetEvent] = useState<any>(null);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
@@ -75,7 +75,7 @@ export function SideNavBar() {
       maritime: ['maritime', 'space_satellites'],
       surveillance: ['cctv'],
       hazards: ['hazards_earthquakes'],
-      threats: ['threats_nuclear', 'threats_incidents', 'threats_strategic'],
+      threats: ['threats_nuclear', 'threats_incidents', 'threats_strategic', 'threats_news'],
     };
 
     const targetLayers = groupLayers[groupId];
@@ -203,7 +203,7 @@ export function SideNavBar() {
   const maritimeActiveCount = [layers.maritime, layers.space_satellites].filter(Boolean).length;
   const survActiveCount = [layers.cctv, false].filter(Boolean).length;
   const hazardsActiveCount = [layers.hazards_earthquakes, false, false].filter(Boolean).length;
-  const threatsActiveCount = [layers.threats_nuclear, layers.threats_incidents, layers.threats_strategic, false].filter(Boolean).length;
+  const threatsActiveCount = [layers.threats_nuclear, layers.threats_incidents, layers.threats_strategic, layers.threats_news].filter(Boolean).length;
 
   const totalEntities = cameras.length + flights.length + ports.length + chokepoints.length + satellites.length + earthquakes.length + nuclearFacilities.length + incidents.length + strategicBases.length;
   const activeLayersTotal = aviationActiveCount + maritimeActiveCount + survActiveCount + hazardsActiveCount + threatsActiveCount;
@@ -341,6 +341,7 @@ export function SideNavBar() {
             <LayerSwitch label="NUCLEAR FACILITIES" active={layers.threats_nuclear} count={nuclearFacilities.length} dotColor="bg-red-500" onClick={() => toggleLayer('threats_nuclear')} />
             <LayerSwitch label="STRAT BASES" active={layers.threats_strategic} count={strategicBases.length} dotColor="bg-red-500" onClick={() => toggleLayer('threats_strategic')} />
             <LayerSwitch label="INCIDENTS" active={layers.threats_incidents} count={incidents.length} dotColor="bg-orange-500" onClick={() => toggleLayer('threats_incidents')} />
+            <LayerSwitch label="LIVE NEWS" active={layers.threats_news} count={news.length} dotColor="bg-yellow-500" onClick={() => toggleLayer('threats_news')} />
             <LayerSwitch label="SEISMIC 24H" active={layers.hazards_earthquakes} count={earthquakes.length} dotColor="bg-yellow-500" onClick={() => toggleLayer('hazards_earthquakes')} />
           </div>
         </div>

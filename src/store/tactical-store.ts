@@ -99,6 +99,10 @@ interface TacticalStore {
   nukeSimData: any | null;
   setNukeSimData: (data: any | null) => void;
 
+  // News
+  news: any[];
+  setNews: (news: any[]) => void;
+
   // UI Layers Visibility
   layers: {
     aviation_commercial: boolean;
@@ -112,6 +116,7 @@ interface TacticalStore {
     threats_nuclear: boolean;
     threats_strategic: boolean;
     threats_incidents: boolean;
+    threats_news: boolean;
   };
   toggleLayer: (layerName: keyof TacticalStore['layers']) => void;
 
@@ -169,6 +174,9 @@ export const useTacticalStore = create<TacticalStore>()(
       nukeSimData: null,
       setNukeSimData: (nukeSimData) => set({ nukeSimData }),
 
+      news: [],
+      setNews: (news) => set({ news }),
+
       layers: {
         aviation_commercial: false,
         aviation_private: false,
@@ -181,6 +189,7 @@ export const useTacticalStore = create<TacticalStore>()(
         threats_nuclear: false,
         threats_strategic: false,
         threats_incidents: false,
+        threats_news: true,
       },
       toggleLayer: (layerName) => set((state) => ({
         layers: { ...state.layers, [layerName]: !state.layers[layerName] }
