@@ -7,9 +7,6 @@ export async function POST(request: Request) {
     const validUsername = process.env.AUTH_USER;
     const validPassword = process.env.AUTH_PASS;
     
-    const validUsername2 = process.env.AUTH_USER_2;
-    const validPassword2 = process.env.AUTH_PASS_2;
-    
     const isEnvConfigured = !!(validUsername && validPassword);
 
     if (!isEnvConfigured) {
@@ -20,10 +17,8 @@ export async function POST(request: Request) {
     }
 
     const isPrimaryValid = username === validUsername && password === validPassword;
-    // Only check secondary if it's configured
-    const isSecondaryValid = !!(validUsername2 && validPassword2) && username === validUsername2 && password === validPassword2;
 
-    if (isPrimaryValid || isSecondaryValid) {
+    if (isPrimaryValid) {
       // Create response and set cookie
       const response = NextResponse.json({ 
         success: true
