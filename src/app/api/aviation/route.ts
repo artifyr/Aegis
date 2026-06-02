@@ -70,55 +70,6 @@ async function fetchRegion(region: typeof REGIONS[0]): Promise<any[]> {
   return [];
 }
 
-async function fetchFlightAwareRegion(region: typeof REGIONS[0]): Promise<any[]> {
-  const apiKey = process.env.FLIGHTAWARE_API_KEY;
-  if (!apiKey) return [];
-  
-  // Approximate a bounding box around the region center
-  const latDelta = (region.dist / 111) / 2;
-  const lonDelta = (region.dist / (111 * Math.cos(region.lat * Math.PI / 180))) / 2;
-  
-  const minLat = region.lat - latDelta;
-  const maxLat = region.lat + latDelta;
-  const minLon = region.lon - lonDelta;
-  const maxLon = region.lon + lonDelta;
-
-  try {
-    const url = `https://aeroapi.flightaware.com/aeroapi/flights/search?query=-latlong+"${minLat} ${minLon} ${maxLat} ${maxLon}"&max_pages=2`;
-    const res = await fetch(url, {
-      headers: {
-        'x-apikey': apiKey,
-        'Accept': 'application/json; charset=UTF-8'
-      },
-      signal: AbortSignal.timeout(10000)
-    });
-    
-    if (res.ok) {
-      const data = await res.json();
-      return (data.flights || []).map((f: any) => {
-        if (!f.last_position) return null;
-        return {
-          hex: (f.ident || '').toLowerCase(),
-          flight: f.ident,
-          lat: f.last_position.latitude,
-          lon: f.last_position.longitude,
-          alt_baro: f.last_position.altitude * 100, // FA AeroAPI altitude is typically in 100s of feet
-          gs: f.last_position.groundspeed,
-          track: f.last_position.heading,
-          t: f.aircraft_type,
-          r: f.registration,
-          squawk: '',
-          dbFlags: 0,
-          nac_p: 10,
-        };
-      }).filter(Boolean);
-    }
-  } catch (e) {
-    console.warn('FlightAware API failed:', e);
-  }
-  return [];
-}
-
 function classifyFlight(f: any) {
   const modelUpper = (f.t || '').toUpperCase();
   const flightStr = (f.flight || '').trim().toUpperCase();
@@ -190,7 +141,7 @@ export async function GET() {
   // Return cached data if within TTL
   if (cachedData && now - lastFetchTime < CACHE_TTL) {
     return NextResponse.json(cachedData, {
-      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
     });
   }
 
@@ -199,7 +150,7 @@ export async function GET() {
     try {
       const data = await fetchPromise;
       return NextResponse.json(data, {
-        headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+        headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
       });
     } catch {
       // Fallback to error if the pending fetch failed
@@ -211,11 +162,10 @@ export async function GET() {
 
   // Start new global fetch
   fetchPromise = (async () => {
-    // Fetch all 6 regions in parallel from both ADSB.lol and FlightAware (if API key exists)
-    const regionResults = await Promise.allSettled([
-      ...REGIONS.map(r => fetchRegion(r)),
-      ...REGIONS.map(r => fetchFlightAwareRegion(r))
-    ]);
+    // Fetch all 6 regions in parallel
+    const regionResults = await Promise.allSettled(
+      REGIONS.map(r => fetchRegion(r))
+    );
 
     const allRaw: any[] = [];
     const seenHex = new Set<string>();
@@ -281,9 +231,13 @@ export async function GET() {
     lastFetchTime = Date.now();
     fetchPromise = null;
 
+    const cacheControl = data.total < 100 
+      ? 'no-store, max-age=0' 
+      : 'public, s-maxage=30, stale-while-revalidate=60';
+
     return NextResponse.json(data, {
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Cache-Control': cacheControl,
       },
     });
   } catch (error) {
@@ -323,4 +277,3 @@ function aggregateJamming(points: any[], threshold: number) {
       count: z.count,
     }));
 }
-
