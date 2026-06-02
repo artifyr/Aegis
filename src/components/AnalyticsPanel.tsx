@@ -89,7 +89,7 @@ export function AnalyticsPanel({
   changeReport?: ChangeReport | null;
   isScanning?: boolean;
 }) {
-  const { cameras, mobileActiveTab, setMobileActiveTab, news } = useTacticalStore();
+  const { cameras, mobileActiveTab, setMobileActiveTab, news, setMapCommand, setActiveEntityId, layers, toggleLayer } = useTacticalStore();
   const isFetchingNews = false; // We can let GlobalDataLoader handle the loading state or just keep it simple.
   // Merge static placeholder alerts with dynamic ones
   const staticAlerts: Alert[] = [
@@ -285,7 +285,27 @@ export function AnalyticsPanel({
             <div className="text-[9px] font-mono text-white/40 text-center py-4">NO ALERTS FOUND</div>
           )}
           {news.map((item) => (
-            <div key={item.id} className="p-2 border-l-2 border-white/20 bg-white/5 mb-1.5 hover:bg-white/10 transition-colors">
+            <div 
+              key={item.id} 
+              className="p-2 border-l-2 border-white/20 bg-white/5 mb-1.5 hover:bg-white/10 transition-colors cursor-pointer"
+              onClick={() => {
+                if (item.coords) {
+                  // Ensure news layer is active
+                  if (!layers.threats_news) toggleLayer('threats_news');
+                  
+                  // Pan to marker
+                  setMapCommand({ type: 'flyTo', lat: item.coords[0], lng: item.coords[1], zoom: 6 });
+                  
+                  // Open modal
+                  setActiveEntityId(item.id);
+                  
+                  // On mobile, close the panel so they can see the map
+                  if (window.innerWidth < 768) {
+                    setMobileActiveTab('none');
+                  }
+                }
+              }}
+            >
               <div className="flex gap-2">
                 <div className="flex items-start gap-1 pt-0.5 flex-shrink-0">
                   <div className={`w-1.5 h-1.5 rounded-full ${item.risk_score >= 8 ? 'bg-red-500' : item.risk_score >= 5 ? 'bg-yellow-500' : 'bg-[#10b981]'} mt-1`}></div>
@@ -309,7 +329,13 @@ export function AnalyticsPanel({
                         {new Date(item.published).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} Z
                       </span>
                     </div>
-                    <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-secondary hover:text-white transition-colors bg-secondary/10 px-1 py-0.5 border border-secondary/20">
+                    <a 
+                      href={item.link} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-secondary hover:text-white transition-colors bg-secondary/10 px-1 py-0.5 border border-secondary/20"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       SOURCE
                     </a>
                   </div>
