@@ -67,6 +67,7 @@ function ConfidenceChip({ confidence }: { confidence: number }) {
 
 import { useState, useEffect } from 'react';
 import { useTacticalStore } from '@/store/tactical-store';
+import { useInference } from '@/hooks/use-inference';
 
 // Very rough approximation for regions due to lack of local client-side shapefiles
 const getRegionFromCoords = (lat: number, lng: number) => {
@@ -80,15 +81,23 @@ const getRegionFromCoords = (lat: number, lng: number) => {
 };
 
 export function AnalyticsPanel({
-  alerts = [],
-  latestScan = null,
-  isScanning = false,
+  alerts: propAlerts,
+  latestScan: propLatestScan,
+  changeReport: propChangeReport,
+  isScanning: propIsScanning,
+  desktopHidden = false,
 }: {
   alerts?: Alert[];
   latestScan?: ScanResult | null;
   changeReport?: ChangeReport | null;
   isScanning?: boolean;
+  desktopHidden?: boolean;
 }) {
+  const { alerts: infAlerts, latestScan: infLatestScan, changeReport: infChangeReport, isScanning: infIsScanning } = useInference();
+  const alerts = propAlerts || infAlerts;
+  const latestScan = propLatestScan || infLatestScan;
+  const changeReport = propChangeReport || infChangeReport;
+  const isScanning = propIsScanning ?? infIsScanning;
   const { cameras, mobileActiveTab, setMobileActiveTab, news, setMapCommand, setActiveEntityId, layers, toggleLayer } = useTacticalStore();
   const isFetchingNews = false; // We can let GlobalDataLoader handle the loading state or just keep it simple.
   // Merge static placeholder alerts with dynamic ones
@@ -149,11 +158,28 @@ export function AnalyticsPanel({
     <aside className={`
       ${mobileActiveTab === 'news' || mobileActiveTab === 'status'
         ? 'fixed inset-x-0 bottom-[64px] top-[20%] bg-[#0a0a0c]/95 backdrop-blur-xl border-t border-white/20 rounded-t-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.8)] translate-y-0' 
-        : 'fixed inset-x-0 bottom-[64px] top-[20%] translate-y-[150%] md:translate-y-0 md:flex'
+        : `fixed inset-x-0 bottom-[64px] top-[20%] translate-y-[150%] ${desktopHidden ? 'md:hidden' : 'md:translate-y-0 md:flex'}`
       }
       md:static md:inset-auto md:w-[340px] md:h-full md:bg-transparent md:border-t-0 md:rounded-none md:shadow-none md:border-l border-white/10
       flex flex-col gap-4 z-[90] p-4 overflow-hidden flex-shrink-0 transition-transform duration-300
     `}>
+      {/* Mobile Drag Handle */}
+      <div 
+        className="md:hidden w-full h-6 -mt-4 mb-2 flex justify-center items-center cursor-grab active:cursor-grabbing"
+        onTouchStart={(e) => {
+          const target = e.target as HTMLDivElement;
+          target.dataset.touchY = e.touches[0].clientY.toString();
+        }}
+        onTouchEnd={(e) => {
+          const startY = parseFloat((e.target as HTMLDivElement).dataset.touchY || '0');
+          if (e.changedTouches[0].clientY - startY > 50) {
+            setMobileActiveTab('none');
+          }
+        }}
+      >
+        <div className="w-12 h-1.5 bg-white/20 rounded-full pointer-events-none" />
+      </div>
+
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between -mt-2 mb-2 pb-2 border-b border-white/10">
         <h2 className="text-white font-headline font-bold tracking-widest text-sm uppercase">

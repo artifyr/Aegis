@@ -104,6 +104,23 @@ export function SearchPanel() {
       }
       md:hidden flex flex-col gap-4 z-[90] p-4 overflow-hidden flex-shrink-0 transition-transform duration-300
     `}>
+      {/* Mobile Drag Handle */}
+      <div 
+        className="w-full h-6 -mt-4 mb-2 flex justify-center items-center cursor-grab active:cursor-grabbing"
+        onTouchStart={(e) => {
+          const target = e.target as HTMLDivElement;
+          target.dataset.touchY = e.touches[0].clientY.toString();
+        }}
+        onTouchEnd={(e) => {
+          const startY = parseFloat((e.target as HTMLDivElement).dataset.touchY || '0');
+          if (e.changedTouches[0].clientY - startY > 50) {
+            setMobileActiveTab('none');
+          }
+        }}
+      >
+        <div className="w-12 h-1.5 bg-white/20 rounded-full pointer-events-none" />
+      </div>
+
       {/* Mobile Header */}
       <div className="flex items-center justify-between -mt-2 mb-2 pb-2 border-b border-white/10">
         <h2 className="text-white font-headline font-bold tracking-widest text-sm uppercase">Global Search</h2>

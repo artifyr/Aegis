@@ -1,9 +1,11 @@
 'use client';
 
 import { useTacticalStore } from '@/store/tactical-store';
+import { useRouter } from 'next/navigation';
 
 export function BottomNavBar() {
   const { mobileActiveTab, setMobileActiveTab } = useTacticalStore();
+  const router = useRouter();
 
   const tabs = [
     { id: 'layers', label: 'LAYERS', icon: 'layers' },
@@ -22,7 +24,11 @@ export function BottomNavBar() {
             key={tab.id}
             onClick={() => {
               if (tab.id === 'analytics') {
-                window.location.href = '/analytics';
+                router.push('/analytics');
+                setMobileActiveTab('none');
+              } else if (tab.id === 'news') {
+                router.push('/news');
+                setMobileActiveTab('none');
               } else {
                 setMobileActiveTab(isActive ? 'none' : (tab.id as any));
               }

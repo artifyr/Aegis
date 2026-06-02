@@ -56,17 +56,7 @@ export default function GlobalSurveillanceHub() {
         <div className="absolute top-8 left-12 font-mono text-[10px] text-secondary tracking-widest bg-surface-container-lowest/50 px-3 py-1 border border-outline-variant/30 z-20 pointer-events-none">
           LOCKED: SECTOR_7 // OVERRIDE_DISABLED
         </div>
-
-
       </main>
-
-      {/* Right Sidebar — wired to inference */}
-      <AnalyticsPanel
-        alerts={alerts}
-        latestScan={latestScan}
-        changeReport={changeReport}
-        isScanning={isScanning}
-      />
     </>
   );
 }
