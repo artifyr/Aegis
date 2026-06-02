@@ -3,6 +3,7 @@ import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { nothingFont } from "@/fonts/nothing-font";
 import { NavigationWrapper } from "@/components/NavigationWrapper";
+import { Analytics } from "@vercel/analytics/next";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-headline",
@@ -50,6 +51,7 @@ export default function RootLayout({
         <NavigationWrapper>
           {children}
         </NavigationWrapper>
+        <Analytics />
       </body>
     </html>
   );
