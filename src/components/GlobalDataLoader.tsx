@@ -14,6 +14,7 @@ export function GlobalDataLoader() {
   const setStrategicBases = useTacticalStore(state => state.setStrategicBases);
   const setIncidents = useTacticalStore(state => state.setIncidents);
   const setNews = useTacticalStore(state => state.setNews);
+  const setWeatherEvents = useTacticalStore(state => state.setWeatherEvents);
 
   // News
   useEffect(() => {
@@ -257,6 +258,21 @@ export function GlobalDataLoader() {
     const intervalId = setInterval(fetchIncidents, 300000);
     return () => clearInterval(intervalId);
   }, [setIncidents]);
+
+  // Severe Weather
+  useEffect(() => {
+    const fetchWeather = () => {
+      fetch('/api/severe-weather')
+        .then(res => res.json())
+        .then(data => {
+          if (data.events) setWeatherEvents(data.events);
+        })
+        .catch(err => console.error("Severe Weather fetch failed", err));
+    };
+    fetchWeather();
+    const intervalId = setInterval(fetchWeather, 300000);
+    return () => clearInterval(intervalId);
+  }, [setWeatherEvents]);
 
   return null;
 }

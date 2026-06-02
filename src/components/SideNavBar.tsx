@@ -15,7 +15,7 @@ const getRegionFromCoords = (lat: number, lng: number) => {
 };
 
 export function SideNavBar() {
-  const { setDiveTarget, layers, toggleLayer, cameras, flights, ports, chokepoints, ships, satellites, earthquakes, nuclearFacilities, strategicBases, incidents, news, setMapCommand, activeEntityId, setActiveEntityId, activeCamera, nukeSimMode, setNukeSimMode, mobileActiveTab, setMobileActiveTab } = useTacticalStore();
+  const { setDiveTarget, layers, toggleLayer, cameras, flights, ports, chokepoints, ships, satellites, earthquakes, nuclearFacilities, strategicBases, incidents, news, weatherEvents, setMapCommand, activeEntityId, setActiveEntityId, activeCamera, nukeSimMode, setNukeSimMode, mobileActiveTab, setMobileActiveTab } = useTacticalStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAssetEvent, setSelectedAssetEvent] = useState<any>(null);
   const [externalResults, setExternalResults] = useState<any[]>([]);
@@ -92,9 +92,12 @@ export function SideNavBar() {
       
       const inc = incidents.find(i => i.id === activeEntityId);
       if (inc) return { ...inc, type: 'incident' as const };
+      
+      const weather = weatherEvents?.find((w: any) => w.id === activeEntityId);
+      if (weather) return { ...weather, type: 'weather' as const };
     }
     return selectedAssetEvent;
-  }, [activeEntityId, activeCamera, flights, ships, satellites, ports, chokepoints, earthquakes, nuclearFacilities, strategicBases, incidents, selectedAssetEvent]);
+  }, [activeEntityId, activeCamera, flights, ships, satellites, ports, chokepoints, earthquakes, nuclearFacilities, strategicBases, incidents, weatherEvents, selectedAssetEvent]);
 
   const toggleGroup = (group: string) => {
     setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }));
@@ -106,7 +109,7 @@ export function SideNavBar() {
       aviation: ['aviation_commercial', 'aviation_private', 'aviation_jets', 'aviation_military'],
       maritime: ['maritime', 'space_satellites'],
       surveillance: ['cctv'],
-      hazards: ['hazards_earthquakes'],
+      hazards: ['hazards_earthquakes', 'hazards_weather'],
       threats: ['threats_nuclear', 'threats_incidents', 'threats_strategic', 'threats_news'],
     };
 
@@ -163,6 +166,14 @@ export function SideNavBar() {
         results.push({ id: n.id, type: 'news', name: n.title, lat: n.coords[0], lng: n.coords[1], sub: 'News Alert' });
       }
     });
+    // Search Weather
+    if (weatherEvents) {
+      weatherEvents.forEach((w: any) => {
+        if (w.title?.toLowerCase().includes(q) || w.type?.toLowerCase().includes(q)) {
+          results.push({ id: w.id, type: 'weather', name: w.title, lat: w.lat, lng: w.lng, sub: w.type });
+        }
+      });
+    }
 
     return [...results, ...externalResults].slice(0, 10); // Limit to 10 results
   })();
@@ -226,10 +237,10 @@ export function SideNavBar() {
   const aviationActiveCount = [layers.aviation_commercial, layers.aviation_private, layers.aviation_jets, layers.aviation_military].filter(Boolean).length;
   const maritimeActiveCount = [layers.maritime, layers.space_satellites].filter(Boolean).length;
   const survActiveCount = [layers.cctv, false].filter(Boolean).length;
-  const hazardsActiveCount = [layers.hazards_earthquakes, false, false].filter(Boolean).length;
+  const hazardsActiveCount = [layers.hazards_earthquakes, layers.hazards_weather, false].filter(Boolean).length;
   const threatsActiveCount = [layers.threats_nuclear, layers.threats_incidents, layers.threats_strategic, layers.threats_news].filter(Boolean).length;
 
-  const totalEntities = cameras.length + flights.length + ports.length + chokepoints.length + satellites.length + earthquakes.length + nuclearFacilities.length + incidents.length + strategicBases.length;
+  const totalEntities = cameras.length + flights.length + ports.length + chokepoints.length + satellites.length + earthquakes.length + nuclearFacilities.length + incidents.length + strategicBases.length + (weatherEvents?.length || 0);
   const activeLayersTotal = aviationActiveCount + maritimeActiveCount + survActiveCount + hazardsActiveCount + threatsActiveCount;
 
   return (
@@ -280,7 +291,8 @@ export function SideNavBar() {
                         : selectedAsset.type === 'strategic' ? 'security'
                           : selectedAsset.type === 'incident' ? 'warning'
                             : selectedAsset.type === 'satellite' ? 'satellite_alt'
-                              : 'radar'}
+                              : selectedAsset.type === 'weather' ? 'cyclone'
+                                : 'radar'}
           </span>
           <div className="absolute top-0 left-0 w-1 h-1 border-t border-l border-white"></div>
         </div>
@@ -384,6 +396,7 @@ export function SideNavBar() {
             <LayerSwitch label="INCIDENTS" active={layers.threats_incidents} count={incidents.length} dotColor="bg-orange-500" onClick={() => toggleLayer('threats_incidents')} />
             <LayerSwitch label="LIVE NEWS" active={layers.threats_news} count={news.length} dotColor="bg-yellow-500" onClick={() => toggleLayer('threats_news')} />
             <LayerSwitch label="SEISMIC 24H" active={layers.hazards_earthquakes} count={earthquakes.length} dotColor="bg-yellow-500" onClick={() => toggleLayer('hazards_earthquakes')} />
+            <LayerSwitch label="SEVERE WEATHER" active={layers.hazards_weather} count={weatherEvents?.length || 0} dotColor="bg-cyan-500" onClick={() => toggleLayer('hazards_weather')} />
           </div>
         </div>
       </div>

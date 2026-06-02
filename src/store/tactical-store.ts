@@ -103,6 +103,10 @@ interface TacticalStore {
   news: any[];
   setNews: (news: any[]) => void;
 
+  // Severe Weather
+  weatherEvents: any[];
+  setWeatherEvents: (weatherEvents: any[]) => void;
+
   // UI Layers Visibility
   layers: {
     aviation_commercial: boolean;
@@ -113,6 +117,7 @@ interface TacticalStore {
     cctv: boolean;
     space_satellites: boolean;
     hazards_earthquakes: boolean;
+    hazards_weather: boolean;
     threats_nuclear: boolean;
     threats_strategic: boolean;
     threats_incidents: boolean;
@@ -177,6 +182,9 @@ export const useTacticalStore = create<TacticalStore>()(
       news: [],
       setNews: (news) => set({ news }),
 
+      weatherEvents: [],
+      setWeatherEvents: (weatherEvents) => set({ weatherEvents }),
+
       layers: {
         aviation_commercial: false,
         aviation_private: false,
@@ -186,6 +194,7 @@ export const useTacticalStore = create<TacticalStore>()(
         cctv: false,
         space_satellites: false,
         hazards_earthquakes: false,
+        hazards_weather: false,
         threats_nuclear: false,
         threats_strategic: false,
         threats_incidents: false,
