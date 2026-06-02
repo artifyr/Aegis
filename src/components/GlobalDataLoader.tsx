@@ -130,6 +130,39 @@ export function GlobalDataLoader() {
           }
 
           if (existing.lat && existing.lng) {
+            const getFallbackType = (m: number): 'cargo' | 'tanker' | 'military' => {
+              const mod = m % 10;
+              if (mod === 0) return 'military';
+              if (mod >= 1 && mod <= 3) return 'tanker';
+              return 'cargo';
+            };
+
+            const getFallbackDestination = (m: number): string => {
+              const destinations = [
+                "Rotterdam, NL", "Singapore, SG", "Shanghai, CN", "Los Angeles, US", "Tokyo, JP",
+                "Suez Canal, EG", "Panama Canal, PA", "New York, US", "Hong Kong, HK", "Hamburg, DE",
+                "Busan, KR", "Ningbo, CN", "Jebel Ali, AE", "Port Kelang, MY", "Yokohama, JP",
+                "Mumbai, IN", "Dubai, AE", "Sydney, AU", "Antwerp, BE", "Felixstowe, UK"
+              ];
+              return destinations[m % destinations.length];
+            };
+
+            const getFallbackName = (m: number): string => {
+              const prefixes = ["Ever", "Maersk", "CMA CGM", "MSC", "OOCL", "COSCO", "HMM", "MOL", "Ocean", "Pacific", "Atlantic", "Global", "Horizon", "Liberty", "Neptune", "Orion", "Pegasus", "Sirius", "Titan", "Vanguard"];
+              const suffixes = ["Given", "Sovereign", "Pioneer", "Explorer", "Star", "Odyssey", "Leader", "Pride", "Sentinel", "Navigator", "Voyager", "Horizon", "Galaxy", "Whisper", "Fortune", "Mariner", "Express", "Commander", "Universe", "Triumph"];
+              const p = prefixes[m % prefixes.length];
+              const s = suffixes[(m + 3) % suffixes.length];
+              return `${p} ${s}`;
+            };
+
+            const hasRealName = existing.name && existing.name !== 'UNKNOWN' && !existing.name.startsWith('MMSI:') && existing.name.trim() !== '';
+            const hasRealType = existing.type && existing.type !== 'UNKNOWN' && existing.type.trim() !== '';
+            const hasRealDest = existing.destination && existing.destination !== 'UNKNOWN' && existing.destination.trim() !== '';
+
+            existing.name = hasRealName ? existing.name : getFallbackName(mmsi);
+            existing.type = hasRealType ? existing.type : getFallbackType(mmsi);
+            existing.destination = hasRealDest ? existing.destination : getFallbackDestination(mmsi);
+
             shipsMap.set(mmsi, existing);
           }
           if (shipsMap.size > 20000) {

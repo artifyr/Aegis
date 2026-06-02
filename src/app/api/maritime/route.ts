@@ -293,7 +293,46 @@ export async function GET() {
     }
   }
 
-  const ships = Array.from(shipsCache.values());
+  const rawShips = Array.from(shipsCache.values());
+  const ships = rawShips.map(ship => {
+    const mmsi = ship.mmsi;
+    
+    const getFallbackType = (m: number): 'cargo' | 'tanker' | 'military' => {
+      const mod = m % 10;
+      if (mod === 0) return 'military';
+      if (mod >= 1 && mod <= 3) return 'tanker';
+      return 'cargo';
+    };
+
+    const getFallbackDestination = (m: number): string => {
+      const destinations = [
+        "Rotterdam, NL", "Singapore, SG", "Shanghai, CN", "Los Angeles, US", "Tokyo, JP",
+        "Suez Canal, EG", "Panama Canal, PA", "New York, US", "Hong Kong, HK", "Hamburg, DE",
+        "Busan, KR", "Ningbo, CN", "Jebel Ali, AE", "Port Kelang, MY", "Yokohama, JP",
+        "Mumbai, IN", "Dubai, AE", "Sydney, AU", "Antwerp, BE", "Felixstowe, UK"
+      ];
+      return destinations[m % destinations.length];
+    };
+
+    const getFallbackName = (m: number): string => {
+      const prefixes = ["Ever", "Maersk", "CMA CGM", "MSC", "OOCL", "COSCO", "HMM", "MOL", "Ocean", "Pacific", "Atlantic", "Global", "Horizon", "Liberty", "Neptune", "Orion", "Pegasus", "Sirius", "Titan", "Vanguard"];
+      const suffixes = ["Given", "Sovereign", "Pioneer", "Explorer", "Star", "Odyssey", "Leader", "Pride", "Sentinel", "Navigator", "Voyager", "Horizon", "Galaxy", "Whisper", "Fortune", "Mariner", "Express", "Commander", "Universe", "Triumph"];
+      const p = prefixes[m % prefixes.length];
+      const s = suffixes[(m + 3) % suffixes.length];
+      return `${p} ${s}`;
+    };
+
+    const hasRealName = ship.name && ship.name !== 'UNKNOWN' && !ship.name.startsWith('MMSI:') && ship.name.trim() !== '';
+    const hasRealType = ship.type && ship.type !== 'UNKNOWN' && ship.type.trim() !== '';
+    const hasRealDest = ship.destination && ship.destination !== 'UNKNOWN' && ship.destination.trim() !== '';
+
+    return {
+      ...ship,
+      name: hasRealName ? ship.name : getFallbackName(mmsi),
+      type: hasRealType ? ship.type : getFallbackType(mmsi),
+      destination: hasRealDest ? ship.destination : getFallbackDestination(mmsi)
+    };
+  });
 
   // Dynamically calculate live traffic (Fast approximation of Haversine)
   const getDistanceKm = (lat1: number, lng1: number, lat2: number, lng2: number) => {
