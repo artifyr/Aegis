@@ -13,7 +13,6 @@
     "@deck.gl/layers": "^9.2.11",
     "@deck.gl/mapbox": "^9.2.11",
     "@deck.gl/react": "^9.2.11",
-    "@google/generative-ai": "^0.24.1",
     "@turf/circle": "^7.3.5",
     "@turf/turf": "^7.3.5",
     "@types/suncalc": "^1.9.2",
