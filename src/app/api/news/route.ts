@@ -139,7 +139,15 @@ export async function GET() {
 
     const newsItems = allArticles.map(article => {
       const riskScore = scoreRisk(article.description || article.title);
-      const coords = findCoords(article.description || article.title);
+      let coords = findCoords(article.description || article.title);
+      
+      // Apply spatial jitter so multiple news on the same keyword don't perfectly stack
+      if (coords) {
+        coords = [
+          coords[0] + (Math.random() - 0.5) * 1.5,
+          coords[1] + (Math.random() - 0.5) * 1.5
+        ];
+      }
 
       return {
         id: crypto.createHash('md5').update((article.link || '') + (article.pubDate || '')).digest('hex'),
