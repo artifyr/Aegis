@@ -592,7 +592,7 @@ export function TacticalMap({
           else if (z < 6 && isZoomedIn) setIsZoomedIn(false);
         }}
         onStyleData={(e) => {
-          const map = e.target;
+          const map = (e as any).target;
           if (map && !map.hasImage('plane-military')) {
             const addPlaneImage = (color: string, name: string) => {
               const img = new Image(24, 24);
