@@ -591,35 +591,39 @@ export function TacticalMap({
           if (z >= 6 && !isZoomedIn) setIsZoomedIn(true);
           else if (z < 6 && isZoomedIn) setIsZoomedIn(false);
         }}
+        onStyleData={(e) => {
+          const map = e.target;
+          if (map && !map.hasImage('plane-military')) {
+            const addPlaneImage = (color: string, name: string) => {
+              const img = new Image(24, 24);
+              img.onload = () => {
+                if (!map.hasImage(name)) map.addImage(name, img);
+              };
+              const svgStr = `<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21,16v-2l-8-5V3.5C13,2.67,12.33,2,11.5,2S10,2.67,10,3.5V9l-8,5v2l8-2.5V19l-2,1.5V22l3.5-1l3.5,1v-1.5L13,19v-5.5L21,16z" fill="${color}"/></svg>`;
+              img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+            };
+            addPlaneImage('#ef4444', 'plane-military');
+            addPlaneImage('#ec4899', 'plane-jet');
+            addPlaneImage('#a855f7', 'plane-private');
+            addPlaneImage('#f97316', 'plane-commercial');
+
+            const addShipImage = (color: string, name: string) => {
+              const img = new Image(14, 14);
+              img.onload = () => {
+                if (!map.hasImage(name)) map.addImage(name, img);
+              };
+              const svgStr = `<svg width="14" height="14" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,2 L18,10 L18,22 L6,22 L6,10 Z" fill="${color}" stroke="#0d0e12" stroke-width="1"/></svg>`;
+              img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+            };
+            addShipImage('#ef4444', 'ship-military');
+            addShipImage('#eab308', 'ship-tanker');
+            addShipImage('#06b6d4', 'ship-cargo');
+          }
+        }}
         onLoad={(e) => {
           const map = e.target;
           const b = map.getBounds();
           if (b) setBounds({ sw: b.getSouthWest(), ne: b.getNorthEast() });
-
-          const addPlaneImage = (color: string, name: string) => {
-            const img = new Image(24, 24);
-            img.onload = () => {
-              if (!map.hasImage(name)) map.addImage(name, img);
-            };
-            const svgStr = `<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21,16v-2l-8-5V3.5C13,2.67,12.33,2,11.5,2S10,2.67,10,3.5V9l-8,5v2l8-2.5V19l-2,1.5V22l3.5-1l3.5,1v-1.5L13,19v-5.5L21,16z" fill="${color}"/></svg>`;
-            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
-          };
-          addPlaneImage('#ef4444', 'plane-military');
-          addPlaneImage('#ec4899', 'plane-jet');
-          addPlaneImage('#a855f7', 'plane-private');
-          addPlaneImage('#f97316', 'plane-commercial');
-
-          const addShipImage = (color: string, name: string) => {
-            const img = new Image(14, 14);
-            img.onload = () => {
-              if (!map.hasImage(name)) map.addImage(name, img);
-            };
-            const svgStr = `<svg width="14" height="14" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,2 L18,10 L18,22 L6,22 L6,10 Z" fill="${color}" stroke="#0d0e12" stroke-width="1"/></svg>`;
-            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
-          };
-          addShipImage('#ef4444', 'ship-military');
-          addShipImage('#eab308', 'ship-tanker');
-          addShipImage('#06b6d4', 'ship-cargo');
         }}
         interactiveLayerIds={['flights-layer', 'satellites-layer', 'ships-layer']}
 
