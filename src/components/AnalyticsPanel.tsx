@@ -65,6 +65,7 @@ function ConfidenceChip({ confidence }: { confidence: number }) {
   );
 }
 
+import { useState, useEffect } from 'react';
 import { useTacticalStore } from '@/store/tactical-store';
 
 // Very rough approximation for regions due to lack of local client-side shapefiles
@@ -89,6 +90,28 @@ export function AnalyticsPanel({
   isScanning?: boolean;
 }) {
   const { cameras, mobileActiveTab, setMobileActiveTab } = useTacticalStore();
+  const [news, setNews] = useState<any[]>([]);
+  const [isFetchingNews, setIsFetchingNews] = useState(false);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      setIsFetchingNews(true);
+      try {
+        const res = await fetch('/api/news');
+        if (res.ok) {
+          const data = await res.json();
+          setNews(data.news || []);
+        }
+      } catch (e) {
+        console.error("Failed to fetch news", e);
+      } finally {
+        setIsFetchingNews(false);
+      }
+    };
+    fetchNews();
+    const int = setInterval(fetchNews, 60000); // refresh every minute
+    return () => clearInterval(int);
+  }, []);
   
   // Merge static placeholder alerts with dynamic ones
   const staticAlerts: Alert[] = [
@@ -150,7 +173,7 @@ export function AnalyticsPanel({
         ? 'fixed inset-x-0 bottom-[64px] top-[20%] bg-[#0a0a0c]/95 backdrop-blur-xl border-t border-white/20 rounded-t-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.8)] translate-y-0' 
         : 'fixed inset-x-0 bottom-[64px] top-[20%] translate-y-[150%] md:translate-y-0 md:flex'
       }
-      md:static md:inset-auto md:w-80 md:h-full md:bg-transparent md:border-t-0 md:rounded-none md:shadow-none md:border-l border-white/10
+      md:static md:inset-auto md:w-[340px] md:h-full md:bg-transparent md:border-t-0 md:rounded-none md:shadow-none md:border-l border-white/10
       flex flex-col gap-4 z-[90] p-4 overflow-hidden flex-shrink-0 transition-transform duration-300
     `}>
       {/* Mobile Header */}
@@ -214,7 +237,7 @@ export function AnalyticsPanel({
       </div>
 
       {/* Alerts Feed */}
-      <div className="fui-border p-3 flex-1 flex flex-col overflow-hidden">
+      <div className="fui-border p-3 flex-1 flex flex-col overflow-hidden min-h-[150px]">
         <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
         <div className="flex items-center justify-between mb-3 border-b border-white/20 pb-2">
           <div className="flex items-center gap-2">
@@ -262,8 +285,63 @@ export function AnalyticsPanel({
         </div>
       </div>
 
+      {/* Live Alerts (News) Feed */}
+      <div className="fui-border p-3 flex-[1.5] flex flex-col overflow-hidden min-h-[250px]">
+        <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+        <div className="flex items-center justify-between mb-3 border-b border-white/20 pb-2">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[14px] text-white/80">sensors</span>
+            <h3 className="text-white font-bold tracking-widest text-[11px] uppercase">LIVE ALERTS</h3>
+            <span className="text-[9px] font-mono text-white/40 bg-white/10 px-1 ml-1">{news.length} FEEDS</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {isFetchingNews && <span className="text-[8px] font-mono text-secondary animate-pulse">SYNCING...</span>}
+            <div className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse"></div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-1">
+          {news.length === 0 && !isFetchingNews && (
+            <div className="text-[9px] font-mono text-white/40 text-center py-4">NO ALERTS FOUND</div>
+          )}
+          {news.map((item) => (
+            <div key={item.id} className="p-2 border-l-2 border-white/20 bg-white/5 mb-1.5 hover:bg-white/10 transition-colors">
+              <div className="flex gap-2">
+                <div className="flex items-start gap-1 pt-0.5">
+                  <div className={`w-1.5 h-1.5 rounded-full ${item.risk_score >= 8 ? 'bg-red-500' : item.risk_score >= 5 ? 'bg-yellow-500' : 'bg-[#10b981]'} mt-1`}></div>
+                  <span className="material-symbols-outlined text-[11px] text-white/50">newspaper</span>
+                </div>
+                <div className="flex flex-col flex-1 gap-1.5">
+                  <p className="text-[9px] font-mono text-white/80 leading-tight break-words">
+                    {item.description || item.title}
+                  </p>
+                  {item.machine_assessment && (
+                    <div className="bg-red-500/10 border border-red-500/20 p-1 mt-1 text-[8px] font-mono text-red-400">
+                      <span className="font-bold mr-1">AI:</span>
+                      {item.machine_assessment}
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center text-[8px] font-mono text-white/40 mt-0.5 border-t border-white/10 pt-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span>{item.source?.toUpperCase()}</span>
+                      <span>|</span>
+                      <span suppressHydrationWarning>
+                        {new Date(item.published).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} Z
+                      </span>
+                    </div>
+                    <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-secondary hover:text-white transition-colors bg-secondary/10 px-1 py-0.5 border border-secondary/20">
+                      SOURCE
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Footer Stats */}
-      <div className="fui-border p-3 grid grid-cols-2 gap-2">
+      <div className="fui-border p-3 grid grid-cols-2 gap-2 flex-shrink-0">
         <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
         <div className="flex justify-between border-b border-white/20 pb-1 text-[9px] font-mono">
           <span className="text-white/50">UPTIME:</span>
