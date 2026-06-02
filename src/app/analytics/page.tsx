@@ -75,6 +75,77 @@ function StatCard({ label, value, unit, sublabel }: { label: string; value: stri
   );
 }
 
+// ─── Lightweight Markdown Parser for AI Output ──────────────────
+function parseMarkdown(text: string) {
+  if (!text) return '';
+  const lines = text.split('\n');
+  
+  return lines.map((line, index) => {
+    const trimmed = line.trim();
+    
+    // Headers
+    if (trimmed.startsWith('### ')) {
+      return (
+        <h4 key={index} className="text-secondary font-bold text-[10px] mt-2.5 mb-1 uppercase tracking-wider font-headline">
+          {renderInlineMarkdown(trimmed.substring(4))}
+        </h4>
+      );
+    }
+    if (trimmed.startsWith('## ')) {
+      return (
+        <h3 key={index} className="text-secondary font-bold text-[11px] mt-3.5 mb-1.5 uppercase tracking-widest font-headline border-b border-white/10 pb-0.5">
+          {renderInlineMarkdown(trimmed.substring(3))}
+        </h3>
+      );
+    }
+    if (trimmed.startsWith('# ')) {
+      return (
+        <h2 key={index} className="text-white font-bold text-[12px] mt-3.5 mb-2 uppercase tracking-widest font-headline">
+          {renderInlineMarkdown(trimmed.substring(2))}
+        </h2>
+      );
+    }
+    
+    // Bullet lists
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      return (
+        <div key={index} className="flex gap-1.5 ml-2 my-0.5 items-start text-white/90">
+          <span className="text-secondary">•</span>
+          <span className="flex-1">{renderInlineMarkdown(trimmed.substring(2))}</span>
+        </div>
+      );
+    }
+    
+    // Empty lines
+    if (trimmed === '') {
+      return <div key={index} className="h-1.5" />;
+    }
+    
+    // Paragraphs
+    return (
+      <p key={index} className="my-1 leading-relaxed text-white/90">
+        {renderInlineMarkdown(line)}
+      </p>
+    );
+  });
+}
+
+function renderInlineMarkdown(text: string) {
+  const parts = text.split(/(\*\*.*?\*\*|`.*?`|\*.*?\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} className="text-white font-bold">{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return <code key={i} className="bg-white/10 px-1 py-0.5 font-mono text-[8px] text-yellow-400 rounded">{part.slice(1, -1)}</code>;
+    }
+    if (part.startsWith('*') && part.endsWith('*')) {
+      return <em key={i} className="italic text-white/80">{part.slice(1, -1)}</em>;
+    }
+    return part;
+  });
+}
+
 export default function AnalyticsPage() {
   const [mounted, setMounted] = useState(false);
   const store = useTacticalStore();
@@ -82,8 +153,205 @@ export default function AnalyticsPage() {
   // Rolling data for graphs
   const [history, setHistory] = useState<{ time: string, aviation: number, maritime: number }[]>([]);
 
+  // Aegis AI Core State
+  const [aiTab, setAiTab] = useState<'briefing' | 'chat'>('briefing');
+  const [loading, setLoading] = useState(false);
+  const [briefingText, setBriefingText] = useState<string>('');
+  const [chatInput, setChatInput] = useState('');
+  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]);
+  const [statusMsg, setStatusMsg] = useState('COGNITIVE CORE IDLE');
+
+  const getIntelligenceContext = () => {
+    // Map earthquakes from store to EarthquakeEvent[]
+    const earthquakes = store.earthquakes.map((eq: any) => ({
+      id: String(eq.id),
+      magnitude: eq.mag || eq.magnitude || 0,
+      location: eq.title || eq.place || 'Unknown Location',
+      latitude: eq.lat || 0,
+      longitude: eq.lng || 0,
+      depth: eq.depth || 0,
+      timestamp: eq.date || eq.time || new Date().toISOString(),
+      tsunami: eq.tsunami ? true : false,
+      felt: eq.felt || null,
+      alert: eq.alert || null,
+    }));
+
+    // Map news from store to NewsItem[]
+    const news = store.news.map((item: any) => ({
+      id: String(item.id),
+      title: item.title || '',
+      description: item.description || '',
+      link: item.link || '',
+      published: item.date || item.published || new Date().toISOString(),
+      source: item.source || 'Unknown OSINT',
+      risk_score: item.risk_score || 0,
+      coords: item.coords || null,
+      machine_assessment: item.machine_assessment || null,
+    }));
+
+    // Map strategic bases, nuclear facilities, weather events and incidents to ThreatEvent[]
+    const threats: any[] = [];
+
+    // 1. Incidents
+    store.incidents.forEach((inc: any) => {
+      threats.push({
+        id: String(inc.id),
+        type: 'OSINT_INCIDENT',
+        title: inc.name || 'Active Incident',
+        description: inc.html || '',
+        severity: 'HIGH',
+        region: inc.country || 'Global',
+        latitude: inc.lat,
+        longitude: inc.lng,
+        timestamp: new Date().toISOString(),
+        source: 'OSINT RSS Mapping',
+      });
+    });
+
+    // 2. Nuclear Facilities
+    store.nuclearFacilities.forEach((nuc: any) => {
+      threats.push({
+        id: String(nuc.id),
+        type: 'NUCLEAR_FACILITY',
+        title: nuc.name,
+        description: `Nuclear facility in ${nuc.city}, ${nuc.country}. Status: ${nuc.status}`,
+        severity: nuc.status === 'CRITICAL' ? 'CRITICAL' : 'HIGH',
+        region: nuc.country || 'Global',
+        latitude: nuc.lat,
+        longitude: nuc.lng,
+        timestamp: new Date().toISOString(),
+        source: 'Aegis Strategic Intel',
+      });
+    });
+
+    // 3. Strategic Bases
+    store.strategicBases.forEach((base: any) => {
+      threats.push({
+        id: String(base.id),
+        type: 'STRATEGIC_BASE',
+        title: base.callsign || 'Strategic Base',
+        description: `${base.type || 'Base'} in ${base.country}. Status: ${base.status}`,
+        severity: base.status === 'CRITICAL' ? 'CRITICAL' : 'HIGH',
+        region: base.country || 'Global',
+        latitude: base.lat,
+        longitude: base.lng,
+        timestamp: new Date().toISOString(),
+        source: 'Aegis Strategic Intel',
+      });
+    });
+
+    // 4. Severe Weather Events
+    store.weatherEvents.forEach((w: any) => {
+      threats.push({
+        id: String(w.id),
+        type: 'SEVERE_WEATHER',
+        title: w.title || 'Weather Alert',
+        description: `Severe weather event. Provider: ${w.provider || 'N/A'}. Details: ${w.area || 'Global'}`,
+        severity: w.severity === 'high' ? 'HIGH' : w.severity === 'medium' ? 'ELEVATED' : 'LOW',
+        region: w.area || 'Global',
+        latitude: w.lat,
+        longitude: w.lng,
+        timestamp: w.date || new Date().toISOString(),
+        source: w.source || 'NASA/NOAA',
+      });
+    });
+
+    return {
+      earthquakes,
+      news,
+      threats,
+      cyberAlerts: [], // Emtpy array as active feed is not implemented
+      timestamp: new Date().toISOString(),
+    };
+  };
+
+  const generateBriefing = async () => {
+    if (loading) return;
+    setLoading(true);
+    setStatusMsg('FUSING SENSOR CHANNELS...');
+    try {
+      const response = await fetch('/api/ai/briefing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ context: getIntelligenceContext() }),
+      });
+      const data = await response.json();
+      if (response.ok && data.briefing) {
+        setBriefingText(data.briefing);
+        localStorage.setItem('aegis_ai_briefing', data.briefing);
+        setStatusMsg('ANALYSIS COMPLETE');
+      } else {
+        setBriefingText(`[ERROR] Briefing failed: ${data.error || 'Unknown response structure'}`);
+        setStatusMsg('CORE COMPROMISED');
+      }
+    } catch (e: any) {
+      setBriefingText(`[ERROR] Network anomaly: ${e.message}`);
+      setStatusMsg('COMMS OFFLINE');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || loading) return;
+    const userMessage = chatInput.trim();
+    setChatInput('');
+    const newHistory = [...chatHistory, { role: 'user', text: userMessage } as const];
+    setChatHistory(newHistory);
+    localStorage.setItem('aegis_ai_chat_history', JSON.stringify(newHistory));
+    setLoading(true);
+    setStatusMsg('RUNNING COGNITIVE SIMULATION...');
+
+    try {
+      const response = await fetch('/api/ai/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: userMessage,
+          context: getIntelligenceContext()
+        }),
+      });
+      const data = await response.json();
+      if (response.ok && data.analysis) {
+        const updatedHistory = [...newHistory, { role: 'assistant', text: data.analysis } as const];
+        setChatHistory(updatedHistory);
+        localStorage.setItem('aegis_ai_chat_history', JSON.stringify(updatedHistory));
+        setStatusMsg('COGNITIVE FEEDBACK READY');
+      } else {
+        const updatedHistory = [...newHistory, { role: 'assistant', text: `[ERROR] Analysis failure: ${data.error || 'Invalid API payload'}` } as const];
+        setChatHistory(updatedHistory);
+        localStorage.setItem('aegis_ai_chat_history', JSON.stringify(updatedHistory));
+        setStatusMsg('CORE ERROR');
+      }
+    } catch (e: any) {
+      const updatedHistory = [...newHistory, { role: 'assistant', text: `[ERROR] Connection reset: ${e.message}` } as const];
+      setChatHistory(updatedHistory);
+      localStorage.setItem('aegis_ai_chat_history', JSON.stringify(updatedHistory));
+      setStatusMsg('COMMS RETRYING');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     setMounted(true);
+
+    // Load cached AI state from localStorage
+    const cachedBriefing = localStorage.getItem('aegis_ai_briefing');
+    if (cachedBriefing) {
+      setBriefingText(cachedBriefing);
+      setStatusMsg('ANALYSIS RESTORED');
+    }
+
+    const cachedChat = localStorage.getItem('aegis_ai_chat_history');
+    if (cachedChat) {
+      try {
+        setChatHistory(JSON.parse(cachedChat));
+      } catch (e) {
+        console.warn('Failed to parse cached chat history', e);
+      }
+    }
     
     // Every second, capture current asset counts for the live graph
     const interval = setInterval(() => {
@@ -300,7 +568,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* ═══ Bottom Row ═══ */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Live High-Velocity Asset Feed */}
           <div className="fui-border bg-black/40 p-6 relative">
@@ -376,6 +644,134 @@ export default function AnalyticsPage() {
             <div className="mt-8 p-3 border border-white/10 bg-white/5 flex justify-between items-center">
                <span className="text-[9px] font-mono text-white/50">SYSTEM DIAGNOSTICS</span>
                <span className="text-[9px] font-mono text-green-400 animate-pulse">ALL SYSTEMS NOMINAL</span>
+            </div>
+          </div>
+
+          {/* Aegis AI Analyst */}
+          <div className="fui-border bg-black/40 p-6 relative flex flex-col h-[380px]">
+            <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-[10px] font-label text-white/60 uppercase tracking-widest flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-xs text-[#0ea5e9] animate-pulse">psychology</span>
+                Aegis Tactical AI Analyst
+              </h3>
+              <span className={`text-[8px] font-mono border px-1.5 py-0.5 tracking-wider uppercase ${
+                loading ? 'text-yellow-400 border-yellow-400/30 animate-pulse' : 'text-secondary border-secondary/30'
+              }`}>
+                {statusMsg}
+              </span>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-2 mb-3 border-b border-white/10 pb-2">
+              <button
+                onClick={() => setAiTab('briefing')}
+                className={`flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-wider px-3 py-1.5 border transition-all ${
+                  aiTab === 'briefing'
+                    ? 'bg-secondary/10 border-secondary text-secondary font-bold'
+                    : 'bg-transparent border-white/5 text-white/60 hover:text-white hover:border-white/20'
+                }`}
+              >
+                <span className="material-symbols-outlined text-xs">description</span>
+                Briefing
+              </button>
+              <button
+                onClick={() => setAiTab('chat')}
+                className={`flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-wider px-3 py-1.5 border transition-all ${
+                  aiTab === 'chat'
+                    ? 'bg-secondary/10 border-secondary text-secondary font-bold'
+                    : 'bg-transparent border-white/5 text-white/60 hover:text-white hover:border-white/20'
+                }`}
+              >
+                <span className="material-symbols-outlined text-xs">terminal</span>
+                Ask Aegis
+              </button>
+            </div>
+
+            {/* Tab content */}
+            <div className="flex-1 min-h-0 flex flex-col justify-between">
+              {aiTab === 'briefing' ? (
+                <div className="flex flex-col h-full justify-between">
+                  <div className="flex-1 bg-black/60 border border-white/5 p-3 font-mono text-[9px] text-white/80 overflow-y-auto leading-relaxed custom-scrollbar mb-3 select-text">
+                    {loading && briefingText === '' ? (
+                      <div className="flex flex-col items-center justify-center h-full gap-2">
+                        <span className="material-symbols-outlined text-xl text-secondary animate-spin">sync</span>
+                        <span className="text-[8px] uppercase tracking-widest text-white/40">Fusing Datalink Streams...</span>
+                      </div>
+                    ) : briefingText ? (
+                      <div className="select-text pr-1">{parseMarkdown(briefingText)}</div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-center text-white/40 px-4">
+                        <span className="material-symbols-outlined text-3xl mb-2 text-white/20">satellite_alt</span>
+                        <p className="uppercase tracking-widest text-[8px] mb-1">Datalink Ready</p>
+                        <p className="text-[8px] text-white/30 lowercase">click generate to run a tactical assessment of active threats</p>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={generateBriefing}
+                    disabled={loading}
+                    className="w-full bg-secondary/10 hover:bg-secondary/20 active:bg-secondary/30 disabled:bg-white/5 disabled:text-white/20 text-secondary border border-secondary/50 font-mono text-[10px] py-2.5 font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all select-none"
+                  >
+                    <span className="material-symbols-outlined text-sm">bolt</span>
+                    Generate Strategic Briefing
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col h-full justify-between">
+                  <div className="flex-1 bg-black/60 border border-white/5 p-3 overflow-y-auto custom-scrollbar mb-3 flex flex-col gap-2 select-text">
+                    {chatHistory.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full text-center text-white/40 px-4 select-none">
+                        <span className="material-symbols-outlined text-3xl mb-2 text-white/20">quick_reference_all</span>
+                        <p className="uppercase tracking-widest text-[8px] mb-1">Cognitive Terminal Ready</p>
+                        <p className="text-[8px] text-white/30 lowercase">ask anything regarding live flights, sea ships, or severe weather</p>
+                      </div>
+                    ) : (
+                      chatHistory.map((msg, i) => (
+                        <div key={i} className={`flex flex-col gap-1 border-b border-white/5 pb-2 last:border-0 ${
+                          msg.role === 'user' ? 'items-end' : 'items-start'
+                        }`}>
+                          <span className={`text-[8px] font-mono font-bold tracking-wider uppercase ${
+                            msg.role === 'user' ? 'text-secondary' : 'text-purple-400'
+                          }`}>
+                            {msg.role === 'user' ? 'OPERATOR' : 'AEGIS AI'}
+                          </span>
+                          <span className="text-[9px] font-mono text-white/95 leading-relaxed break-words max-w-full">
+                            {msg.role === 'user' ? (
+                              <div className="whitespace-pre-wrap">{msg.text}</div>
+                            ) : (
+                              parseMarkdown(msg.text)
+                            )}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                    {loading && aiTab === 'chat' && (
+                      <div className="flex items-center gap-2 py-1">
+                        <span className="material-symbols-outlined text-xs text-secondary animate-spin">sync</span>
+                        <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest">Processing request...</span>
+                      </div>
+                    )}
+                  </div>
+                  <form onSubmit={handleSendMessage} className="flex gap-2 select-none">
+                    <input
+                      type="text"
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      placeholder={loading ? "CORE PROCESSING..." : "ASK AEGIS ANYTHING..."}
+                      disabled={loading}
+                      className="flex-1 bg-black/60 border border-white/10 hover:border-white/25 focus:border-secondary focus:outline-none px-3 py-2 font-mono text-[9px] text-white placeholder-white/30 uppercase tracking-wider"
+                    />
+                    <button
+                      type="submit"
+                      disabled={loading || !chatInput.trim()}
+                      className="bg-secondary/15 hover:bg-secondary/25 border border-secondary/50 disabled:bg-white/5 disabled:border-white/5 disabled:text-white/20 text-secondary px-4 flex items-center justify-center transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-sm">send</span>
+                    </button>
+                  </form>
+                </div>
+              )}
             </div>
           </div>
         </div>
