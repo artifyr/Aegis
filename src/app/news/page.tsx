@@ -12,7 +12,15 @@ export default function NewsPage() {
 
   useEffect(() => {
     setMounted(true);
+    const saved = localStorage.getItem('aegis-news-sort');
+    if (saved) setSortBy(saved as SortOption);
   }, []);
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value as SortOption;
+    setSortBy(val);
+    localStorage.setItem('aegis-news-sort', val);
+  };
 
   const sortedNews = useMemo(() => {
     return [...news].sort((a, b) => {
@@ -52,7 +60,7 @@ export default function NewsPage() {
             <select 
               className="bg-transparent text-white outline-none cursor-pointer"
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              onChange={handleSortChange}
             >
               <option value="date-desc" className="bg-[#0b0c10] text-white">LATEST FIRST</option>
               <option value="date-asc" className="bg-[#0b0c10] text-white">OLDEST FIRST</option>

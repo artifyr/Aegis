@@ -13,10 +13,10 @@ const DARK_STYLE = 'mapbox://styles/mapbox/dark-v11';
 const SATELLITE_STYLE = 'mapbox://styles/mapbox/satellite-v9';
 
 const INITIAL_VIEW = {
-  longitude: -74.006, // NYC as initial zoomed view for cameras
-  latitude: 40.7128,
-  zoom: 12,
-  pitch: 30,
+  longitude: 15.0, // Europe center
+  latitude: 50.0,
+  zoom: 1.5, // Zoomed out for globe view
+  pitch: 0,
   bearing: 0,
 };
 
@@ -495,7 +495,7 @@ export function TacticalMap({
     setIsDived(false);
 
     map.flyTo({
-      center: [0, 20],
+      center: [15.0, 50.0],
       zoom: 1.5,
       pitch: 0,
       bearing: 0,
