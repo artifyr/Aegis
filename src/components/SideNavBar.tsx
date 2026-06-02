@@ -18,11 +18,43 @@ export function SideNavBar() {
   const { setDiveTarget, layers, toggleLayer, cameras, flights, ports, chokepoints, ships, satellites, earthquakes, nuclearFacilities, strategicBases, incidents, news, setMapCommand, activeEntityId, setActiveEntityId, activeCamera, nukeSimMode, setNukeSimMode, mobileActiveTab, setMobileActiveTab } = useTacticalStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAssetEvent, setSelectedAssetEvent] = useState<any>(null);
+  const [externalResults, setExternalResults] = useState<any[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     aviation: true,
     maritime: true,
     surveillance: true,
   });
+
+  useEffect(() => {
+    const fetchExternal = async () => {
+      if (searchQuery.trim().length < 3) {
+        setExternalResults([]);
+        return;
+      }
+      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      if (!token) return;
+      try {
+        const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${token}&types=place,region,country,locality`);
+        const data = await res.json();
+        if (data.features) {
+          const formatted = data.features.map((f: any) => ({
+            id: f.id,
+            type: 'location',
+            name: f.text,
+            lat: f.center[1],
+            lng: f.center[0],
+            sub: f.place_name
+          }));
+          setExternalResults(formatted);
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+    
+    const timeout = setTimeout(fetchExternal, 400);
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
 
   useEffect(() => {
     const handleSelected = (e: any) => setSelectedAssetEvent(e.detail);
@@ -125,31 +157,23 @@ export function SideNavBar() {
         results.push({ id: s.noradId, type: 'satellite', name: s.name, lat: s.lat, lng: s.lng, sub: s.mission });
       }
     });
+    // Search News
+    news.forEach(n => {
+      if ((n.title?.toLowerCase().includes(q) || n.description?.toLowerCase().includes(q)) && n.coords) {
+        results.push({ id: n.id, type: 'news', name: n.title, lat: n.coords[0], lng: n.coords[1], sub: 'News Alert' });
+      }
+    });
 
-    return results.slice(0, 8); // Limit to 8 results
+    return [...results, ...externalResults].slice(0, 10); // Limit to 10 results
   })();
 
   const handleSearch = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
       if (searchResults.length > 0) {
         const best = searchResults[0];
-        setMapCommand({ type: 'flyTo', lat: best.lat, lng: best.lng, zoom: 12 });
-        setActiveEntityId(best.id);
+        setMapCommand({ type: 'flyTo', lat: best.lat, lng: best.lng, zoom: best.type === 'location' ? 8 : 12 });
+        if (best.type !== 'location') setActiveEntityId(best.id);
         setSearchQuery('');
-        return;
-      }
-
-      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-      if (!token) return;
-      try {
-        const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${token}&types=place,region,country`);
-        const data = await res.json();
-        if (data.features && data.features.length > 0) {
-          const [lng, lat] = data.features[0].center;
-          setMapCommand({ type: 'flyTo', lat, lng, zoom: 10 });
-        }
-      } catch (err) {
-        console.error("Geocoding failed", err);
       }
     }
   };
@@ -284,8 +308,8 @@ export function SideNavBar() {
                 key={`${res.type}-${res.id}-${i}`}
                 className="w-full text-left px-2 py-1 hover:bg-white/10 border-b border-white/10 flex items-center justify-between group"
                 onClick={() => {
-                  setMapCommand({ type: 'flyTo', lat: res.lat, lng: res.lng, zoom: 12 });
-                  setActiveEntityId(res.id);
+                  setMapCommand({ type: 'flyTo', lat: res.lat, lng: res.lng, zoom: res.type === 'location' ? 8 : 12 });
+                  if (res.type !== 'location') setActiveEntityId(res.id);
                   setSearchQuery('');
                 }}
               >

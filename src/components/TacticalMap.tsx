@@ -10,7 +10,7 @@ import circle from '@turf/circle';
 
 // DESIGN.md: surface_container_lowest (#0d0e12) for global background
 const DARK_STYLE = 'mapbox://styles/mapbox/dark-v11';
-const SATELLITE_STYLE = 'mapbox://styles/mapbox/standard-satellite';
+const SATELLITE_STYLE = 'mapbox://styles/mapbox/satellite-v9';
 
 const INITIAL_VIEW = {
   longitude: -74.006, // NYC as initial zoomed view for cameras
