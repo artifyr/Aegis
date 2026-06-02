@@ -157,7 +157,7 @@ function connectAisStream() {
       const mmsi = parsed.MetaData?.MMSI;
       if (!mmsi) return;
 
-      let existing = shipsCache.get(mmsi) || {
+      const existing = shipsCache.get(mmsi) || {
         id: mmsi, mmsi: mmsi, timestamp: Date.now()
       };
 
