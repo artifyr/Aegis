@@ -4,22 +4,29 @@ export async function POST(request: Request) {
   try {
     const { username, password } = await request.json();
 
-    const validUsername = process.env.AUTH_USER || 'Zer0';
-    const validPassword = process.env.AUTH_PASS || 'Aegis@123';
+    const validUsername = process.env.AUTH_USER;
+    const validPassword = process.env.AUTH_PASS;
     
-    const validUsername2 = process.env.AUTH_USER_2 || 'nyx';
-    const validPassword2 = process.env.AUTH_PASS_2 || 'qwerty@69';
+    const validUsername2 = process.env.AUTH_USER_2;
+    const validPassword2 = process.env.AUTH_PASS_2;
     
-    const isEnvConfigured = !!(process.env.AUTH_USER && process.env.AUTH_PASS);
+    const isEnvConfigured = !!(validUsername && validPassword);
+
+    if (!isEnvConfigured) {
+      return NextResponse.json(
+        { success: false, message: 'Authentication is not configured on the server.' },
+        { status: 500 }
+      );
+    }
 
     const isPrimaryValid = username === validUsername && password === validPassword;
-    const isSecondaryValid = username === validUsername2 && password === validPassword2;
+    // Only check secondary if it's configured
+    const isSecondaryValid = !!(validUsername2 && validPassword2) && username === validUsername2 && password === validPassword2;
 
     if (isPrimaryValid || isSecondaryValid) {
       // Create response and set cookie
       const response = NextResponse.json({ 
-        success: true,
-        warning: isEnvConfigured ? undefined : "AUTH_USER and AUTH_PASS environment variables are not set in Vercel. Default credentials (Zer0 / Aegis@123) are active."
+        success: true
       });
       response.cookies.set({
         name: 'aegis_auth_token',
@@ -36,9 +43,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { 
         success: false, 
-        message: isEnvConfigured 
-          ? 'Invalid credentials' 
-          : 'Invalid credentials. (AUTH_USER and AUTH_PASS env variables are not configured in Vercel; using fallback credentials: Zer0 / Aegis@123)' 
+        message: 'Invalid credentials' 
       },
       { status: 401 }
     );
