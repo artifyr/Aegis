@@ -86,11 +86,13 @@ const CHOKEPOINTS = [
 const globalForAis = globalThis as unknown as {
   shipsCache: Map<number, any>;
   isAisConnecting: boolean;
+  wsConnected: boolean;
 };
 
 if (!globalForAis.shipsCache) {
   globalForAis.shipsCache = new Map();
   globalForAis.isAisConnecting = false;
+  globalForAis.wsConnected = false;
 }
 
 const shipsCache = globalForAis.shipsCache;
@@ -112,6 +114,7 @@ function connectAisStream() {
 
   ws.on("open", () => {
     globalForAis.isAisConnecting = false;
+    globalForAis.wsConnected = true;
     const subscriptionMessage = {
       APIKey: apiKey,
       // Target specific high-value SCM areas to ensure data delivery on free tier
@@ -198,6 +201,7 @@ function connectAisStream() {
 
   ws.on("close", () => {
     globalForAis.isAisConnecting = false;
+    globalForAis.wsConnected = false;
     setTimeout(connectAisStream, 5000); // Reconnect
   });
 
@@ -273,6 +277,11 @@ async function fetchVesselApiFallback() {
 }
 
 export async function GET() {
+  // Ensure stream connects if it hasn't already (e.g., if API key was missing on startup)
+  if (!globalForAis.wsConnected && !globalForAis.isAisConnecting) {
+    connectAisStream();
+  }
+
   // Trigger Hybrid Fallback
   await fetchVesselApiFallback();
 
