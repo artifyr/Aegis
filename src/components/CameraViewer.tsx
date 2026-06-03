@@ -96,10 +96,10 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.3 }}
-        className={`fixed z-[500] ${
+        className={`absolute z-[500] ${
           fullscreen 
             ? 'inset-2 md:inset-4' 
-            : 'top-20 right-2 md:top-24 md:right-6 md:left-auto md:w-[420px]'
+            : 'top-4 left-2 right-2 md:top-6 md:right-6 md:left-auto md:w-[420px]'
         }`}
       >
         <div className="glass-panel osiris-glow overflow-hidden h-full flex flex-col" style={{ borderColor: 'rgba(60, 220, 209, 0.3)' }}>
