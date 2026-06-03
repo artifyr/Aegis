@@ -352,8 +352,8 @@ export default function ArchivePage() {
                   setSelectedRecord(null);
                 }}
                 className={`px-3 py-1.5 text-[9px] font-mono tracking-wider transition-colors border font-semibold ${activeTab === tab
-                    ? 'border-[#3cdcd1] bg-[#3cdcd1]/15 text-[#3cdcd1]'
-                    : 'border-white/5 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
+                  ? 'border-[#3cdcd1] bg-[#3cdcd1]/15 text-[#3cdcd1]'
+                  : 'border-white/5 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
                   }`}
               >
                 {tab.replace('_', ' ')}
@@ -597,7 +597,7 @@ export default function ArchivePage() {
                   <div className="bg-white/5 border border-white/5 p-3 flex flex-col gap-1">
                     <span className="text-white/30 uppercase tracking-wider">CLASSIFICATION</span>
                     <span className={`font-bold ${selectedRecord.classification === 'TOP_SECRET' ? 'text-red-400' :
-                        selectedRecord.classification === 'RESTRICTED' ? 'text-yellow-400' : 'text-cyan-400'
+                      selectedRecord.classification === 'RESTRICTED' ? 'text-yellow-400' : 'text-cyan-400'
                       }`}>{selectedRecord.classification}</span>
                   </div>
                   <div className="bg-white/5 border border-white/5 p-3 flex flex-col gap-1">
