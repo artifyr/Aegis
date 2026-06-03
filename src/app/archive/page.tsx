@@ -4,19 +4,19 @@ import { useState, useMemo } from 'react';
 import { useTacticalStore } from '@/store/tactical-store';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Shield, 
-  Activity, 
-  Flame, 
-  Zap, 
-  Copy, 
-  MapPin, 
-  ExternalLink, 
-  Globe, 
-  Calendar, 
-  Hash, 
-  X, 
-  Search, 
+import {
+  Shield,
+  Activity,
+  Flame,
+  Zap,
+  Copy,
+  MapPin,
+  ExternalLink,
+  Globe,
+  Calendar,
+  Hash,
+  X,
+  Search,
   Database,
   ArrowLeft,
   CheckCircle2,
@@ -26,12 +26,12 @@ import {
 export default function ArchivePage() {
   const store = useTacticalStore();
   const router = useRouter();
-  
+
   // Filtering states
   const [activeTab, setActiveTab] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('ALL');
-  
+
   // Detail selection states
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [copied, setCopied] = useState(false);
@@ -43,7 +43,7 @@ export default function ArchivePage() {
   // Consolidate all records into a single uniform array
   const allRecords = useMemo(() => {
     const records: any[] = [];
-    
+
     store.strategicBases.forEach(b => records.push({
       id: b.id || Math.random().toString(),
       type: 'STRATEGIC_BASE',
@@ -126,9 +126,9 @@ export default function ArchivePage() {
       if (searchQuery.trim() !== '') {
         const q = searchQuery.toLowerCase();
         return (
-          rec.name.toLowerCase().includes(q) || 
-          rec.id.toString().toLowerCase().includes(q) || 
-          rec.location.includes(q) || 
+          rec.name.toLowerCase().includes(q) ||
+          rec.id.toString().toLowerCase().includes(q) ||
+          rec.location.includes(q) ||
           rec.detail.toLowerCase().includes(q) ||
           rec.country.toLowerCase().includes(q)
         );
@@ -199,8 +199,8 @@ export default function ArchivePage() {
       }
 
       if (typeof valA === 'string') {
-        return sortDirection === 'asc' 
-          ? valA.localeCompare(valB) 
+        return sortDirection === 'asc'
+          ? valA.localeCompare(valB)
           : valB.localeCompare(valA);
       } else {
         return sortDirection === 'asc'
@@ -222,8 +222,8 @@ export default function ArchivePage() {
 
   const renderSortIcon = (columnKey: string) => {
     if (sortColumn !== columnKey) return <span className="inline-block ml-1 opacity-25">↕</span>;
-    return sortDirection === 'asc' ? 
-      <span className="inline-block ml-1 text-[#3cdcd1] font-bold">↑</span> : 
+    return sortDirection === 'asc' ?
+      <span className="inline-block ml-1 text-[#3cdcd1] font-bold">↑</span> :
       <span className="inline-block ml-1 text-[#3cdcd1] font-bold">↓</span>;
   };
 
@@ -288,7 +288,7 @@ export default function ArchivePage() {
       {/* Top Header Panel */}
       <div className="bg-black/60 backdrop-blur-md border-b border-white/5 px-8 py-5 flex flex-col md:flex-row md:justify-between md:items-center gap-4 flex-shrink-0">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => router.push('/')}
             className="p-2 border border-white/10 hover:border-[#3cdcd1] hover:text-[#3cdcd1] rounded-none transition-colors group flex items-center justify-center bg-white/5"
             title="Return to Live Map"
@@ -315,7 +315,7 @@ export default function ArchivePage() {
                 setSelectedCountry(e.target.value);
                 setSelectedRecord(null);
               }}
-              className="bg-transparent text-white font-mono text-[10px] rounded-none outline-none cursor-pointer w-full uppercase tracking-wider font-semibold"
+              className="bg-transparent text-white font-mono text-[10px] rounded-none outline-none cursor-pointer w-full uppercase tracking-wider font-semibold pr-8"
             >
               <option value="ALL" className="bg-[#0d0e12] text-white">ALL COUNTRIES</option>
               {countries.map(c => (
@@ -323,7 +323,7 @@ export default function ArchivePage() {
               ))}
             </select>
           </div>
-          
+
           {/* Search Input */}
           <div className="relative w-full max-w-sm">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40 w-3.5 h-3.5" />
@@ -351,11 +351,10 @@ export default function ArchivePage() {
                   setActiveTab(tab);
                   setSelectedRecord(null);
                 }}
-                className={`px-3 py-1.5 text-[9px] font-mono tracking-wider transition-colors border font-semibold ${
-                  activeTab === tab 
-                    ? 'border-[#3cdcd1] bg-[#3cdcd1]/15 text-[#3cdcd1]' 
+                className={`px-3 py-1.5 text-[9px] font-mono tracking-wider transition-colors border font-semibold ${activeTab === tab
+                    ? 'border-[#3cdcd1] bg-[#3cdcd1]/15 text-[#3cdcd1]'
                     : 'border-white/5 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
-                }`}
+                  }`}
               >
                 {tab.replace('_', ' ')}
               </button>
@@ -368,9 +367,9 @@ export default function ArchivePage() {
               <table className="w-full text-left border-collapse">
                 <thead className="sticky top-0 z-10 bg-[#0d0e12] border-b border-white/5 shadow-md">
                   <tr className="text-[9px] font-mono text-white/40 uppercase tracking-widest">
-                    
+
                     {/* Common Column: Record ID */}
-                    <th 
+                    <th
                       onClick={() => handleSort('id')}
                       className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'id' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
                     >
@@ -378,7 +377,7 @@ export default function ArchivePage() {
                     </th>
 
                     {/* Common Column: Designation */}
-                    <th 
+                    <th
                       onClick={() => handleSort('name')}
                       className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'name' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
                     >
@@ -386,7 +385,7 @@ export default function ArchivePage() {
                     </th>
 
                     {/* Common Column: Classification */}
-                    <th 
+                    <th
                       onClick={() => handleSort('classification')}
                       className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'classification' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
                     >
@@ -395,7 +394,7 @@ export default function ArchivePage() {
 
                     {/* Dynamic Tabs Columns */}
                     {activeTab === 'ALL' && (
-                      <th 
+                      <th
                         onClick={() => handleSort('type')}
                         className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'type' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
                       >
@@ -404,7 +403,7 @@ export default function ArchivePage() {
                     )}
 
                     {activeTab === 'STRATEGIC_BASE' && (
-                      <th 
+                      <th
                         onClick={() => handleSort('baseType')}
                         className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'baseType' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
                       >
@@ -414,13 +413,13 @@ export default function ArchivePage() {
 
                     {activeTab === 'NUCLEAR_FACILITY' && (
                       <>
-                        <th 
+                        <th
                           onClick={() => handleSort('reactors')}
                           className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'reactors' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
                         >
                           REACTORS {renderSortIcon('reactors')}
                         </th>
-                        <th 
+                        <th
                           onClick={() => handleSort('capacity')}
                           className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'capacity' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
                         >
@@ -430,7 +429,7 @@ export default function ArchivePage() {
                     )}
 
                     {activeTab === 'SEISMIC_EVENT' && (
-                      <th 
+                      <th
                         onClick={() => handleSort('magnitude')}
                         className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'magnitude' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
                       >
@@ -439,7 +438,7 @@ export default function ArchivePage() {
                     )}
 
                     {activeTab === 'INCIDENT' && (
-                      <th 
+                      <th
                         onClick={() => handleSort('detail')}
                         className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'detail' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
                       >
@@ -448,7 +447,7 @@ export default function ArchivePage() {
                     )}
 
                     {/* Common Column: Country */}
-                    <th 
+                    <th
                       onClick={() => handleSort('country')}
                       className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'country' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
                     >
@@ -456,7 +455,7 @@ export default function ArchivePage() {
                     </th>
 
                     {/* Common Column: Coordinates */}
-                    <th 
+                    <th
                       onClick={() => handleSort('location')}
                       className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'location' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
                     >
@@ -464,7 +463,7 @@ export default function ArchivePage() {
                     </th>
 
                     {/* Common Column: Date */}
-                    <th 
+                    <th
                       onClick={() => handleSort('date')}
                       className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors text-right ${sortColumn === 'date' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
                     >
@@ -475,14 +474,13 @@ export default function ArchivePage() {
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {sortedRecords.map((rec, i) => (
-                    <tr 
-                      key={rec.id + '-' + i} 
+                    <tr
+                      key={rec.id + '-' + i}
                       onClick={() => setSelectedRecord(rec)}
-                      className={`hover:bg-white/5 transition-all cursor-pointer text-[11px] font-mono text-white font-medium group ${
-                        selectedRecord?.id === rec.id ? 'bg-white/5 border-l-2 border-l-[#3cdcd1]' : ''
-                      }`}
+                      className={`hover:bg-white/5 transition-all cursor-pointer text-[11px] font-mono text-white font-medium group ${selectedRecord?.id === rec.id ? 'bg-white/5 border-l-2 border-l-[#3cdcd1]' : ''
+                        }`}
                     >
-                      
+
                       {/* ID Column */}
                       <td className="p-4 text-white/50 group-hover:text-white transition-colors flex items-center gap-2">
                         {getCategoryIcon(rec.type)}
@@ -572,7 +570,7 @@ export default function ArchivePage() {
                   <span className="w-1.5 h-1.5 bg-[#3cdcd1] rounded-full animate-pulse" />
                   <span className="font-mono text-[9px] text-[#3cdcd1] tracking-widest uppercase font-bold">DETAILED INTEL REPORT</span>
                 </div>
-                <button 
+                <button
                   onClick={() => setSelectedRecord(null)}
                   className="p-1 text-white/40 hover:text-white transition-colors"
                 >
@@ -582,7 +580,7 @@ export default function ArchivePage() {
 
               {/* Card Contents */}
               <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
-                
+
                 {/* Title and ID */}
                 <div>
                   <div className="flex items-center gap-2 text-white/30 font-mono text-[8px] tracking-widest uppercase mb-1">
@@ -598,10 +596,9 @@ export default function ArchivePage() {
                 <div className="grid grid-cols-2 gap-2 font-mono text-[9px]">
                   <div className="bg-white/5 border border-white/5 p-3 flex flex-col gap-1">
                     <span className="text-white/30 uppercase tracking-wider">CLASSIFICATION</span>
-                    <span className={`font-bold ${
-                      selectedRecord.classification === 'TOP_SECRET' ? 'text-red-400' :
-                      selectedRecord.classification === 'RESTRICTED' ? 'text-yellow-400' : 'text-cyan-400'
-                    }`}>{selectedRecord.classification}</span>
+                    <span className={`font-bold ${selectedRecord.classification === 'TOP_SECRET' ? 'text-red-400' :
+                        selectedRecord.classification === 'RESTRICTED' ? 'text-yellow-400' : 'text-cyan-400'
+                      }`}>{selectedRecord.classification}</span>
                   </div>
                   <div className="bg-white/5 border border-white/5 p-3 flex flex-col gap-1">
                     <span className="text-white/30 uppercase tracking-wider">OPERATIONAL STATUS</span>
@@ -616,7 +613,7 @@ export default function ArchivePage() {
                 <div className="border border-white/5 bg-white/5 p-4 rounded-none space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="font-mono text-[8px] text-white/30 tracking-widest uppercase">COORDINATES (LAT/LNG)</span>
-                    <button 
+                    <button
                       onClick={() => copyToClipboard(selectedRecord.location)}
                       className="p-1 hover:bg-white/5 border border-white/10 rounded-none transition-colors text-white/50 hover:text-white flex items-center gap-1 text-[8px] font-mono"
                     >
@@ -633,7 +630,7 @@ export default function ArchivePage() {
                 {/* Sub-details breakdown based on Type */}
                 <div className="space-y-3">
                   <span className="font-mono text-[8px] text-white/30 tracking-widest uppercase block border-b border-white/5 pb-1">DATABASE RECORDS</span>
-                  
+
                   <div className="space-y-2.5 font-mono text-[10px]">
                     <div className="flex justify-between py-1 border-b border-white/5">
                       <span className="text-white/40 font-semibold">COUNTRY / ZONE:</span>
@@ -677,9 +674,9 @@ export default function ArchivePage() {
                           <p className="text-white/80 leading-normal mt-1 text-[10px]">{selectedRecord.detail}</p>
                         </div>
                         {selectedRecord.raw?.url && (
-                          <a 
-                            href={selectedRecord.raw.url} 
-                            target="_blank" 
+                          <a
+                            href={selectedRecord.raw.url}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1.5 text-[#3cdcd1] hover:underline pt-2 font-bold"
                           >
