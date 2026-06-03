@@ -16,6 +16,7 @@ export function GlobalDataLoader() {
   const setNews = useTacticalStore(state => state.setNews);
   const setWeatherEvents = useTacticalStore(state => state.setWeatherEvents);
   const setCameras = useTacticalStore(state => state.setCameras);
+  const setFires = useTacticalStore(state => state.setFires);
 
   // CCTV
   useEffect(() => {
@@ -322,6 +323,21 @@ export function GlobalDataLoader() {
     const intervalId = setInterval(fetchWeather, 300000);
     return () => clearInterval(intervalId);
   }, [setWeatherEvents]);
+
+  // Fires
+  useEffect(() => {
+    const fetchFires = () => {
+      fetch('/api/fires')
+        .then(res => res.json())
+        .then(data => {
+          if (data.fires) setFires(data.fires);
+        })
+        .catch(err => console.error("Fires fetch failed", err));
+    };
+    fetchFires();
+    const intervalId = setInterval(fetchFires, 300000);
+    return () => clearInterval(intervalId);
+  }, [setFires]);
 
   return null;
 }

@@ -114,7 +114,7 @@ export function SideNavBar() {
       aviation: ['aviation_commercial', 'aviation_private', 'aviation_jets', 'aviation_military'],
       maritime: ['maritime', 'space_satellites', 'maritime_cables'],
       surveillance: ['cctv'],
-      hazards: ['hazards_earthquakes', 'hazards_weather'],
+      hazards: ['hazards_earthquakes', 'hazards_weather', 'hazards_fires'],
       threats: ['threats_nuclear', 'threats_incidents', 'threats_strategic', 'threats_news'],
     };
 
@@ -267,7 +267,7 @@ export function SideNavBar() {
   const aviationActiveCount = [layers.aviation_commercial, layers.aviation_private, layers.aviation_jets, layers.aviation_military].filter(Boolean).length;
   const maritimeActiveCount = [layers.maritime, layers.space_satellites, layers.maritime_cables].filter(Boolean).length;
   const survActiveCount = [layers.cctv, false].filter(Boolean).length;
-  const hazardsActiveCount = [layers.hazards_earthquakes, layers.hazards_weather, false].filter(Boolean).length;
+  const hazardsActiveCount = [layers.hazards_earthquakes, layers.hazards_weather, layers.hazards_fires].filter(Boolean).length;
   const threatsActiveCount = [layers.threats_nuclear, layers.threats_incidents, layers.threats_strategic, layers.threats_news].filter(Boolean).length;
 
   const totalEntities = cameras.length + flights.length + ports.length + chokepoints.length + satellites.length + earthquakes.length + nuclearFacilities.length + incidents.length + strategicBases.length + (weatherEvents?.length || 0);
@@ -430,6 +430,7 @@ export function SideNavBar() {
             <LayerSwitch label="LIVE NEWS" active={layers.threats_news} count={news.length} dotColor="bg-yellow-500" onClick={() => toggleLayer('threats_news')} />
             <LayerSwitch label="SEISMIC 24H" active={layers.hazards_earthquakes} count={earthquakes.length} dotColor="bg-yellow-500" onClick={() => toggleLayer('hazards_earthquakes')} />
             <LayerSwitch label="SEVERE WEATHER" active={layers.hazards_weather} count={weatherEvents?.length || 0} dotColor="bg-cyan-500" onClick={() => toggleLayer('hazards_weather')} />
+            <LayerSwitch label="ACTIVE FIRES" active={layers.hazards_fires} count={useTacticalStore((state) => state.fires).length} dotColor="bg-orange-500" onClick={() => toggleLayer('hazards_fires')} />
           </div>
         </div>
       </div>

@@ -84,6 +84,7 @@ export function TacticalMap({
   const ships = useTacticalStore(state => state.ships);
   const satellites = useTacticalStore(state => state.satellites);
   const earthquakes = useTacticalStore(state => state.earthquakes);
+  const fires = useTacticalStore(state => state.fires);
   const nuclearFacilities = useTacticalStore(state => state.nuclearFacilities);
   const strategicBases = useTacticalStore(state => state.strategicBases);
   const incidents = useTacticalStore(state => state.incidents);
@@ -245,6 +246,17 @@ export function TacticalMap({
       }))
     };
   }, [cameras]);
+
+  const firesGeoJson = useMemo(() => {
+    return {
+      type: 'FeatureCollection',
+      features: fires.map((f: any) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [f.lng, f.lat] },
+        properties: { brightness: f.brightness }
+      }))
+    };
+  }, [fires]);
 
 
   // Execute external dives from the Zustand store
@@ -512,6 +524,22 @@ export function TacticalMap({
                 'circle-opacity': 0.8,
                 'circle-stroke-width': 1,
                 'circle-stroke-color': '#ffffff'
+              }}
+            />
+          </Source>
+        )}
+
+        {/* GeoJSON Fires Layer */}
+        {!isDived && layers.hazards_fires && (
+          <Source id="fires-source" type="geojson" data={firesGeoJson as any}>
+            <Layer
+              id="fires-layer"
+              type="circle"
+              paint={{
+                'circle-radius': ['interpolate', ['linear'], ['zoom'], 1, 2, 8, 6],
+                'circle-color': '#ff4500',
+                'circle-opacity': 0.6,
+                'circle-blur': 0.4
               }}
             />
           </Source>
