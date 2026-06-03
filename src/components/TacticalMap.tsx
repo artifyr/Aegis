@@ -109,6 +109,7 @@ export function TacticalMap({
   const [dossier, setDossier] = useState<any>(null);
   const [isFetchingDossier, setIsFetchingDossier] = useState(false);
   const [dossierLngLat, setDossierLngLat] = useState<{ lng: number, lat: number } | null>(null);
+  const [selectedFire, setSelectedFire] = useState<any>(null);
 
   const fetchDossier = async (lat: number, lng: number) => {
     setIsFetchingDossier(true);
@@ -253,7 +254,17 @@ export function TacticalMap({
       features: fires.map((f: any) => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [f.lng, f.lat] },
-        properties: { brightness: f.brightness }
+        properties: {
+          lat: f.lat,
+          lng: f.lng,
+          brightness: f.brightness,
+          confidence: f.confidence,
+          date: f.date,
+          time: f.time,
+          frp: f.frp,
+          type: f.type,
+          title: f.title || ''
+        }
       }))
     };
   }, [fires]);
@@ -402,6 +413,7 @@ export function TacticalMap({
             const feature = e.features[0];
             if (feature.layer?.id === 'flights-layer' || feature.layer?.id === 'satellites-layer' || feature.layer?.id === 'ships-layer') {
               setActiveEntityId(feature.properties?.id);
+              setSelectedFire(null);
             } else if (feature.layer?.id === 'cctv-layer') {
               let p = feature.properties as any;
               // Mapbox stores properties as strings or primitives, so we parse if necessary, but here we just need id/lat/lng etc.
@@ -412,9 +424,25 @@ export function TacticalMap({
                 lon: e.lngLat.lng, // CameraViewer uses lat/lng mostly, and we already injected ...c
                 lng: e.lngLat.lng,
               });
+              setSelectedFire(null);
+            } else if (feature.layer?.id === 'fires-layer') {
+              let p = feature.properties as any;
+              setSelectedFire({
+                lat: p.lat !== undefined ? Number(p.lat) : e.lngLat.lat,
+                lng: p.lng !== undefined ? Number(p.lng) : e.lngLat.lng,
+                brightness: p.brightness !== undefined ? Number(p.brightness) : 0,
+                confidence: p.confidence || 'unknown',
+                date: p.date || '',
+                time: p.time || '',
+                frp: p.frp !== undefined ? Number(p.frp) : 0,
+                type: p.type || 'fire',
+                title: p.title || ''
+              });
+              setActiveEntityId(null);
             }
           } else {
             setActiveEntityId(null);
+            setSelectedFire(null);
           }
         }}
         onMoveEnd={(e) => {
@@ -472,7 +500,7 @@ export function TacticalMap({
             setMapCommand(null);
           }
         }}
-        interactiveLayerIds={['flights-layer', 'satellites-layer', 'ships-layer', 'cctv-layer']}
+        interactiveLayerIds={['flights-layer', 'satellites-layer', 'ships-layer', 'cctv-layer', 'fires-layer']}
 
         onMouseEnter={(e) => {
           if (e.features && e.features.length > 0) {
@@ -744,6 +772,69 @@ export function TacticalMap({
               </Marker>
             );
           })()
+        )}
+
+        {/* Active Fire Popup */}
+        {!isDived && selectedFire && (
+          <Marker
+            longitude={selectedFire.lng}
+            latitude={selectedFire.lat}
+            anchor="center"
+            style={{ zIndex: 999999 }}
+          >
+            <div
+              className="absolute top-4 left-4 fui-border bg-black/80 p-4 shadow-2xl backdrop-blur-md w-72 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
+            >
+              <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+              
+              <div className="flex justify-between items-start mb-3 mt-1">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base inline-block transform -rotate-12 filter drop-shadow-md">
+                      {selectedFire.type === 'volcano' ? '🌋' : '🔥'}
+                    </span>
+                    <h3 className="font-headline font-bold text-sm tracking-wider uppercase text-orange-500">
+                      {selectedFire.type === 'volcano' ? (selectedFire.title || 'ACTIVE VOLCANO') : 'ACTIVE FIRE / HOTSPOT'}
+                    </h3>
+                  </div>
+                  <span className="text-slate-500 font-mono text-[9px] uppercase tracking-widest block mt-0.5">
+                    HAZARD DETECTED
+                  </span>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setSelectedFire(null); }}
+                  className="text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800/80 w-6 h-6 flex items-center justify-center rounded-full transition-all duration-150 border border-slate-800"
+                >
+                  <span className="material-symbols-outlined text-xs">close</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mb-3 bg-slate-900/40 border border-slate-800/40 p-2.5 rounded-lg text-left">
+                <div className="col-span-2 bg-slate-950/60 border border-slate-800/50 rounded p-2 text-center">
+                  <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-0.5">COORDINATES</span>
+                  <span className="text-cyan-400 font-mono text-[10px] font-semibold">
+                    {Math.abs(selectedFire.lat).toFixed(5)}°{selectedFire.lat >= 0 ? 'N' : 'S'}, {Math.abs(selectedFire.lng).toFixed(5)}°{selectedFire.lng >= 0 ? 'E' : 'W'}
+                  </span>
+                </div>
+                <div className="bg-slate-950/60 border border-slate-800/50 rounded p-2 text-center">
+                  <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-0.5">BRIGHTNESS</span>
+                  <span className="text-orange-400 font-mono text-[11px] font-semibold">{selectedFire.brightness ? `${selectedFire.brightness.toFixed(1)} K` : 'N/A'}</span>
+                </div>
+                <div className="bg-slate-950/60 border border-slate-800/50 rounded p-2 text-center">
+                  <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-0.5">FRP (POWER)</span>
+                  <span className="text-white font-mono text-[11px]">{selectedFire.frp ? `${selectedFire.frp.toFixed(1)} MW` : 'N/A'}</span>
+                </div>
+                <div className="bg-slate-950/60 border border-slate-800/50 rounded p-2 text-center">
+                  <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-0.5">CONFIDENCE</span>
+                  <span className="text-white font-mono text-[10px] uppercase truncate">{selectedFire.confidence || 'N/A'}</span>
+                </div>
+                <div className="bg-slate-950/60 border border-slate-800/50 rounded p-2 text-center">
+                  <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-0.5">DETECTED</span>
+                  <span className="text-white font-mono text-[10px] uppercase truncate">{selectedFire.date || 'RECENT'}</span>
+                </div>
+              </div>
+            </div>
+          </Marker>
         )}
 
         {/* Submarine Cables Layer */}
