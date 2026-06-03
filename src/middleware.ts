@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { createClient } from '@/utils/supabase/middleware';
 
 export function middleware(request: NextRequest) {
+  // Sync Supabase cookies and refresh sessions
+  const supabaseResponse = createClient(request);
+
   const token = request.cookies.get('aegis_auth_token')?.value;
   const { pathname } = request.nextUrl;
 
@@ -14,14 +18,13 @@ export function middleware(request: NextRequest) {
   // If the user is NOT authenticated and tries to access protected pages,
   // redirect them to the login page.
   const isApiRoute = pathname.startsWith('/api');
-  const isAuthRoute = pathname.startsWith('/api/auth');
   const isStaticFile = pathname.includes('.'); // e.g. /favicon.ico, /aegislogo.png
 
   if (!token && !isApiRoute && !isStaticFile && pathname !== '/login') {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  return NextResponse.next();
+  return supabaseResponse;
 }
 
 export const config = {
