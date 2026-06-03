@@ -20,7 +20,8 @@ import {
   Database,
   ArrowLeft,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Radio
 } from 'lucide-react';
 
 export default function ArchivePage() {
@@ -104,8 +105,23 @@ export default function ArchivePage() {
       raw: e
     }));
 
+    (store.gpsJamming || []).forEach((z, idx) => records.push({
+      id: `JAM-${idx}-${z.lat.toFixed(2)}-${z.lng.toFixed(2)}`,
+      type: 'GPS_JAMMING',
+      name: `GPS JAMMING SECTOR ${idx + 1}`,
+      location: `${z.lat?.toFixed(5)}, ${z.lng?.toFixed(5)}`,
+      lat: z.lat,
+      lng: z.lng,
+      classification: z.severity >= 50 ? 'TOP_SECRET' : 'CLASSIFIED',
+      date: new Date().toISOString().split('T')[0],
+      detail: `Degraded GPS accuracy (Severity ${z.severity}%)`,
+      status: z.severity >= 50 ? 'CRITICAL' : 'ELEVATED',
+      country: 'INTL AIRSPACE',
+      raw: z
+    }));
+
     return records;
-  }, [store.strategicBases, store.nuclearFacilities, store.incidents, store.earthquakes]);
+  }, [store.strategicBases, store.nuclearFacilities, store.incidents, store.earthquakes, store.gpsJamming]);
 
   // Unique country listing for the country filter
   const countries = useMemo(() => {
@@ -189,6 +205,10 @@ export default function ArchivePage() {
           valA = a.type === 'STRATEGIC_BASE' ? (a.raw?.type || '') : '';
           valB = b.type === 'STRATEGIC_BASE' ? (b.raw?.type || '') : '';
           break;
+        case 'severity':
+          valA = a.type === 'GPS_JAMMING' ? (a.raw?.severity || 0) : 0;
+          valB = b.type === 'GPS_JAMMING' ? (b.raw?.severity || 0) : 0;
+          break;
         case 'detail':
           valA = a.detail;
           valB = b.detail;
@@ -234,11 +254,12 @@ export default function ArchivePage() {
   };
 
   const locateOnMap = (rec: any) => {
-    let targetLayer: 'threats_strategic' | 'threats_nuclear' | 'threats_incidents' | 'hazards_earthquakes' | null = null;
+    let targetLayer: 'threats_strategic' | 'threats_nuclear' | 'threats_incidents' | 'hazards_earthquakes' | 'threats_jamming' | null = null;
     if (rec.type === 'STRATEGIC_BASE') targetLayer = 'threats_strategic';
     else if (rec.type === 'NUCLEAR_FACILITY') targetLayer = 'threats_nuclear';
     else if (rec.type === 'INCIDENT') targetLayer = 'threats_incidents';
     else if (rec.type === 'SEISMIC_EVENT') targetLayer = 'hazards_earthquakes';
+    else if (rec.type === 'GPS_JAMMING') targetLayer = 'threats_jamming';
 
     if (targetLayer && !store.layers[targetLayer]) {
       store.toggleLayer(targetLayer);
@@ -265,6 +286,8 @@ export default function ArchivePage() {
         return <Flame className="w-4 h-4 text-red-400" />;
       case 'SEISMIC_EVENT':
         return <Activity className="w-4 h-4 text-orange-400" />;
+      case 'GPS_JAMMING':
+        return <Radio className="w-4 h-4 text-red-500 animate-pulse" />;
       default:
         return <Database className="w-4 h-4 text-white/55" />;
     }
@@ -344,7 +367,7 @@ export default function ArchivePage() {
         <div className="flex-1 flex flex-col overflow-hidden p-6 md:p-8">
           {/* Tabs / Filter Controls */}
           <div className="flex flex-wrap gap-1.5 mb-5 flex-shrink-0">
-            {['ALL', 'STRATEGIC_BASE', 'NUCLEAR_FACILITY', 'INCIDENT', 'SEISMIC_EVENT'].map(tab => (
+            {['ALL', 'STRATEGIC_BASE', 'NUCLEAR_FACILITY', 'INCIDENT', 'SEISMIC_EVENT', 'GPS_JAMMING'].map(tab => (
               <button
                 key={tab}
                 onClick={() => {
@@ -437,6 +460,15 @@ export default function ArchivePage() {
                       </th>
                     )}
 
+                    {activeTab === 'GPS_JAMMING' && (
+                      <th
+                        onClick={() => handleSort('severity')}
+                        className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'severity' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
+                      >
+                        SEVERITY {renderSortIcon('severity')}
+                      </th>
+                    )}
+
                     {activeTab === 'INCIDENT' && (
                       <th
                         onClick={() => handleSort('detail')}
@@ -523,6 +555,12 @@ export default function ArchivePage() {
                       {activeTab === 'SEISMIC_EVENT' && (
                         <td className="p-4 text-orange-400 font-bold text-xs">
                           M {rec.raw?.mag || rec.raw?.magnitude || '?'}
+                        </td>
+                      )}
+
+                      {activeTab === 'GPS_JAMMING' && (
+                        <td className="p-4 text-red-500 font-bold text-xs">
+                          {rec.raw?.severity}% JAM
                         </td>
                       )}
 
@@ -695,6 +733,23 @@ export default function ArchivePage() {
                         <div className="flex justify-between py-1 border-b border-white/5">
                           <span className="text-white/40 font-semibold">TELEMETRY SOURCE:</span>
                           <span className="text-white font-bold">USGS EARTHQUAKE FEED</span>
+                        </div>
+                      </>
+                    )}
+
+                    {selectedRecord.type === 'GPS_JAMMING' && (
+                      <>
+                        <div className="flex justify-between py-1 border-b border-white/5">
+                          <span className="text-white/40 font-semibold">JAMMING SEVERITY:</span>
+                          <span className="text-red-400 font-bold">{selectedRecord.raw?.severity}%</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-white/5">
+                          <span className="text-[#a855f7] font-semibold">AFFECTED AIRCRAFT:</span>
+                          <span className="text-white font-bold">{selectedRecord.raw?.count} tracked</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-white/5">
+                          <span className="text-white/40 font-semibold">DETECTION METHOD:</span>
+                          <span className="text-white font-bold">NACp DEGRADATION GRID</span>
                         </div>
                       </>
                     )}

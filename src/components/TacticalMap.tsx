@@ -111,6 +111,7 @@ export function TacticalMap({
   const [isFetchingDossier, setIsFetchingDossier] = useState(false);
   const [dossierLngLat, setDossierLngLat] = useState<{ lng: number, lat: number } | null>(null);
   const [selectedFire, setSelectedFire] = useState<any>(null);
+  const [selectedJamming, setSelectedJamming] = useState<any>(null);
 
   const fetchDossier = async (lat: number, lng: number) => {
     setIsFetchingDossier(true);
@@ -431,17 +432,17 @@ export function TacticalMap({
             if (feature.layer?.id === 'flights-layer' || feature.layer?.id === 'satellites-layer' || feature.layer?.id === 'ships-layer') {
               setActiveEntityId(feature.properties?.id);
               setSelectedFire(null);
+              setSelectedJamming(null);
             } else if (feature.layer?.id === 'cctv-layer') {
               let p = feature.properties as any;
-              // Mapbox stores properties as strings or primitives, so we parse if necessary, but here we just need id/lat/lng etc.
-              // In this app, sometimes id is string or number, so just pass the properties directly.
               setSelectedCamera({
                 ...p,
                 lat: e.lngLat.lat,
-                lon: e.lngLat.lng, // CameraViewer uses lat/lng mostly, and we already injected ...c
+                lon: e.lngLat.lng,
                 lng: e.lngLat.lng,
               });
               setSelectedFire(null);
+              setSelectedJamming(null);
             } else if (feature.layer?.id === 'fires-layer') {
               let p = feature.properties as any;
               setSelectedFire({
@@ -456,10 +457,22 @@ export function TacticalMap({
                 title: p.title || ''
               });
               setActiveEntityId(null);
+              setSelectedJamming(null);
+            } else if (feature.layer?.id === 'jam-fill-layer') {
+              let p = feature.properties as any;
+              setSelectedJamming({
+                lat: p.lat !== undefined ? Number(p.lat) : e.lngLat.lat,
+                lng: p.lng !== undefined ? Number(p.lng) : e.lngLat.lng,
+                severity: p.severity !== undefined ? Number(p.severity) : 0,
+                count: p.count !== undefined ? Number(p.count) : 0
+              });
+              setActiveEntityId(null);
+              setSelectedFire(null);
             }
           } else {
             setActiveEntityId(null);
             setSelectedFire(null);
+            setSelectedJamming(null);
           }
         }}
         onMoveEnd={(e) => {
@@ -517,7 +530,7 @@ export function TacticalMap({
             setMapCommand(null);
           }
         }}
-        interactiveLayerIds={['flights-layer', 'satellites-layer', 'ships-layer', 'cctv-layer', 'fires-layer']}
+        interactiveLayerIds={['flights-layer', 'satellites-layer', 'ships-layer', 'cctv-layer', 'fires-layer', 'jam-fill-layer']}
 
         onMouseEnter={(e) => {
           if (e.features && e.features.length > 0) {
@@ -662,7 +675,7 @@ export function TacticalMap({
               type="symbol"
               layout={{
                 'text-field': ['concat', 'GPS JAM ', ['to-string', ['get', 'severity']], '%'],
-                'text-size': 10,
+                'text-size': 8,
                 'text-allow-overlap': true
               }}
               paint={{
@@ -885,6 +898,77 @@ export function TacticalMap({
                   <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">CONFIDENCE</span>
                   <span className="text-white font-mono text-xs font-bold uppercase truncate">
                     {selectedFire.confidence || 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Marker>
+        )}
+
+        {/* Active GPS Jamming Popup */}
+        {!isDived && selectedJamming && (
+          <Marker
+            longitude={selectedJamming.lng}
+            latitude={selectedJamming.lat}
+            anchor="top-left"
+            style={{ zIndex: 999999 }}
+          >
+            <div
+              className="absolute top-2 left-2 fui-border bg-black/80 p-4 shadow-2xl backdrop-blur-md w-[300px] pointer-events-auto cursor-auto z-[999999]"
+            >
+              <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+              
+              <div className="flex justify-between items-start mb-3 mt-1">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px] text-red-500 animate-pulse">
+                      radar
+                    </span>
+                    <h3 className="text-white font-headline font-bold text-sm tracking-wider uppercase truncate max-w-[200px]">
+                      GPS INTERFERENCE
+                    </h3>
+                  </div>
+                  <span className="text-slate-400 font-mono text-[9px] uppercase tracking-widest block mt-0.5">
+                    SIGNAL STATUS // DEGRADED
+                  </span>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setSelectedJamming(null); }}
+                  className="text-slate-500 hover:text-white transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">close</span>
+                </button>
+              </div>
+
+              <div className="fui-border bg-black/40 p-3 mb-3 flex flex-col items-center text-center">
+                <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+                <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">COORDINATES</span>
+                <span className="text-[#3cdcd1] font-mono text-xs font-bold uppercase truncate">
+                  {Math.abs(selectedJamming.lat).toFixed(5)}°{selectedJamming.lat >= 0 ? 'N' : 'S'}, {Math.abs(selectedJamming.lng).toFixed(5)}°{selectedJamming.lng >= 0 ? 'E' : 'W'}
+                </span>
+              </div>
+
+              <div className="fui-border bg-black/40 p-3 mb-3 flex flex-col items-center text-center">
+                <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+                <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">JAMMING INTENSITY</span>
+                <span className="text-red-500 font-mono text-xs font-bold uppercase truncate">
+                  {selectedJamming.severity}% (HIGH CORRELATION)
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-2 text-left">
+                <div className="fui-border bg-black/40 p-3 flex flex-col items-center text-center">
+                  <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+                  <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">AFFECTED ACTORS</span>
+                  <span className="text-white font-mono text-xs font-bold uppercase truncate">
+                    {selectedJamming.count} aircraft
+                  </span>
+                </div>
+                <div className="fui-border bg-black/40 p-3 flex flex-col items-center text-center">
+                  <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+                  <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">EW CATEGORY</span>
+                  <span className="text-white font-mono text-[9px] font-bold uppercase truncate">
+                    NACp DEGRADED
                   </span>
                 </div>
               </div>
