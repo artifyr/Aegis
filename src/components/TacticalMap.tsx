@@ -79,6 +79,7 @@ export function TacticalMap({
 
   // New stores for Maritime and Aviation
   const flights = useTacticalStore(state => state.flights);
+  const gpsJamming = useTacticalStore(state => state.gpsJamming);
   const ports = useTacticalStore(state => state.ports);
   const chokepoints = useTacticalStore(state => state.chokepoints);
   const ships = useTacticalStore(state => state.ships);
@@ -268,6 +269,22 @@ export function TacticalMap({
       }))
     };
   }, [fires]);
+
+  const gpsJammingGeoJson = useMemo(() => {
+    return {
+      type: 'FeatureCollection',
+      features: (gpsJamming || []).map((z: any) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [z.lng, z.lat] },
+        properties: {
+          severity: z.severity,
+          count: z.count,
+          lat: z.lat,
+          lng: z.lng
+        }
+      }))
+    };
+  }, [gpsJamming]);
 
 
   // Execute external dives from the Zustand store
@@ -622,6 +639,36 @@ export function TacticalMap({
                   5, 0,
                   6, 1
                 ]
+              }}
+            />
+          </Source>
+        )}
+
+        {/* GeoJSON GPS Jamming Layer */}
+        {!isDived && layers.threats_jamming && (
+          <Source id="gps-jamming-source" type="geojson" data={gpsJammingGeoJson as any}>
+            <Layer
+              id="jam-fill-layer"
+              type="circle"
+              paint={{
+                'circle-radius': 30,
+                'circle-color': '#FF0000',
+                'circle-opacity': 0.15,
+                'circle-blur': 1
+              }}
+            />
+            <Layer
+              id="jam-label-layer"
+              type="symbol"
+              layout={{
+                'text-field': ['concat', 'GPS JAM ', ['to-string', ['get', 'severity']], '%'],
+                'text-size': 10,
+                'text-allow-overlap': true
+              }}
+              paint={{
+                'text-color': '#FF4444',
+                'text-halo-color': '#000000',
+                'text-halo-width': 1
               }}
             />
           </Source>

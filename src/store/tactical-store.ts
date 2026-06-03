@@ -111,6 +111,10 @@ interface TacticalStore {
   fires: any[];
   setFires: (fires: any[]) => void;
 
+  // GPS Jamming
+  gpsJamming: any[];
+  setGpsJamming: (zones: any[]) => void;
+
   // UI Layers Visibility
   layers: {
     aviation_commercial: boolean;
@@ -128,6 +132,7 @@ interface TacticalStore {
     threats_strategic: boolean;
     threats_incidents: boolean;
     threats_news: boolean;
+    threats_jamming: boolean;
   };
   toggleLayer: (layerName: keyof TacticalStore['layers']) => void;
 
@@ -194,6 +199,9 @@ export const useTacticalStore = create<TacticalStore>()(
       fires: [],
       setFires: (fires) => set({ fires }),
 
+      gpsJamming: [],
+      setGpsJamming: (gpsJamming) => set({ gpsJamming }),
+
       layers: {
         aviation_commercial: false,
         aviation_private: false,
@@ -210,6 +218,7 @@ export const useTacticalStore = create<TacticalStore>()(
         threats_strategic: false,
         threats_incidents: false,
         threats_news: true,
+        threats_jamming: false,
       },
       toggleLayer: (layerName) => set((state) => ({
         layers: { ...state.layers, [layerName]: !state.layers[layerName] }

@@ -8,6 +8,7 @@ export function GlobalDataLoader() {
   const setChokepoints = useTacticalStore(state => state.setChokepoints);
   const setShips = useTacticalStore(state => state.setShips);
   const setFlights = useTacticalStore(state => state.setFlights);
+  const setGpsJamming = useTacticalStore(state => state.setGpsJamming);
   const setSatellites = useTacticalStore(state => state.setSatellites);
   const setEarthquakes = useTacticalStore(state => state.setEarthquakes);
   const setNuclearFacilities = useTacticalStore(state => state.setNuclearFacilities);
@@ -226,13 +227,14 @@ export function GlobalDataLoader() {
             ...(data.military_flights || [])
           ];
           setFlights(allFlights);
+          if (data.gps_jamming) setGpsJamming(data.gps_jamming);
         })
         .catch(err => console.error("Aviation fetch failed", err));
     };
     fetchAviation();
     const intervalId = setInterval(fetchAviation, 90000);
     return () => clearInterval(intervalId);
-  }, [setFlights]);
+  }, [setFlights, setGpsJamming]);
 
   // Satellites
   useEffect(() => {

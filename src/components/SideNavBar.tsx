@@ -16,7 +16,7 @@ const getRegionFromCoords = (lat: number, lng: number) => {
 };
 
 export function SideNavBar() {
-  const { setDiveTarget, layers, toggleLayer, cameras, flights, ports, chokepoints, ships, satellites, earthquakes, nuclearFacilities, strategicBases, incidents, news, weatherEvents, setMapCommand, activeEntityId, setActiveEntityId, activeCamera, nukeSimMode, setNukeSimMode, mobileActiveTab, setMobileActiveTab } = useTacticalStore();
+  const { setDiveTarget, layers, toggleLayer, cameras, flights, gpsJamming, ports, chokepoints, ships, satellites, earthquakes, nuclearFacilities, strategicBases, incidents, news, weatherEvents, setMapCommand, activeEntityId, setActiveEntityId, activeCamera, nukeSimMode, setNukeSimMode, mobileActiveTab, setMobileActiveTab } = useTacticalStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAssetEvent, setSelectedAssetEvent] = useState<any>(null);
   const [externalResults, setExternalResults] = useState<any[]>([]);
@@ -115,7 +115,7 @@ export function SideNavBar() {
       maritime: ['maritime', 'space_satellites', 'maritime_cables'],
       surveillance: ['cctv'],
       hazards: ['hazards_earthquakes', 'hazards_weather', 'hazards_fires'],
-      threats: ['threats_nuclear', 'threats_incidents', 'threats_strategic', 'threats_news'],
+      threats: ['threats_nuclear', 'threats_incidents', 'threats_strategic', 'threats_news', 'threats_jamming'],
     };
 
     const targetLayers = groupLayers[groupId];
@@ -268,9 +268,9 @@ export function SideNavBar() {
   const maritimeActiveCount = [layers.maritime, layers.space_satellites, layers.maritime_cables].filter(Boolean).length;
   const survActiveCount = [layers.cctv, false].filter(Boolean).length;
   const hazardsActiveCount = [layers.hazards_earthquakes, layers.hazards_weather, layers.hazards_fires].filter(Boolean).length;
-  const threatsActiveCount = [layers.threats_nuclear, layers.threats_incidents, layers.threats_strategic, layers.threats_news].filter(Boolean).length;
+  const threatsActiveCount = [layers.threats_nuclear, layers.threats_incidents, layers.threats_strategic, layers.threats_news, layers.threats_jamming].filter(Boolean).length;
 
-  const totalEntities = cameras.length + flights.length + ports.length + chokepoints.length + satellites.length + earthquakes.length + nuclearFacilities.length + incidents.length + strategicBases.length + (weatherEvents?.length || 0);
+  const totalEntities = cameras.length + flights.length + ports.length + chokepoints.length + satellites.length + earthquakes.length + nuclearFacilities.length + incidents.length + strategicBases.length + (weatherEvents?.length || 0) + (gpsJamming?.length || 0);
   const activeLayersTotal = aviationActiveCount + maritimeActiveCount + survActiveCount + hazardsActiveCount + threatsActiveCount;
 
   return (
@@ -428,6 +428,7 @@ export function SideNavBar() {
             <LayerSwitch label="STRAT BASES" active={layers.threats_strategic} count={strategicBases.length} dotColor="bg-red-500" onClick={() => toggleLayer('threats_strategic')} />
             <LayerSwitch label="INCIDENTS" active={layers.threats_incidents} count={incidents.length} dotColor="bg-orange-500" onClick={() => toggleLayer('threats_incidents')} />
             <LayerSwitch label="LIVE NEWS" active={layers.threats_news} count={news.length} dotColor="bg-yellow-500" onClick={() => toggleLayer('threats_news')} />
+            <LayerSwitch label="GPS JAMMING" active={layers.threats_jamming} count={gpsJamming?.length || 0} dotColor="bg-red-500" onClick={() => toggleLayer('threats_jamming')} />
             <LayerSwitch label="SEISMIC 24H" active={layers.hazards_earthquakes} count={earthquakes.length} dotColor="bg-yellow-500" onClick={() => toggleLayer('hazards_earthquakes')} />
             <LayerSwitch label="SEVERE WEATHER" active={layers.hazards_weather} count={weatherEvents?.length || 0} dotColor="bg-cyan-500" onClick={() => toggleLayer('hazards_weather')} />
             <LayerSwitch label="ACTIVE FIRES" active={layers.hazards_fires} count={useTacticalStore((state) => state.fires).length} dotColor="bg-orange-500" onClick={() => toggleLayer('hazards_fires')} />
