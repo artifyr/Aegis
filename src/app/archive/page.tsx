@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useTacticalStore } from '@/store/tactical-store';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,10 +26,19 @@ import {
 export default function ArchivePage() {
   const store = useTacticalStore();
   const router = useRouter();
+  
+  // Filtering states
   const [activeTab, setActiveTab] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState('ALL');
+  
+  // Detail selection states
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [copied, setCopied] = useState(false);
+
+  // Sorting states
+  const [sortColumn, setSortColumn] = useState<string>('date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // Consolidate all records into a single uniform array
   const allRecords = useMemo(() => {
@@ -98,9 +107,22 @@ export default function ArchivePage() {
     return records;
   }, [store.strategicBases, store.nuclearFacilities, store.incidents, store.earthquakes]);
 
+  // Unique country listing for the country filter
+  const countries = useMemo(() => {
+    const list = new Set<string>();
+    allRecords.forEach(r => {
+      if (r.country && r.country !== 'GLOBAL FEED' && r.country !== 'TECTONIC BOUNDARY' && r.country !== 'UNKNOWN') {
+        list.add(r.country);
+      }
+    });
+    return Array.from(list).sort();
+  }, [allRecords]);
+
+  // Filtered dataset
   const filteredRecords = useMemo(() => {
     return allRecords.filter(rec => {
       if (activeTab !== 'ALL' && rec.type !== activeTab) return false;
+      if (selectedCountry !== 'ALL' && rec.country !== selectedCountry) return false;
       if (searchQuery.trim() !== '') {
         const q = searchQuery.toLowerCase();
         return (
@@ -113,7 +135,97 @@ export default function ArchivePage() {
       }
       return true;
     });
-  }, [allRecords, activeTab, searchQuery]);
+  }, [allRecords, activeTab, selectedCountry, searchQuery]);
+
+  // Sorted dataset based on column and order
+  const sortedRecords = useMemo(() => {
+    const sorted = [...filteredRecords];
+    sorted.sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      switch (sortColumn) {
+        case 'id':
+          valA = a.id;
+          valB = b.id;
+          break;
+        case 'name':
+          valA = a.name;
+          valB = b.name;
+          break;
+        case 'classification':
+          valA = a.classification;
+          valB = b.classification;
+          break;
+        case 'type':
+          valA = a.type;
+          valB = b.type;
+          break;
+        case 'country':
+          valA = a.country;
+          valB = b.country;
+          break;
+        case 'location':
+          valA = a.location;
+          valB = b.location;
+          break;
+        case 'date':
+          valA = a.date;
+          valB = b.date;
+          break;
+        case 'magnitude':
+          valA = a.type === 'SEISMIC_EVENT' ? (a.raw?.mag || a.raw?.magnitude || 0) : 0;
+          valB = b.type === 'SEISMIC_EVENT' ? (b.raw?.mag || b.raw?.magnitude || 0) : 0;
+          break;
+        case 'reactors':
+          valA = a.type === 'NUCLEAR_FACILITY' ? (a.raw?.reactors || 0) : 0;
+          valB = b.type === 'NUCLEAR_FACILITY' ? (b.raw?.reactors || 0) : 0;
+          break;
+        case 'capacity':
+          valA = a.type === 'NUCLEAR_FACILITY' ? (a.raw?.capacityMW || 0) : 0;
+          valB = b.type === 'NUCLEAR_FACILITY' ? (b.raw?.capacityMW || 0) : 0;
+          break;
+        case 'baseType':
+          valA = a.type === 'STRATEGIC_BASE' ? (a.raw?.type || '') : '';
+          valB = b.type === 'STRATEGIC_BASE' ? (b.raw?.type || '') : '';
+          break;
+        case 'detail':
+          valA = a.detail;
+          valB = b.detail;
+          break;
+        default:
+          valA = a.date;
+          valB = b.date;
+      }
+
+      if (typeof valA === 'string') {
+        return sortDirection === 'asc' 
+          ? valA.localeCompare(valB) 
+          : valB.localeCompare(valA);
+      } else {
+        return sortDirection === 'asc'
+          ? (valA > valB ? 1 : -1)
+          : (valB > valA ? 1 : -1);
+      }
+    });
+    return sorted;
+  }, [filteredRecords, sortColumn, sortDirection]);
+
+  const handleSort = (columnKey: string) => {
+    if (sortColumn === columnKey) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(columnKey);
+      setSortDirection('asc');
+    }
+  };
+
+  const renderSortIcon = (columnKey: string) => {
+    if (sortColumn !== columnKey) return <span className="inline-block ml-1 opacity-25">↕</span>;
+    return sortDirection === 'asc' ? 
+      <span className="inline-block ml-1 text-[#3cdcd1] font-bold">↑</span> : 
+      <span className="inline-block ml-1 text-[#3cdcd1] font-bold">↓</span>;
+  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -154,18 +266,18 @@ export default function ArchivePage() {
       case 'SEISMIC_EVENT':
         return <Activity className="w-4 h-4 text-orange-400" />;
       default:
-        return <Database className="w-4 h-4 text-white/50" />;
+        return <Database className="w-4 h-4 text-white/55" />;
     }
   };
 
   const getClassificationColor = (classification: string) => {
     switch (classification) {
       case 'TOP_SECRET':
-        return 'border-red-500/30 text-red-400 bg-red-950/20';
+        return 'border-red-500/40 text-red-400 bg-red-950/30';
       case 'RESTRICTED':
-        return 'border-yellow-500/30 text-yellow-400 bg-yellow-950/20';
+        return 'border-yellow-500/40 text-yellow-400 bg-yellow-950/30';
       case 'CLASSIFIED':
-        return 'border-cyan-500/30 text-cyan-400 bg-cyan-950/20';
+        return 'border-cyan-500/40 text-cyan-400 bg-cyan-950/30';
       default:
         return 'border-white/20 text-white/60 bg-white/5';
     }
@@ -192,17 +304,37 @@ export default function ArchivePage() {
             </p>
           </div>
         </div>
-        
-        {/* Search Input */}
-        <div className="relative max-w-sm w-full">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30 w-3.5 h-3.5" />
-          <input
-            type="text"
-            placeholder="SEARCH REGISTRY..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 py-2 pl-9 pr-3 text-[10px] font-mono text-white placeholder-white/30 rounded-none outline-none focus:border-[#3cdcd1]/50 focus:bg-white/10 transition-colors uppercase tracking-wider"
-          />
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:max-w-xl justify-end">
+          {/* Country Filter Dropdown */}
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 min-w-[180px]">
+            <span className="font-mono text-[9px] text-white/40 uppercase tracking-widest whitespace-nowrap">COUNTRY:</span>
+            <select
+              value={selectedCountry}
+              onChange={(e) => {
+                setSelectedCountry(e.target.value);
+                setSelectedRecord(null);
+              }}
+              className="bg-transparent text-white font-mono text-[10px] rounded-none outline-none cursor-pointer w-full uppercase tracking-wider font-semibold"
+            >
+              <option value="ALL" className="bg-[#0d0e12] text-white">ALL COUNTRIES</option>
+              {countries.map(c => (
+                <option key={c} value={c} className="bg-[#0d0e12] text-white">{c}</option>
+              ))}
+            </select>
+          </div>
+          
+          {/* Search Input */}
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40 w-3.5 h-3.5" />
+            <input
+              type="text"
+              placeholder="SEARCH REGISTRY..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 py-2 pl-9 pr-3 text-[10px] font-mono text-white placeholder-white/30 rounded-none outline-none focus:border-[#3cdcd1]/50 focus:bg-white/10 transition-colors uppercase tracking-wider font-semibold"
+            />
+          </div>
         </div>
       </div>
 
@@ -219,9 +351,9 @@ export default function ArchivePage() {
                   setActiveTab(tab);
                   setSelectedRecord(null);
                 }}
-                className={`px-3 py-1.5 text-[9px] font-mono tracking-wider transition-colors border ${
+                className={`px-3 py-1.5 text-[9px] font-mono tracking-wider transition-colors border font-semibold ${
                   activeTab === tab 
-                    ? 'border-[#3cdcd1] bg-[#3cdcd1]/15 text-[#3cdcd1] font-bold' 
+                    ? 'border-[#3cdcd1] bg-[#3cdcd1]/15 text-[#3cdcd1]' 
                     : 'border-white/5 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
                 }`}
               >
@@ -235,46 +367,186 @@ export default function ArchivePage() {
             <div className="overflow-y-auto custom-scrollbar flex-1">
               <table className="w-full text-left border-collapse">
                 <thead className="sticky top-0 z-10 bg-[#0d0e12] border-b border-white/5 shadow-md">
-                  <tr className="text-[8px] font-mono text-white/30 uppercase tracking-widest">
-                    <th className="p-3.5 font-normal">SOURCE/ID</th>
-                    <th className="p-3.5 font-normal">DESIGNATION</th>
-                    <th className="p-3.5 font-normal">CLASSIFICATION</th>
-                    <th className="p-3.5 font-normal">COORDINATES</th>
-                    <th className="p-3.5 font-normal text-right">DATE LOGGED</th>
+                  <tr className="text-[9px] font-mono text-white/40 uppercase tracking-widest">
+                    
+                    {/* Common Column: Record ID */}
+                    <th 
+                      onClick={() => handleSort('id')}
+                      className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'id' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
+                    >
+                      RECORD ID {renderSortIcon('id')}
+                    </th>
+
+                    {/* Common Column: Designation */}
+                    <th 
+                      onClick={() => handleSort('name')}
+                      className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'name' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
+                    >
+                      DESIGNATION {renderSortIcon('name')}
+                    </th>
+
+                    {/* Common Column: Classification */}
+                    <th 
+                      onClick={() => handleSort('classification')}
+                      className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'classification' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
+                    >
+                      CLASSIFICATION {renderSortIcon('classification')}
+                    </th>
+
+                    {/* Dynamic Tabs Columns */}
+                    {activeTab === 'ALL' && (
+                      <th 
+                        onClick={() => handleSort('type')}
+                        className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'type' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
+                      >
+                        CATEGORY {renderSortIcon('type')}
+                      </th>
+                    )}
+
+                    {activeTab === 'STRATEGIC_BASE' && (
+                      <th 
+                        onClick={() => handleSort('baseType')}
+                        className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'baseType' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
+                      >
+                        BASE TYPE {renderSortIcon('baseType')}
+                      </th>
+                    )}
+
+                    {activeTab === 'NUCLEAR_FACILITY' && (
+                      <>
+                        <th 
+                          onClick={() => handleSort('reactors')}
+                          className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'reactors' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
+                        >
+                          REACTORS {renderSortIcon('reactors')}
+                        </th>
+                        <th 
+                          onClick={() => handleSort('capacity')}
+                          className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'capacity' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
+                        >
+                          POWER CAPACITY {renderSortIcon('capacity')}
+                        </th>
+                      </>
+                    )}
+
+                    {activeTab === 'SEISMIC_EVENT' && (
+                      <th 
+                        onClick={() => handleSort('magnitude')}
+                        className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'magnitude' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
+                      >
+                        MAGNITUDE {renderSortIcon('magnitude')}
+                      </th>
+                    )}
+
+                    {activeTab === 'INCIDENT' && (
+                      <th 
+                        onClick={() => handleSort('detail')}
+                        className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'detail' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
+                      >
+                        DETAILS {renderSortIcon('detail')}
+                      </th>
+                    )}
+
+                    {/* Common Column: Country */}
+                    <th 
+                      onClick={() => handleSort('country')}
+                      className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'country' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
+                    >
+                      COUNTRY {renderSortIcon('country')}
+                    </th>
+
+                    {/* Common Column: Coordinates */}
+                    <th 
+                      onClick={() => handleSort('location')}
+                      className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors ${sortColumn === 'location' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
+                    >
+                      COORDINATES {renderSortIcon('location')}
+                    </th>
+
+                    {/* Common Column: Date */}
+                    <th 
+                      onClick={() => handleSort('date')}
+                      className={`p-4 font-bold cursor-pointer hover:bg-white/5 hover:text-white transition-colors text-right ${sortColumn === 'date' ? 'text-white border-b border-[#3cdcd1]' : ''}`}
+                    >
+                      DATE LOGGED {renderSortIcon('date')}
+                    </th>
+
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {filteredRecords.map((rec, i) => (
+                  {sortedRecords.map((rec, i) => (
                     <tr 
                       key={rec.id + '-' + i} 
                       onClick={() => setSelectedRecord(rec)}
-                      className={`hover:bg-white/5 transition-all cursor-pointer text-[10px] font-mono text-white/80 group ${
+                      className={`hover:bg-white/5 transition-all cursor-pointer text-[11px] font-mono text-white font-medium group ${
                         selectedRecord?.id === rec.id ? 'bg-white/5 border-l-2 border-l-[#3cdcd1]' : ''
                       }`}
                     >
-                      <td className="p-3.5 text-white/30 group-hover:text-white/50 flex items-center gap-2">
+                      
+                      {/* ID Column */}
+                      <td className="p-4 text-white/50 group-hover:text-white transition-colors flex items-center gap-2">
                         {getCategoryIcon(rec.type)}
-                        <span>{rec.id.toString().slice(0, 8).toUpperCase()}</span>
+                        <span className="font-semibold">{rec.id.toString().slice(0, 10).toUpperCase()}</span>
                       </td>
-                      <td className="p-3.5">
+
+                      {/* Designation */}
+                      <td className="p-4">
                         <div className="flex flex-col">
-                          <span className="font-bold text-white group-hover:text-[#3cdcd1] transition-colors">{rec.name}</span>
-                          <span className="text-[8px] text-white/40 mt-0.5 truncate max-w-[280px]">{rec.detail}</span>
+                          <span className="font-bold text-white group-hover:text-[#3cdcd1] transition-colors text-xs">{rec.name}</span>
+                          {activeTab === 'ALL' && (
+                            <span className="text-[9px] text-white/40 mt-0.5 truncate max-w-[200px]">{rec.detail}</span>
+                          )}
                         </div>
                       </td>
-                      <td className="p-3.5">
-                        <span className={`px-2 py-0.5 text-[8px] border font-bold tracking-wider rounded-none ${getClassificationColor(rec.classification)}`}>
+
+                      {/* Classification Badge */}
+                      <td className="p-4">
+                        <span className={`px-2 py-0.5 text-[9px] border font-bold tracking-wider rounded-none ${getClassificationColor(rec.classification)}`}>
                           {rec.classification}
                         </span>
                       </td>
-                      <td className="p-3.5 text-white/40">{rec.location}</td>
-                      <td className="p-3.5 text-right text-white/40">{rec.date}</td>
+
+                      {/* Dynamic Columns data */}
+                      {activeTab === 'ALL' && (
+                        <td className="p-4 text-white/60 font-semibold">{rec.type.replace('_', ' ')}</td>
+                      )}
+
+                      {activeTab === 'STRATEGIC_BASE' && (
+                        <td className="p-4 text-white font-bold uppercase tracking-wider text-[10px]">{rec.detail}</td>
+                      )}
+
+                      {activeTab === 'NUCLEAR_FACILITY' && (
+                        <>
+                          <td className="p-4 text-white font-bold text-xs">{rec.raw?.reactors || '0'}</td>
+                          <td className="p-4 text-[#3cdcd1] font-bold text-xs">{rec.raw?.capacityMW || '0'} MW</td>
+                        </>
+                      )}
+
+                      {activeTab === 'SEISMIC_EVENT' && (
+                        <td className="p-4 text-orange-400 font-bold text-xs">
+                          M {rec.raw?.mag || rec.raw?.magnitude || '?'}
+                        </td>
+                      )}
+
+                      {activeTab === 'INCIDENT' && (
+                        <td className="p-4 text-white/60 truncate max-w-[250px]">{rec.detail}</td>
+                      )}
+
+                      {/* Country */}
+                      <td className="p-4 text-white/60">{rec.country}</td>
+
+                      {/* Coordinates */}
+                      <td className="p-4 text-white/50">{rec.location}</td>
+
+                      {/* Date Logged */}
+                      <td className="p-4 text-right text-white/50">{rec.date}</td>
+
                     </tr>
                   ))}
                 </tbody>
               </table>
 
-              {filteredRecords.length === 0 && (
+              {sortedRecords.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center text-center py-20">
                   <Database className="w-10 h-10 text-white/10 mb-4 animate-pulse" />
                   <span className="text-[10px] font-mono text-white/30 tracking-widest">NO DIRECTIVES OR ARCHIVES LOCATED</span>
@@ -362,20 +634,20 @@ export default function ArchivePage() {
                 <div className="space-y-3">
                   <span className="font-mono text-[8px] text-white/30 tracking-widest uppercase block border-b border-white/5 pb-1">DATABASE RECORDS</span>
                   
-                  <div className="space-y-2.5 font-mono text-[9px]">
+                  <div className="space-y-2.5 font-mono text-[10px]">
                     <div className="flex justify-between py-1 border-b border-white/5">
-                      <span className="text-white/40">COUNTRY / ZONE:</span>
+                      <span className="text-white/40 font-semibold">COUNTRY / ZONE:</span>
                       <span className="text-white font-bold">{selectedRecord.country}</span>
                     </div>
 
                     {selectedRecord.type === 'STRATEGIC_BASE' && (
                       <>
                         <div className="flex justify-between py-1 border-b border-white/5">
-                          <span className="text-white/40">DESIGNATION TYPE:</span>
+                          <span className="text-white/40 font-semibold">DESIGNATION TYPE:</span>
                           <span className="text-white font-bold">{selectedRecord.detail}</span>
                         </div>
                         <div className="flex justify-between py-1 border-b border-white/5">
-                          <span className="text-white/40">CALLSIGN:</span>
+                          <span className="text-white/40 font-semibold">CALLSIGN:</span>
                           <span className="text-[#3cdcd1] font-bold">{selectedRecord.raw?.callsign || 'N/A'}</span>
                         </div>
                       </>
@@ -384,15 +656,15 @@ export default function ArchivePage() {
                     {selectedRecord.type === 'NUCLEAR_FACILITY' && (
                       <>
                         <div className="flex justify-between py-1 border-b border-white/5">
-                          <span className="text-white/40">REACTOR COUNT:</span>
+                          <span className="text-white/40 font-semibold">REACTOR COUNT:</span>
                           <span className="text-white font-bold">{selectedRecord.raw?.reactors || '0'}</span>
                         </div>
                         <div className="flex justify-between py-1 border-b border-white/5">
-                          <span className="text-white/40">POWER CAPACITY:</span>
+                          <span className="text-white/40 font-semibold">POWER CAPACITY:</span>
                           <span className="text-[#3cdcd1] font-bold">{selectedRecord.raw?.capacityMW || '0'} MW</span>
                         </div>
                         <div className="flex justify-between py-1 border-b border-white/5">
-                          <span className="text-white/40">FACILITY OWNER:</span>
+                          <span className="text-white/40 font-semibold">FACILITY OWNER:</span>
                           <span className="text-white font-bold">{selectedRecord.raw?.owner || 'UNKNOWN'}</span>
                         </div>
                       </>
@@ -401,8 +673,8 @@ export default function ArchivePage() {
                     {selectedRecord.type === 'INCIDENT' && (
                       <>
                         <div className="flex flex-col gap-1 py-1 border-b border-white/5">
-                          <span className="text-white/40">OSINT DESCRIPTION:</span>
-                          <p className="text-white/70 leading-normal mt-1 text-[9px]">{selectedRecord.detail}</p>
+                          <span className="text-white/40 font-semibold">OSINT DESCRIPTION:</span>
+                          <p className="text-white/80 leading-normal mt-1 text-[10px]">{selectedRecord.detail}</p>
                         </div>
                         {selectedRecord.raw?.url && (
                           <a 
@@ -420,11 +692,11 @@ export default function ArchivePage() {
                     {selectedRecord.type === 'SEISMIC_EVENT' && (
                       <>
                         <div className="flex justify-between py-1 border-b border-white/5">
-                          <span className="text-white/40">SEISMIC MAGNITUDE:</span>
+                          <span className="text-white/40 font-semibold">SEISMIC MAGNITUDE:</span>
                           <span className="text-red-400 font-bold">{selectedRecord.detail}</span>
                         </div>
                         <div className="flex justify-between py-1 border-b border-white/5">
-                          <span className="text-white/40">TELEMETRY SOURCE:</span>
+                          <span className="text-white/40 font-semibold">TELEMETRY SOURCE:</span>
                           <span className="text-white font-bold">USGS EARTHQUAKE FEED</span>
                         </div>
                       </>
