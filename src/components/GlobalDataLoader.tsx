@@ -15,6 +15,22 @@ export function GlobalDataLoader() {
   const setIncidents = useTacticalStore(state => state.setIncidents);
   const setNews = useTacticalStore(state => state.setNews);
   const setWeatherEvents = useTacticalStore(state => state.setWeatherEvents);
+  const setCameras = useTacticalStore(state => state.setCameras);
+
+  // CCTV
+  useEffect(() => {
+    const fetchCameras = () => {
+      fetch('/api/cctv?region=all')
+        .then(res => res.json())
+        .then(data => {
+          if (data.cameras) setCameras(data.cameras);
+        })
+        .catch(err => console.error("CCTV fetch failed", err));
+    };
+    fetchCameras();
+    const intervalId = setInterval(fetchCameras, 300000);
+    return () => clearInterval(intervalId);
+  }, [setCameras]);
 
   // News
   useEffect(() => {

@@ -6,6 +6,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { useTacticalStore, SurveillanceNode } from '@/store/tactical-store';
 import circle from '@turf/circle';
 import { getThreatSeverity, summarizeIncidentName } from '@/lib/ai-engine';
+import CameraViewer from './CameraViewer';
 
 // ─── Constants ────────────────────────────────────────────────────
 
@@ -21,23 +22,6 @@ const INITIAL_VIEW = {
   bearing: 0,
 };
 
-const GLOBAL_SEED_CAMERAS: SurveillanceNode[] = [
-  { type: 'node', id: 10001, lat: 40.7128, lon: -74.006, tags: { 'camera:mount': 'pole', 'man_made': 'surveillance' } },
-  { type: 'node', id: 10002, lat: 51.5074, lon: -0.1278, tags: { 'camera:mount': 'wall', 'man_made': 'surveillance' } },
-  { type: 'node', id: 10003, lat: 35.6895, lon: 139.6917, tags: { 'camera:mount': 'pole', 'man_made': 'surveillance' } },
-  { type: 'node', id: 10004, lat: -33.8688, lon: 151.2093, tags: { 'camera:mount': 'wall', 'man_made': 'surveillance' } },
-  { type: 'node', id: 10005, lat: -23.5505, lon: -46.6333, tags: { 'camera:mount': 'pole', 'man_made': 'surveillance' } },
-  { type: 'node', id: 10006, lat: -33.9249, lon: 18.4241, tags: { 'camera:mount': 'pole', 'man_made': 'surveillance' } },
-  { type: 'node', id: 10007, lat: 25.2048, lon: 55.2708, tags: { 'camera:mount': 'wall', 'man_made': 'surveillance' } },
-  { type: 'node', id: 10008, lat: 48.8566, lon: 2.3522, tags: { 'camera:mount': 'pole', 'man_made': 'surveillance' } },
-  { type: 'node', id: 10009, lat: 1.3521, lon: 103.8198, tags: { 'camera:mount': 'wall', 'man_made': 'surveillance' } },
-  { type: 'node', id: 10010, lat: 19.4326, lon: -99.1332, tags: { 'camera:mount': 'pole', 'man_made': 'surveillance' } },
-  { type: 'node', id: 10011, lat: 55.7558, lon: 37.6173, tags: { 'camera:mount': 'wall', 'man_made': 'surveillance' } },
-  { type: 'node', id: 10012, lat: 39.9042, lon: 116.4074, tags: { 'camera:mount': 'pole', 'man_made': 'surveillance' } },
-  { type: 'node', id: 10013, lat: -34.6037, lon: -58.3816, tags: { 'camera:mount': 'pole', 'man_made': 'surveillance' } },
-  { type: 'node', id: 10014, lat: 6.5244, lon: 3.3792, tags: { 'camera:mount': 'wall', 'man_made': 'surveillance' } },
-  { type: 'node', id: 10015, lat: 28.6139, lon: 77.2090, tags: { 'camera:mount': 'pole', 'man_made': 'surveillance' } },
-];
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
@@ -56,105 +40,6 @@ const CRITICAL_HOTSPOTS = [
   { id: 'hotspot-korea', name: 'KOREAN DMZ', severity: 'HIGH', lat: 38.3, lng: 127.0, html: 'Border militarization and escalation alerts at the DMZ.' },
 ];
 
-// ─── HUD Surveillance Camera SVG ─────────────────────────────────
-// DESIGN.md: 2px "corner bracket" detail in each corner, "targeting" aesthetic
-function CameraMarker({
-  camera,
-  isSelected,
-  isZoomedIn,
-  onClick,
-}: {
-  camera: SurveillanceNode;
-  isSelected: boolean;
-  isZoomedIn: boolean;
-  onClick: () => void;
-}) {
-  const size = isSelected ? 48 : 36;
-  const color = '#3cdcd1'; // Teal / primary_fixed_dim for Surveillance
-
-  return (
-    <div
-      onClick={onClick}
-      className="absolute cursor-pointer group flex items-center justify-center"
-      style={{
-        transform: 'translate(-50%, -50%)',
-        width: size,
-        height: size,
-      }}
-    >
-      {/* Corner bracket targeting frame - DESIGN.md HUD Coordinate Overlay */}
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 48 48"
-        fill="none"
-        className="transition-all duration-150 ease-out"
-      >
-        {/* Top-left bracket */}
-        <path d="M2 14 L2 2 L14 2" stroke={color} strokeWidth="2" fill="none" opacity={isSelected ? 1 : 0.6} />
-        {/* Top-right bracket */}
-        <path d="M34 2 L46 2 L46 14" stroke={color} strokeWidth="2" fill="none" opacity={isSelected ? 1 : 0.6} />
-        {/* Bottom-left bracket */}
-        <path d="M2 34 L2 46 L14 46" stroke={color} strokeWidth="2" fill="none" opacity={isSelected ? 1 : 0.6} />
-        {/* Bottom-right bracket */}
-        <path d="M34 46 L46 46 L46 34" stroke={color} strokeWidth="2" fill="none" opacity={isSelected ? 1 : 0.6} />
-
-        {/* Surveillance Camera Icon Inside */}
-        <path d="M16 21h10v6H16z" fill={color} opacity="0.8" />
-        <path d="M26 22l6-3v8l-6-3" fill={color} opacity="0.8" />
-        {isSelected && <circle cx="20" cy="24" r="1.5" fill="#0d0e12" />}
-      </svg>
-
-      <div className={`absolute top-full mt-1.5 text-[8px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        CAMERA NODE {camera.id.toString().slice(0, 8)}
-      </div>
-
-      {/* Active Track pulse ring — DESIGN.md: 2px primary_fixed_dim pulse */}
-      {isSelected && (
-        <span
-          className="absolute rounded-full border-2 animate-ping"
-          style={{
-            width: size + 12,
-            height: size + 12,
-            left: -6,
-            top: -6,
-            borderColor: 'rgba(60, 220, 209, 0.35)',
-          }}
-        />
-      )}
-
-      {/* Glass Tooltip — DESIGN.md: 12px backdrop-blur, 40% opacity surface_variant */}
-      <div
-        className="absolute left-full ml-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none z-50 whitespace-nowrap"
-        style={{
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          backgroundColor: 'rgba(68, 71, 78, 0.40)', // surface_variant at 40%
-        }}
-      >
-        <div className="px-3 py-2 text-left">
-          <div className="text-[9px] font-mono text-[#7bd6d1] font-bold tracking-wider mb-0.5">
-            NODE: {camera.id}
-          </div>
-          <div className="text-[8px] font-mono text-[#bacac7] leading-relaxed">
-            TAGS: SURVEILLANCE<br />
-            LAT: {camera.lat.toFixed(6)}<br />
-            LNG: {camera.lon.toFixed(6)}<br />
-            MFR: {(camera.tags?.['camera:mount'] || 'UNKNOWN').toUpperCase()}
-          </div>
-        </div>
-        {/* Corner brackets on tooltip too */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-          <line x1="0" y1="0" x2="8" y2="0" stroke={color} strokeWidth="1" />
-          <line x1="0" y1="0" x2="0" y2="8" stroke={color} strokeWidth="1" />
-          <line x1="100%" y1="0" x2="calc(100% - 8px)" y2="0" stroke={color} strokeWidth="1" />
-          <line x1="100%" y1="0" x2="100%" y2="8" stroke={color} strokeWidth="1" />
-        </svg>
-      </div>
-    </div>
-  );
-}
-
 // ─── Ghost Border Grid Overlay ───────────────────────────────────
 // DESIGN.md: outline (#859491) at 10% opacity
 function GhostGrid({ visible }: { visible: boolean }) {
@@ -170,63 +55,6 @@ function GhostGrid({ visible }: { visible: boolean }) {
         backgroundSize: '60px 60px',
       }}
     />
-  );
-}
-
-// ─── Tactical Overlay Feed ───────────────────────────────────────
-function TacticalVideoOverlay({ camera, onClose }: { camera: SurveillanceNode; onClose: () => void }) {
-  const [streamData, setStreamData] = useState<any>(null);
-
-  useEffect(() => {
-    // Fetch live stream URL from local Next.js API
-    fetch(`/api/camera/${camera.id}/stream?lat=${camera.lat}&lng=${camera.lon}`)
-      .then((res) => res.json())
-      .then((data) => setStreamData(data))
-      .catch((err) => console.error("Stream fetch failed", err));
-  }, [camera]);
-
-  // Tactical Glass Rule: 12px backdrop-blur, 40% opacity on charcoal surface (#1f1f24 mapped to roughly rgba)
-  return (
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 border border-[#3cdcd1] p-4 flex flex-col bezel-glow shadow-[0_0_20px_#3cdcd140]"
-      style={{ backdropFilter: 'blur(12px)', backgroundColor: 'rgba(31, 31, 36, 0.40)' }}>
-      <div className="flex justify-between items-center border-b border-[#3cdcd1]/50 pb-2 mb-4">
-        <span className="font-mono text-[10px] text-[#3cdcd1] tracking-widest uppercase">LIVE FEED // NODE_{camera.id}</span>
-        <button onClick={onClose} className="text-[#3cdcd1] font-mono text-xs w-6 h-6 flex items-center justify-center hover:bg-[#3cdcd1]/20 cursor-pointer transition-colors">
-          ✕
-        </button>
-      </div>
-
-      {/* Video Container */}
-      <div className="relative w-[480px] h-[270px] bg-black flex flex-col items-center justify-center overflow-hidden border border-[#3cdcd1]/30">
-        {!streamData ? (
-          <>
-            <div className="absolute inset-0 bg-[#3cdcd1] opacity-[0.03] animate-pulse mix-blend-overlay pointer-events-none" />
-            <span className="font-mono text-[#bacac7] text-[10px] tracking-widest animate-none z-10">ESTABLISHING UPLINK...</span>
-          </>
-        ) : (
-          <iframe
-            src={`${streamData.stream_url}?autoplay=1&mute=1&playsinline=1`}
-            className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
-            frameBorder="0"
-            allow="autoplay"
-          />
-        )}
-
-        {/* Telemetry HUD explicitly overlaid on video player */}
-        <div className="absolute top-2 right-2 text-[#3cdcd1] text-[10px] font-mono flex items-center gap-1.5 z-20" style={{ textShadow: "1px 1px 2px #000" }}>
-          REC <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-        </div>
-
-        <div className="absolute bottom-2 left-2 text-[#3cdcd1] text-[9px] font-mono flex flex-col z-20 leading-tight tracking-widest" style={{ textShadow: "1px 1px 2px #000" }}>
-          <span>LAT: {camera.lat.toFixed(6)}</span>
-          <span>LNG: {camera.lon.toFixed(6)}</span>
-        </div>
-
-        <div className="absolute bottom-2 right-2 text-[#3cdcd1] text-[9px] font-mono z-20 tracking-widest uppercase" style={{ textShadow: "1px 1px 2px #000" }}>
-          SYS_HEALTH: {streamData?.uptime || "CALCULATING"}
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -407,59 +235,16 @@ export function TacticalMap({
     };
   }, [nukeSimMode, nukeSimData]);
 
-  // Overpass fetch hook triggering onIdle
-  const fetchCamerasInView = useCallback(() => {
-    const map = mapRef.current?.getMap();
-    if (!map) return;
-
-    setStatus('QUERYING_OVERPASS');
-    const zoom = map.getZoom();
-    const bounds = map.getBounds();
-    if (!bounds) return;
-
-    // Scale limits based on zoom to prevent UI congestion.
-    let limit = 0;
-    if (zoom >= 12) limit = 300;
-    else if (zoom >= 8) limit = 10;
-    else if (zoom >= 4) limit = 5;
-
-    // Below zoom 4, we exclusively use GLOBAL_SEED_CAMERAS.
-    if (limit === 0) {
-      setStatus('LIVE // GLOBAL_MACRO');
-      setCameras(GLOBAL_SEED_CAMERAS);
-      return;
-    }
-
-    const sw = bounds.getSouthWest();
-    const ne = bounds.getNorthEast();
-
-    // Bbox format: south, west, north, east
-    const bbox = `${sw.lat},${sw.lng},${ne.lat},${ne.lng}`;
-
-    // Fetch Cameras via Next.js API
-    fetch(`/api/cctv?bbox=${bbox}&limit=${limit}`)
-      .then(res => res.json())
-      .then(data => {
-        // Merge the Overpass results with the global seeds if the seeds are within the current viewport
-        const elements = data.elements || [];
-        const inViewSeeds = GLOBAL_SEED_CAMERAS.filter(c =>
-          c.lat >= sw.lat && c.lat <= ne.lat && c.lon >= sw.lng && c.lon <= ne.lng
-        );
-
-        // Remove duplicates
-        const combined = [...elements, ...inViewSeeds];
-        const unique = Array.from(new globalThis.Map(combined.map(c => [c.id, c])).values());
-
-        setCameras(unique);
-        setStatus('LIVE // SYNCED');
-      })
-      .catch(err => {
-        console.error("Overpass fetch failed", err);
-        setStatus('OVERPASS_ERROR');
-      });
-
-  }, []);
-
+  const cctvGeoJson = useMemo(() => {
+    return {
+      type: 'FeatureCollection',
+      features: cameras.map((c: any) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [c.lon ?? c.lng, c.lat] },
+        properties: { ...c }
+      }))
+    };
+  }, [cameras]);
 
 
   // Execute external dives from the Zustand store
@@ -605,12 +390,21 @@ export function TacticalMap({
             const feature = e.features[0];
             if (feature.layer?.id === 'flights-layer' || feature.layer?.id === 'satellites-layer' || feature.layer?.id === 'ships-layer') {
               setActiveEntityId(feature.properties?.id);
+            } else if (feature.layer?.id === 'cctv-layer') {
+              let p = feature.properties as any;
+              // Mapbox stores properties as strings or primitives, so we parse if necessary, but here we just need id/lat/lng etc.
+              // In this app, sometimes id is string or number, so just pass the properties directly.
+              setSelectedCamera({
+                ...p,
+                lat: e.lngLat.lat,
+                lon: e.lngLat.lng, // CameraViewer uses lat/lng mostly, and we already injected ...c
+                lng: e.lngLat.lng,
+              });
             }
           } else {
             setActiveEntityId(null);
           }
         }}
-        onIdle={fetchCamerasInView}
         onMoveEnd={(e) => {
           const b = e.target.getBounds();
           if (b) setBounds({ sw: b.getSouthWest(), ne: b.getNorthEast() });
@@ -654,7 +448,7 @@ export function TacticalMap({
           const b = map.getBounds();
           if (b) setBounds({ sw: b.getSouthWest(), ne: b.getNorthEast() });
         }}
-        interactiveLayerIds={['flights-layer', 'satellites-layer', 'ships-layer']}
+        interactiveLayerIds={['flights-layer', 'satellites-layer', 'ships-layer', 'cctv-layer']}
 
         onMouseEnter={(e) => {
           if (e.features && e.features.length > 0) {
@@ -694,21 +488,22 @@ export function TacticalMap({
       >
         {/* Default zoom controls removed in favor of TopNavBar custom zoom buttons */}
 
-        {/* HUD Markers projected directly onto WebGL Globe via Mapbox Marker */}
-        {!isDived && layers.cctv && cameras.map((camera) => (
-          <Marker key={`cam-${camera.id}`} longitude={camera.lon} latitude={camera.lat} anchor="center">
-            <CameraMarker
-              camera={camera}
-              isSelected={selectedCamera?.id === camera.id || selectedAssetId === camera.id}
-              isZoomedIn={isZoomedIn}
-              onClick={() => {
-                onAssetSelect?.(camera);
-                setSelectedCamera(camera);
-                cameraDive(camera.lat, camera.lon);
+        {/* GeoJSON CCTV Layer */}
+        {!isDived && layers.cctv && (
+          <Source id="cctv-source" type="geojson" data={cctvGeoJson as any}>
+            <Layer
+              id="cctv-layer"
+              type="circle"
+              paint={{
+                'circle-radius': 4,
+                'circle-color': '#FF69B4', // Pink color requested
+                'circle-opacity': 0.8,
+                'circle-stroke-width': 1,
+                'circle-stroke-color': '#ffffff'
               }}
             />
-          </Marker>
-        ))}
+          </Source>
+        )}
 
         {/* GeoJSON Flights Layer for High Performance */}
         {!isDived && (
@@ -1942,6 +1737,7 @@ export function TacticalMap({
           {isDived ? 'MODE: LIVE NODE FEED' : 'MODE: OVERPASS HOLOGRAPHIC'}
         </span>
       </div>
+      {selectedCamera && <CameraViewer camera={selectedCamera} onClose={() => setSelectedCamera(null)} />}
     </div>
   );
 }
