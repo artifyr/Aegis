@@ -114,6 +114,7 @@ interface TacticalStore {
     aviation_jets: boolean;
     aviation_military: boolean;
     maritime: boolean;
+    maritime_cables: boolean;
     cctv: boolean;
     space_satellites: boolean;
     hazards_earthquakes: boolean;
@@ -191,6 +192,7 @@ export const useTacticalStore = create<TacticalStore>()(
         aviation_jets: false,
         aviation_military: false,
         maritime: false,
+        maritime_cables: false,
         cctv: false,
         space_satellites: false,
         hazards_earthquakes: false,

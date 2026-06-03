@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTacticalStore } from '@/store/tactical-store';
-import { getThreatSeverity } from '@/lib/ai-engine';
+import { getThreatSeverity, summarizeIncidentName } from '@/lib/ai-engine';
 
 // ─── Mini SVG Line Chart for Live Data ─────────────────────────
 function LiveSparkline({ data, color, height = 100 }: { data: number[]; color: string; height?: number }) {
@@ -198,7 +198,7 @@ export default function AnalyticsPage() {
       threats.push({
         id: String(inc.id),
         type: 'OSINT_INCIDENT',
-        title: inc.name || 'Active Incident',
+        title: summarizeIncidentName(inc.name || '', inc.html || ''),
         description: inc.html || '',
         severity: getThreatSeverity(inc.name || '', inc.html || ''),
         region: 'Global',

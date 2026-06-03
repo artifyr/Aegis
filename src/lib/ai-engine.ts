@@ -71,21 +71,63 @@ export interface IntelligenceContext {
 
 export function getThreatSeverity(title: string, description: string = ''): 'CRITICAL' | 'HIGH' | 'ELEVATED' | 'LOW' {
   const text = (title + ' ' + description).toLowerCase();
-  // Critical threats: Myanmar conflict, Strait of Hormuz, Palestine/Gaza, Israel, general war
-  if (text.includes('war') || 
-      text.includes('myanmar') || 
-      text.includes('hormuz') || 
-      text.includes('palestine') || 
-      text.includes('gaza') || 
-      text.includes('israel') ||
-      text.includes('russia') ||
-      text.includes('ukraine')) {
+  
+  // Filter out domestic politics / leader mentions
+  if (text.includes('trump') || text.includes('biden') || text.includes('election') || text.includes('campaign')) {
+    return 'ELEVATED';
+  }
+
+  // Critical threats: Red in reference image
+  const isCritical = 
+      text.includes('ukraine') || text.includes('kyiv') || text.includes('russia') ||
+      text.includes('gaza') || text.includes('palestine') || text.includes('israel') || text.includes('hamas') ||
+      text.includes('sudan') ||
+      text.includes('yemen') || text.includes('houthi') ||
+      text.includes('drc') || text.includes('congo') ||
+      text.includes('myanmar');
+
+  if (isCritical) {
     return 'CRITICAL';
   }
-  if (text.includes('conflict') || text.includes('strike') || text.includes('attack') || text.includes('military')) {
+
+  // High threats: Orange/Yellow in reference image
+  const isHigh = 
+      text.includes('syria') ||
+      text.includes('red sea') || text.includes('hormuz') ||
+      text.includes('sahel') || text.includes('mali') || text.includes('niger') ||
+      text.includes('somalia') ||
+      text.includes('taiwan') ||
+      text.includes('dmz') || (text.includes('korea') && text.includes('border'));
+
+  if (isHigh) {
     return 'HIGH';
   }
+
   return 'ELEVATED';
+}
+
+export function summarizeIncidentName(title: string, description: string = ''): string {
+  const text = (title + ' ' + description).toLowerCase();
+  if (text.includes('myanmar')) return 'MYANMAR CONFLICT';
+  if (text.includes('hormuz') || text.includes('houthi') || text.includes('red sea') || text.includes('yemen')) {
+    if (text.includes('yemen')) return 'YEMEN WAR';
+    return 'RED SEA THREAT';
+  }
+  if (text.includes('palestine') || text.includes('gaza') || text.includes('israel') || text.includes('hamas')) return 'GAZA CONFLICT';
+  if (text.includes('russia') || text.includes('ukraine') || text.includes('kyiv')) return 'UKRAINE WAR';
+  if (text.includes('sudan') || text.includes('rsf') || text.includes('saf ')) return 'SUDAN CIVIL WAR';
+  if (text.includes('syria')) return 'SYRIA';
+  if (text.includes('drc') || text.includes('congo')) return 'DRC EASTERN CONFLICT';
+  if (text.includes('sahel') || text.includes('mali') || text.includes('niger')) return 'SAHEL INSTABILITY';
+  if (text.includes('somalia')) return 'SOMALIA';
+  if (text.includes('taiwan')) return 'TAIWAN STRAIT';
+  if (text.includes('dmz') || (text.includes('korea') && text.includes('border'))) return 'KOREAN DMZ';
+  
+  const words = title.split(' ');
+  if (words.length > 5) {
+    return words.slice(0, 5).join(' ').toUpperCase() + '...';
+  }
+  return title.toUpperCase();
 }
 
 /* ─────────────────────────────────────────────────────────────

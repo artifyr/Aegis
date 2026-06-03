@@ -188,7 +188,7 @@ export function SearchPanel() {
               >
                 <div className="flex flex-col overflow-hidden">
                   <span className="text-white text-xs tracking-wide uppercase truncate">{res.name}</span>
-                  <span className="text-white/50 text-[10px] tracking-wide uppercase truncate">{res.sub}</span>
+                  <span className="text-white/50 text-[10px] tracking-widest uppercase truncate">{res.type} {res.sub ? `// ${res.sub}` : ''}</span>
                 </div>
                 <span className="material-symbols-outlined text-white/30 group-hover:text-secondary text-sm">arrow_forward</span>
               </button>

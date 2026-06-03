@@ -5,7 +5,7 @@ import Map, { Marker, Source, Layer, type MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useTacticalStore, SurveillanceNode } from '@/store/tactical-store';
 import circle from '@turf/circle';
-import { getThreatSeverity } from '@/lib/ai-engine';
+import { getThreatSeverity, summarizeIncidentName } from '@/lib/ai-engine';
 
 // ─── Constants ────────────────────────────────────────────────────
 
@@ -40,6 +40,21 @@ const GLOBAL_SEED_CAMERAS: SurveillanceNode[] = [
 ];
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+
+const CRITICAL_HOTSPOTS = [
+  { id: 'hotspot-ukraine', name: 'UKRAINE WAR', severity: 'CRITICAL', lat: 48.5, lng: 31.2, html: 'Active conflict zone and military operations in Ukraine.' },
+  { id: 'hotspot-gaza', name: 'GAZA CONFLICT', severity: 'CRITICAL', lat: 31.35, lng: 34.35, html: 'Active conflict and humanitarian crisis zone in Gaza.' },
+  { id: 'hotspot-sudan', name: 'SUDAN CIVIL WAR', severity: 'CRITICAL', lat: 15.0, lng: 30.0, html: 'Armed conflict between SAF and RSF military factions.' },
+  { id: 'hotspot-yemen', name: 'YEMEN WAR', severity: 'CRITICAL', lat: 15.5, lng: 48.0, html: 'Active conflict zone and security instability.' },
+  { id: 'hotspot-drc', name: 'DRC EASTERN CONFLICT', severity: 'CRITICAL', lat: -1.0, lng: 28.5, html: 'Armed clashes and security crisis in eastern DRC.' },
+  { id: 'hotspot-myanmar', name: 'MYANMAR CONFLICT', severity: 'CRITICAL', lat: 19.5, lng: 96.5, html: 'Ongoing civil war and military opposition operations.' },
+  { id: 'hotspot-syria', name: 'SYRIA', severity: 'HIGH', lat: 35.0, lng: 38.5, html: 'Geopolitical instability and civil war conflict areas.' },
+  { id: 'hotspot-redsea', name: 'RED SEA THREAT', severity: 'HIGH', lat: 16.0, lng: 40.0, html: 'Anti-shipping missile strikes and naval security threats.' },
+  { id: 'hotspot-sahel', name: 'SAHEL INSTABILITY', severity: 'HIGH', lat: 14.0, lng: 5.0, html: 'Insurgency, militancy, and political instability in Sahel.' },
+  { id: 'hotspot-somalia', name: 'SOMALIA', severity: 'HIGH', lat: 5.0, lng: 46.0, html: 'Al-Shabaab insurgency and counter-terror operations.' },
+  { id: 'hotspot-taiwan', name: 'TAIWAN STRAIT', severity: 'HIGH', lat: 24.0, lng: 119.5, html: 'Military posturing and maritime transit tensions.' },
+  { id: 'hotspot-korea', name: 'KOREAN DMZ', severity: 'HIGH', lat: 38.3, lng: 127.0, html: 'Border militarization and escalation alerts at the DMZ.' },
+];
 
 // ─── HUD Surveillance Camera SVG ─────────────────────────────────
 // DESIGN.md: 2px "corner bracket" detail in each corner, "targeting" aesthetic
@@ -90,7 +105,7 @@ function CameraMarker({
         {isSelected && <circle cx="20" cy="24" r="1.5" fill="#0d0e12" />}
       </svg>
 
-      <div className={`absolute top-full mt-1.5 text-[7px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      <div className={`absolute top-full mt-1.5 text-[8px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         CAMERA NODE {camera.id.toString().slice(0, 8)}
       </div>
 
@@ -731,7 +746,7 @@ export function TacticalMap({
               type="symbol"
               layout={{
                 'text-field': ['get', 'name'],
-                'text-size': 8,
+                'text-size': 9.2,
                 'text-offset': [0, 1],
                 'text-anchor': 'top'
               }}
@@ -896,6 +911,30 @@ export function TacticalMap({
           })()
         )}
 
+        {/* Submarine Cables Layer */}
+        {!isDived && layers.maritime_cables && (
+          <Source id="cables-source" type="geojson" data="/data/submarine-cables.json">
+            <Layer
+              id="cables-glow-layer"
+              type="line"
+              paint={{
+                'line-color': ['coalesce', ['get', 'color'], '#4FC3F7'],
+                'line-width': ['interpolate', ['linear'], ['zoom'], 1, 1.2, 5, 2.0, 10, 4.0],
+                'line-opacity': 0.15,
+              }}
+            />
+            <Layer
+              id="cables-line-layer"
+              type="line"
+              paint={{
+                'line-color': ['coalesce', ['get', 'color'], '#4FC3F7'],
+                'line-width': ['interpolate', ['linear'], ['zoom'], 1, 0.4, 5, 0.8, 10, 1.5],
+                'line-opacity': 0.55,
+              }}
+            />
+          </Source>
+        )}
+
         {/* GeoJSON Ships Layer */}
         {!isDived && layers.maritime && (
           <Source id="ships-source" type="geojson" data={shipGeoJson as any}>
@@ -909,7 +948,7 @@ export function TacticalMap({
                 'icon-ignore-placement': true,
                 'icon-size': 0.8,
                 'text-field': ['get', 'name'],
-                'text-size': 7,
+                'text-size': 8.05,
                 'text-offset': [0, 1.2],
                 'text-anchor': 'top'
               }}
@@ -1019,7 +1058,7 @@ export function TacticalMap({
                   className={`w-3 h-3 rounded-full border border-black cursor-pointer ${port.congestion === 'SEVERE' ? 'bg-red-500 text-red-500' : port.congestion === 'CONGESTED' ? 'bg-orange-500 text-orange-500' : 'bg-cyan-500 text-cyan-500'}`}
                   onClick={(e) => { e.stopPropagation(); setActiveEntityId(port.id || port.name); }}
                 />
-                <div className={`absolute top-full mt-1.5 text-[7px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <div className={`absolute top-full mt-1.5 text-[8px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                   {port.name}
                 </div>
               </div>
@@ -1121,7 +1160,7 @@ export function TacticalMap({
                   className={`w-3 h-3 rotate-45 border border-black cursor-pointer ${chokepoint.risk === 'CRITICAL' ? 'bg-red-600 text-red-600' : chokepoint.risk === 'HIGH' ? 'bg-orange-500 text-orange-500' : 'bg-yellow-500 text-yellow-500'}`}
                   onClick={(e) => { e.stopPropagation(); setActiveEntityId(chokepoint.name); }}
                 />
-                <div className={`absolute top-full mt-1.5 text-[7px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <div className={`absolute top-full mt-1.5 text-[8px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                   {chokepoint.name}
                 </div>
               </div>
@@ -1210,7 +1249,7 @@ export function TacticalMap({
                   <div className="absolute inset-0 rounded-full animate-ping opacity-75" style={{ backgroundColor: color }}></div>
                   <div className="relative rounded-full border border-black shadow-[0_0_8px_currentColor] w-full h-full" style={{ backgroundColor: color, color }}></div>
                 </div>
-                <div className={`absolute top-full mt-1 text-[7px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <div className={`absolute top-full mt-1 text-[8px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                   {eq.place}
                 </div>
               </div>
@@ -1256,66 +1295,135 @@ export function TacticalMap({
           );
         })}
 
-        {/* Render Global Incidents */}
-        {!isDived && incidents.map((incident) => {
-          const isCritical = getThreatSeverity(incident.name || '', incident.html || '') === 'CRITICAL';
-          if (!layers.threats_incidents && !isCritical) return null;
-
+        {/* Render Critical Hotspots (Always Visible) */}
+        {!isDived && CRITICAL_HOTSPOTS.map((incident) => {
           const isActive = activeEntityId === incident.id;
-          const color = '#ef4444'; // Red for conflict
+          const color = incident.severity === 'CRITICAL' ? '#ef4444' : '#f97316';
 
           return (
             <React.Fragment key={incident.id}>
-            <Marker longitude={incident.lng} latitude={incident.lat} anchor="center" style={{ zIndex: isActive ? 999998 : 20 }}>
-              <div className="relative flex flex-col items-center">
-                <div
-                  className="cursor-pointer flex items-center justify-center hover:scale-110 transition-transform"
-                  onClick={(e) => { e.stopPropagation(); setActiveEntityId(incident.id); }}
-                >
-                  {isCritical ? (
-                    <span className="text-[20px]">⚠️</span>
-                  ) : (
-                    <span className="material-symbols-outlined text-[20px]" style={{ color }}>crisis_alert</span>
-                  )}
-                </div>
-                {/* Text visible only when zoomed in, limited to 4 words */}
-                <div 
-                  className={`absolute top-full mt-0.5 text-[7px] font-headline font-bold whitespace-nowrap transition-opacity duration-300 uppercase ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                  style={{ color }}
-                >
-                  {incident.name.split(' ').slice(0, 4).join(' ')}{incident.name.split(' ').length > 4 ? '...' : ''}
-                </div>
-              </div>
-            </Marker>
-            {isActive && (
-              <Marker longitude={incident.lng} latitude={incident.lat} anchor="top-left" style={{ zIndex: 999999 }}>
-                <div className="absolute top-2 left-2 fui-border bg-black/80 p-4 shadow-2xl backdrop-blur-md w-[300px] pointer-events-auto cursor-auto z-[999999]" >
-                  <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
-                  <div className="flex justify-between items-start mb-3 mt-1">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[16px]" style={{ color }}>crisis_alert</span>
-                        <h3 className="font-headline font-bold text-sm tracking-wider uppercase truncate max-w-[200px]" style={{ color }}>Global Incident</h3>
-                      </div>
-                      <span className="text-slate-400 font-mono text-[9px] uppercase tracking-widest block mt-0.5">{incident.type}</span>
-                    </div>
-                    <button onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} className="text-slate-500 hover:text-white transition-colors">
-                      <span className="material-symbols-outlined text-[16px]">close</span>
-                    </button>
+              <Marker longitude={incident.lng} latitude={incident.lat} anchor="center" style={{ zIndex: isActive ? 999998 : 20 }}>
+                <div className="relative flex flex-col items-center">
+                  <div
+                    className="cursor-pointer flex items-center justify-center hover:scale-110 transition-transform filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                    onClick={(e) => { e.stopPropagation(); setActiveEntityId(incident.id); }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2L1 21h22L12 2z" fill={color} stroke="#000000" strokeWidth="1"/>
+                      <path d="M12 8v7" stroke="#000000" strokeWidth="2.5" strokeLinecap="round"/>
+                      <circle cx="12" cy="18" r="1.5" fill="#000000"/>
+                    </svg>
                   </div>
-
-                  <div className="bg-slate-900/50 border border-slate-800/80 rounded p-3 mb-3">
-                    <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">INCIDENT DETAILS</span>
-                    <div className="text-[10px] font-mono text-slate-300 whitespace-normal leading-relaxed break-words" dangerouslySetInnerHTML={{ __html: incident.html }} />
+                  {/* Label - Always visible to match reference image */}
+                  <div 
+                    className="absolute top-full mt-1 text-[8px] font-headline font-bold whitespace-nowrap uppercase tracking-wider text-center"
+                    style={{ 
+                      color,
+                      textShadow: '0 0 4px #000000, 1px 1px 1px #000000, -1px -1px 1px #000000'
+                    }}
+                  >
+                    {incident.name}
                   </div>
-                  
-                  <a href={incident.url} target="_blank" rel="noopener noreferrer" className="block w-full py-1.5 rounded text-[10px] font-mono text-center transition-colors bg-secondary/10 text-secondary hover:bg-secondary/20">
-                    VIEW SOURCE
-                  </a>
                 </div>
               </Marker>
-            )}
-          </React.Fragment>
+              {isActive && (
+                <Marker longitude={incident.lng} latitude={incident.lat} anchor="top-left" style={{ zIndex: 999999 }}>
+                  <div className="absolute top-2 left-2 fui-border bg-black/80 p-4 shadow-2xl backdrop-blur-md w-[300px] pointer-events-auto cursor-auto z-[999999]" >
+                    <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+                    <div className="flex justify-between items-start mb-3 mt-1">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L1 21h22L12 2z" fill={color} stroke="#000000" strokeWidth="1"/>
+                            <path d="M12 8v7" stroke="#000000" strokeWidth="2.5" strokeLinecap="round"/>
+                            <circle cx="12" cy="18" r="1.5" fill="#000000"/>
+                          </svg>
+                          <h3 className="font-headline font-bold text-sm tracking-wider uppercase truncate max-w-[200px]" style={{ color }}>{incident.name}</h3>
+                        </div>
+                        <span className="text-slate-400 font-mono text-[9px] uppercase tracking-widest block mt-0.5">{incident.severity} THREAT ZONE</span>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} className="text-slate-500 hover:text-white transition-colors">
+                        <span className="material-symbols-outlined text-[16px]">close</span>
+                      </button>
+                    </div>
+
+                    <div className="bg-slate-900/50 border border-slate-800/80 rounded p-3 mb-2">
+                      <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">INTEL REPORT</span>
+                      <div className="text-[10px] font-mono text-slate-300 whitespace-normal leading-relaxed break-words">
+                        {incident.html}
+                      </div>
+                    </div>
+                  </div>
+                </Marker>
+              )}
+            </React.Fragment>
+          );
+        })}
+
+        {/* Render Global Incidents (Dynamic RSS feeds, visible only when threats_incidents layer is enabled) */}
+        {!isDived && layers.threats_incidents && incidents.filter(inc => {
+          // Exclude dynamic items that overlap with our static hotspots to keep it clean
+          const titleLower = inc.name.toLowerCase();
+          return !CRITICAL_HOTSPOTS.some(hotspot => {
+            const words = hotspot.name.toLowerCase().split(' ');
+            return words.every(word => titleLower.includes(word));
+          });
+        }).map((incident) => {
+          const severity = getThreatSeverity(incident.name || '', incident.html || '');
+          const isCritical = severity === 'CRITICAL';
+          const isHigh = severity === 'HIGH';
+          
+          const color = isCritical ? '#ef4444' : isHigh ? '#f97316' : '#94a3b8';
+          const isActive = activeEntityId === incident.id;
+
+          return (
+            <React.Fragment key={incident.id}>
+              <Marker longitude={incident.lng} latitude={incident.lat} anchor="center" style={{ zIndex: isActive ? 999998 : 20 }}>
+                <div className="relative flex flex-col items-center">
+                  <div
+                    className="cursor-pointer flex items-center justify-center hover:scale-110 transition-transform"
+                    onClick={(e) => { e.stopPropagation(); setActiveEntityId(incident.id); }}
+                  >
+                    <span className="material-symbols-outlined text-[20px]" style={{ color }}>crisis_alert</span>
+                  </div>
+                  {/* Dynamic text visible only when zoomed in */}
+                  <div 
+                    className={`absolute top-full mt-0.5 text-[8px] font-headline font-bold whitespace-nowrap transition-opacity duration-300 uppercase ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                    style={{ color }}
+                  >
+                    {incident.name.split(' ').slice(0, 4).join(' ') + (incident.name.split(' ').length > 4 ? '...' : '')}
+                  </div>
+                </div>
+              </Marker>
+              {isActive && (
+                <Marker longitude={incident.lng} latitude={incident.lat} anchor="top-left" style={{ zIndex: 999999 }}>
+                  <div className="absolute top-2 left-2 fui-border bg-black/80 p-4 shadow-2xl backdrop-blur-md w-[300px] pointer-events-auto cursor-auto z-[999999]" >
+                    <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+                    <div className="flex justify-between items-start mb-3 mt-1">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[16px]" style={{ color }}>crisis_alert</span>
+                          <h3 className="font-headline font-bold text-sm tracking-wider uppercase truncate max-w-[200px]" style={{ color }}>Global Incident</h3>
+                        </div>
+                        <span className="text-slate-400 font-mono text-[9px] uppercase tracking-widest block mt-0.5">{incident.type}</span>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); setActiveEntityId(null); }} className="text-slate-500 hover:text-white transition-colors">
+                        <span className="material-symbols-outlined text-[16px]">close</span>
+                      </button>
+                    </div>
+
+                    <div className="bg-slate-900/50 border border-slate-800/80 rounded p-3 mb-3">
+                      <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">INCIDENT DETAILS</span>
+                      <div className="text-[10px] font-mono text-slate-300 whitespace-normal leading-relaxed break-words" dangerouslySetInnerHTML={{ __html: incident.html }} />
+                    </div>
+                    
+                    <a href={incident.url} target="_blank" rel="noopener noreferrer" className="block w-full py-1.5 rounded text-[10px] font-mono text-center transition-colors bg-secondary/10 text-secondary hover:bg-secondary/20">
+                      VIEW SOURCE
+                    </a>
+                  </div>
+                </Marker>
+              )}
+            </React.Fragment>
           );
         })}
 
@@ -1336,7 +1444,7 @@ export function TacticalMap({
                 </div>
                 {/* Text visible only when zoomed in, limited to 4 words */}
                 <div 
-                  className={`absolute top-full mt-1 text-[7px] font-mono whitespace-nowrap transition-opacity duration-300 uppercase bg-black/60 px-1 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                  className={`absolute top-full mt-1 text-[8px] font-mono whitespace-nowrap transition-opacity duration-300 uppercase bg-black/60 px-1 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                   style={{ color }}
                 >
                   {item.source}
@@ -1399,7 +1507,7 @@ export function TacticalMap({
                 </div>
                 {/* Text visible only when zoomed in, limited to 4 words */}
                 <div 
-                  className={`absolute top-full mt-1 text-[7px] font-mono whitespace-nowrap transition-opacity duration-300 uppercase bg-black/60 px-1 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                  className={`absolute top-full mt-1 text-[8px] font-mono whitespace-nowrap transition-opacity duration-300 uppercase bg-black/60 px-1 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                   style={{ color }}
                 >
                   {item.type}
@@ -1570,7 +1678,7 @@ export function TacticalMap({
                 >
                   <span className="material-symbols-outlined text-[20px]" style={{ color }}>warning</span>
                 </div>
-                <div className={`absolute top-full mt-1.5 text-[7px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <div className={`absolute top-full mt-1.5 text-[8px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                   {nuc.name}
                 </div>
               </div>
@@ -1633,7 +1741,7 @@ export function TacticalMap({
                 >
                   <span className="material-symbols-outlined text-[20px]" style={{ color }}>{iconStr}</span>
                 </div>
-                <div className={`absolute top-full mt-1.5 text-[7px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <div className={`absolute top-full mt-1.5 text-[8px] font-mono text-slate-300 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded transition-opacity duration-300 ${isZoomedIn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                   {base.callsign}
                 </div>
               </div>

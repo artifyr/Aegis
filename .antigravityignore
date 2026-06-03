@@ -1,0 +1,3 @@
+# Ignore osiris_temp folder from AI search and indexing
+osiris_temp/
+**/osiris_temp/**

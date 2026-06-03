@@ -112,7 +112,7 @@ export function SideNavBar() {
     e.stopPropagation();
     const groupLayers: Record<string, string[]> = {
       aviation: ['aviation_commercial', 'aviation_private', 'aviation_jets', 'aviation_military'],
-      maritime: ['maritime', 'space_satellites'],
+      maritime: ['maritime', 'space_satellites', 'maritime_cables'],
       surveillance: ['cctv'],
       hazards: ['hazards_earthquakes', 'hazards_weather'],
       threats: ['threats_nuclear', 'threats_incidents', 'threats_strategic', 'threats_news'],
@@ -265,7 +265,7 @@ export function SideNavBar() {
   };
 
   const aviationActiveCount = [layers.aviation_commercial, layers.aviation_private, layers.aviation_jets, layers.aviation_military].filter(Boolean).length;
-  const maritimeActiveCount = [layers.maritime, layers.space_satellites].filter(Boolean).length;
+  const maritimeActiveCount = [layers.maritime, layers.space_satellites, layers.maritime_cables].filter(Boolean).length;
   const survActiveCount = [layers.cctv, false].filter(Boolean).length;
   const hazardsActiveCount = [layers.hazards_earthquakes, layers.hazards_weather, false].filter(Boolean).length;
   const threatsActiveCount = [layers.threats_nuclear, layers.threats_incidents, layers.threats_strategic, layers.threats_news].filter(Boolean).length;
@@ -374,7 +374,8 @@ export function SideNavBar() {
                 }}
               >
                 <div className="flex flex-col overflow-hidden">
-                  <span className="text-white text-[10px] tracking-wide uppercase truncate">{res.name}</span>
+                  <span className="text-white text-[11px] tracking-wide uppercase truncate">{res.name}</span>
+                  <span className="text-white/50 text-[9px] tracking-widest uppercase truncate">{res.type} {res.sub ? `// ${res.sub}` : ''}</span>
                 </div>
               </button>
             ))}
@@ -408,6 +409,7 @@ export function SideNavBar() {
 
           <div className="flex flex-col gap-1.5">
             <LayerSwitch label="MARITIME NAVAL" active={layers.maritime} count={ports.length + chokepoints.length} dotColor="bg-white" onClick={() => toggleLayer('maritime')} />
+            <LayerSwitch label="SUBSEA CABLES" active={layers.maritime_cables} count={717} dotColor="bg-blue-400" onClick={() => toggleLayer('maritime_cables')} />
             <LayerSwitch label="SATELLITES" active={layers.space_satellites} count={satellites.length} dotColor="bg-white" onClick={() => toggleLayer('space_satellites')} />
             <LayerSwitch label="CCTV NODES" active={layers.cctv} count={cameras.length} dotColor="bg-white" onClick={() => toggleLayer('cctv')} />
           </div>

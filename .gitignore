@@ -64,10 +64,6 @@ __pycache__/
 
 .vercel
 
-# graphify
-graphify-out/
-.graphify/
-
 # gemini
 .gemini/
 
@@ -84,4 +80,7 @@ scratch/
 
 # other unnecessary files
 old_map.txt
+
+# osiris reference clone
+/osiris_temp/
 
