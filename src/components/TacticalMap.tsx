@@ -447,6 +447,18 @@ export function TacticalMap({
           const map = e.target;
           const b = map.getBounds();
           if (b) setBounds({ sw: b.getSouthWest(), ne: b.getNorthEast() });
+
+          if (mapCommand) {
+            if (mapCommand.type === 'flyTo') {
+              map.flyTo({
+                center: [mapCommand.lng, mapCommand.lat],
+                zoom: mapCommand.zoom || 16,
+                duration: 2500,
+                essential: true
+              });
+            }
+            setMapCommand(null);
+          }
         }}
         interactiveLayerIds={['flights-layer', 'satellites-layer', 'ships-layer', 'cctv-layer']}
 
