@@ -779,58 +779,66 @@ export function TacticalMap({
           <Marker
             longitude={selectedFire.lng}
             latitude={selectedFire.lat}
-            anchor="center"
+            anchor="top-left"
             style={{ zIndex: 999999 }}
           >
             <div
-              className="absolute top-4 left-4 fui-border bg-black/80 p-4 shadow-2xl backdrop-blur-md w-72 pointer-events-auto cursor-auto transition-all duration-200 z-[999999]"
+              className="absolute top-2 left-2 fui-border bg-black/80 p-4 shadow-2xl backdrop-blur-md w-[300px] pointer-events-auto cursor-auto z-[999999]"
             >
               <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
               
               <div className="flex justify-between items-start mb-3 mt-1">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-base inline-block transform -rotate-12 filter drop-shadow-md">
-                      {selectedFire.type === 'volcano' ? '🌋' : '🔥'}
+                    <span className="material-symbols-outlined text-[16px] text-orange-500">
+                      {selectedFire.type === 'volcano' ? 'volcano' : 'local_fire_department'}
                     </span>
-                    <h3 className="font-headline font-bold text-sm tracking-wider uppercase text-orange-500">
-                      {selectedFire.type === 'volcano' ? (selectedFire.title || 'ACTIVE VOLCANO') : 'ACTIVE FIRE / HOTSPOT'}
+                    <h3 className="text-white font-headline font-bold text-sm tracking-wider uppercase truncate max-w-[200px]">
+                      {selectedFire.type === 'volcano' ? (selectedFire.title?.replace('[VOLCANO] ', '') || 'ACTIVE VOLCANO') : 'ACTIVE FIRE'}
                     </h3>
                   </div>
-                  <span className="text-slate-500 font-mono text-[9px] uppercase tracking-widest block mt-0.5">
-                    HAZARD DETECTED
+                  <span className="text-slate-400 font-mono text-[9px] uppercase tracking-widest block mt-0.5">
+                    HAZARD DETECTED // {selectedFire.date || 'RECENT'}
                   </span>
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); setSelectedFire(null); }}
-                  className="text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800/80 w-6 h-6 flex items-center justify-center rounded-full transition-all duration-150 border border-slate-800"
+                  className="text-slate-500 hover:text-white transition-colors"
                 >
-                  <span className="material-symbols-outlined text-xs">close</span>
+                  <span className="material-symbols-outlined text-[16px]">close</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 mb-3 bg-slate-900/40 border border-slate-800/40 p-2.5 rounded-lg text-left">
-                <div className="col-span-2 bg-slate-950/60 border border-slate-800/50 rounded p-2 text-center">
-                  <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-0.5">COORDINATES</span>
-                  <span className="text-cyan-400 font-mono text-[10px] font-semibold">
-                    {Math.abs(selectedFire.lat).toFixed(5)}°{selectedFire.lat >= 0 ? 'N' : 'S'}, {Math.abs(selectedFire.lng).toFixed(5)}°{selectedFire.lng >= 0 ? 'E' : 'W'}
+              <div className="fui-border bg-black/40 p-3 mb-3 flex flex-col items-center text-center">
+                <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+                <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">COORDINATES</span>
+                <span className="text-[#3cdcd1] font-mono text-xs font-bold uppercase truncate">
+                  {Math.abs(selectedFire.lat).toFixed(5)}°{selectedFire.lat >= 0 ? 'N' : 'S'}, {Math.abs(selectedFire.lng).toFixed(5)}°{selectedFire.lng >= 0 ? 'E' : 'W'}
+                </span>
+              </div>
+
+              <div className="fui-border bg-black/40 p-3 mb-3 flex flex-col items-center text-center">
+                <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+                <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">BRIGHTNESS</span>
+                <span className="text-orange-500 font-mono text-xs font-bold uppercase truncate">
+                  {selectedFire.brightness ? `${Number(selectedFire.brightness).toFixed(1)} K` : 'N/A'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-2 text-left">
+                <div className="fui-border bg-black/40 p-3 flex flex-col items-center text-center">
+                  <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+                  <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">FRP (POWER)</span>
+                  <span className="text-white font-mono text-xs font-bold uppercase truncate">
+                    {selectedFire.frp ? `${Number(selectedFire.frp).toFixed(1)} MW` : 'N/A'}
                   </span>
                 </div>
-                <div className="bg-slate-950/60 border border-slate-800/50 rounded p-2 text-center">
-                  <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-0.5">BRIGHTNESS</span>
-                  <span className="text-orange-400 font-mono text-[11px] font-semibold">{selectedFire.brightness ? `${selectedFire.brightness.toFixed(1)} K` : 'N/A'}</span>
-                </div>
-                <div className="bg-slate-950/60 border border-slate-800/50 rounded p-2 text-center">
-                  <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-0.5">FRP (POWER)</span>
-                  <span className="text-white font-mono text-[11px]">{selectedFire.frp ? `${selectedFire.frp.toFixed(1)} MW` : 'N/A'}</span>
-                </div>
-                <div className="bg-slate-950/60 border border-slate-800/50 rounded p-2 text-center">
-                  <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-0.5">CONFIDENCE</span>
-                  <span className="text-white font-mono text-[10px] uppercase truncate">{selectedFire.confidence || 'N/A'}</span>
-                </div>
-                <div className="bg-slate-950/60 border border-slate-800/50 rounded p-2 text-center">
-                  <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-0.5">DETECTED</span>
-                  <span className="text-white font-mono text-[10px] uppercase truncate">{selectedFire.date || 'RECENT'}</span>
+                <div className="fui-border bg-black/40 p-3 flex flex-col items-center text-center">
+                  <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+                  <span className="text-slate-500 text-[8px] font-mono tracking-widest uppercase block mb-1">CONFIDENCE</span>
+                  <span className="text-white font-mono text-xs font-bold uppercase truncate">
+                    {selectedFire.confidence || 'N/A'}
+                  </span>
                 </div>
               </div>
             </div>
