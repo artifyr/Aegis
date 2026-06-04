@@ -220,6 +220,39 @@ export function rotateApiKey(keys: string[]): string {
   return key;
 }
 
+const MODELS_TO_TRY = ['gemini-2.5-flash', 'gemini-3.0-flash', 'gemini-3.5-flash', 'gemini-2.0-flash-lite'];
+
+export async function generateWithFallback(client: GoogleGenerativeAI, prompt: string, systemInstruction?: string): Promise<string> {
+  let lastError: any = null;
+  for (const modelName of MODELS_TO_TRY) {
+    try {
+      const model = client.getGenerativeModel({
+        model: modelName,
+        systemInstruction: systemInstruction,
+      });
+      const result = await model.generateContent(prompt);
+      return result.response.text();
+    } catch (err: any) {
+      console.warn(`[AEGIS AI] Model ${modelName} failed: ${err.message}. Switching to next model...`);
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
+
+export async function fallbackTranslate(text: string): Promise<string> {
+  if (!text) return text;
+  try {
+    const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(text)}`);
+    if (!res.ok) return text;
+    const data = await res.json();
+    return data[0].map((s: any) => s[0]).join('');
+  } catch (e) {
+    console.error("[AEGIS AI] Auto-translation fallback failed:", e);
+    return text;
+  }
+}
+
 /* ─────────────────────────────────────────────────────────────
    Context Serializer — Compact representation for token efficiency
    ───────────────────────────────────────────────────────────── */
@@ -280,11 +313,6 @@ export async function analyzeIntelligence(
   context: IntelligenceContext,
   userQuery: string
 ): Promise<string> {
-  const model: GenerativeModel = client.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    systemInstruction: SYSTEM_PROMPT,
-  });
-
   const contextData = serializeContext(context);
 
   const prompt = `## CURRENT OPERATIONAL DATA
@@ -295,9 +323,7 @@ ${userQuery}
 
 Provide your intelligence assessment based on the operational data above and the analyst's query.`;
 
-  const result = await model.generateContent(prompt);
-  const response = result.response;
-  return response.text();
+  return await generateWithFallback(client, prompt, SYSTEM_PROMPT);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -308,11 +334,6 @@ export async function generateBriefing(
   client: GoogleGenerativeAI,
   context: IntelligenceContext
 ): Promise<string> {
-  const model: GenerativeModel = client.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    systemInstruction: SYSTEM_PROMPT,
-  });
-
   const contextData = serializeContext(context);
 
   const prompt = `${BRIEFING_PROMPT}
@@ -322,24 +343,14 @@ ${contextData}
 
 Generate the briefing now.`;
 
-  const result = await model.generateContent(prompt);
-  const response = result.response;
-  return response.text();
+  return await generateWithFallback(client, prompt, SYSTEM_PROMPT);
 }
 
 /* ─────────────────────────────────────────────────────────────
    News / Intel Validation
    ───────────────────────────────────────────────────────────── */
 
-export async function validateNewsBulk(
-  client: GoogleGenerativeAI,
-  items: any[]
-): Promise<any[]> {
-  if (items.length === 0) return [];
-
-  const model = client.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    systemInstruction: `You are an automated OSINT curation, translation, and summarization AI.
+const NEWS_SYSTEM_PROMPT = `You are an automated OSINT curation, translation, and summarization AI.
 Your job is to filter a list of newly ingested Telegram and RSS items, translate them to English, and summarize/shorten long or verbose news alerts.
 You must strictly EXCLUDE (set valid: false):
 - Telegram auto-generated messages (e.g. "Channel photo updated", "Channel name was changed", "Channel created")
@@ -359,16 +370,21 @@ Return ONLY a JSON array of objects with this structure:
   { "valid": false }
 ]
 
-The array length must EXACTLY match the number of input items provided. Do not include markdown code blocks like \`\`\`json, just the raw array.`,
-  });
+The array length must EXACTLY match the number of input items provided. Do not include markdown code blocks like \`\`\`json, just the raw array.`;
+
+export async function validateNewsBulk(
+  client: GoogleGenerativeAI,
+  items: any[]
+): Promise<any[]> {
+  if (items.length === 0) return [];
 
   const payload = items.map((it, idx) => `[${idx}] Title: ${it.title} | Content: ${it.description}`).join('\n');
 
   try {
     const prompt = `Validate and translate these items:\n${payload}\n\nReturn JSON object array only.`;
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim().replace(/^```json/i, '').replace(/```$/i, '').trim();
-    const parsedArray = JSON.parse(text);
+    const text = await generateWithFallback(client, prompt, NEWS_SYSTEM_PROMPT);
+    const cleanText = text.trim().replace(/^```json/i, '').replace(/```$/i, '').trim();
+    const parsedArray = JSON.parse(cleanText);
 
     if (Array.isArray(parsedArray) && parsedArray.length === items.length) {
       const processedItems: any[] = [];
@@ -388,10 +404,19 @@ The array length must EXACTLY match the number of input items provided. Do not i
   }
 
   // Fallback heuristic filter
-  return items.filter(it => {
+  const filtered = items.filter(it => {
     const lower = (it.title + ' ' + it.description).toLowerCase();
     const junk = ['channel photo updated', 'channel created', 'channel name was changed', 'selling on fragment', 'выставлено на аукцион', 'минимальную ставку'];
     return !junk.some(j => lower.includes(j));
   });
+
+  // Free auto-translation fallback for items
+  const translatedFallback = await Promise.all(filtered.map(async (it) => ({
+    ...it,
+    title: await fallbackTranslate(it.title),
+    description: await fallbackTranslate(it.description)
+  })));
+
+  return translatedFallback;
 }
 
