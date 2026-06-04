@@ -207,7 +207,7 @@ export async function GET() {
       });
     }
 
-    const newsItems = allArticles.map(article => {
+    const newsItems = allArticles.map((article, index) => {
       const riskScore = scoreRisk(article.description || article.title);
       let coords = findCoords(article.description || article.title);
       
@@ -220,7 +220,7 @@ export async function GET() {
       }
 
       return {
-        id: crypto.createHash('md5').update((article.link || '') + (article.pubDate || '')).digest('hex'),
+        id: crypto.createHash('md5').update((article.link || '') + (article.pubDate || '') + index.toString()).digest('hex'),
         title: article.title,
         description: article.description,
         link: article.link,
