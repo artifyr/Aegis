@@ -64,13 +64,14 @@ export function TopNavBar() {
             );
           })}
         </nav>
-        <div 
-          className="cursor-pointer transition-transform hover:scale-110 flex items-center justify-center ml-2 md:ml-4"
-          onClick={() => (window as any).__aegisCameraReset?.()}
-          title="Reset Globe View"
-        >
-          <img src="/aegislogo.png" alt="Aegis Logo" className="h-6" />
-        </div>
+      </div>
+
+      <div 
+        className="absolute left-1/2 -translate-x-1/2 cursor-pointer transition-transform hover:scale-110 flex items-center justify-center"
+        onClick={() => (window as any).__aegisCameraReset?.()}
+        title="Reset Globe View"
+      >
+        <img src="/aegislogo.png" alt="Aegis Logo" className="h-8" />
       </div>
 
       <div className="flex items-center gap-6">
