@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { createGeminiClient, rotateApiKey, validateNewsBulk } from '@/lib/ai-engine';
 
 /**
  * AEGIS — Military-Grade Intelligence API
@@ -8,10 +9,17 @@ import crypto from 'crypto';
  */
 
 const TELEGRAM_CHANNELS = [
-  'OSINTtechnical',
-  'Faytuks',
-  'Liveuamap',
-  'CyberKnow'
+  'OSINTtechnical',      // Global/USA
+  'Faytuks',             // Global
+  'Liveuamap',           // Global
+  'CyberKnow',           // Global Cyber
+  'clashreport',         // Middle East / Global
+  'rybar',               // Russia/Ukraine
+  'Slavyangrad',         // Russia/Ukraine
+  'ukraine_watch',       // Ukraine
+  'EndGameWW3',          // Global/USA
+  'middleeastspectator', // Middle East
+  'indiandefencenews'    // India
 ];
 
 const FALLBACK_FEEDS = {
@@ -114,7 +122,7 @@ export async function GET() {
     });
 
     const feedResults = await Promise.allSettled(feedPromises);
-    const allArticles: any[] = [];
+    let allArticles: any[] = [];
 
     for (const result of feedResults) {
       if (result.status === 'fulfilled') allArticles.push(...result.value);
@@ -135,6 +143,28 @@ export async function GET() {
       for (const result of fallbackResults) {
         if (result.status === 'fulfilled') allArticles.push(...result.value);
       }
+    }
+
+    // AI Validation Step: Filter out spam, ads, and channel updates
+    try {
+      const apiKeys = [];
+      for (let i = 1; i <= 8; i++) {
+        const k = process.env[`GEMINI_API_KEY_${i}`];
+        if (k && k.trim().length > 0) apiKeys.push(k.trim());
+      }
+      if (apiKeys.length > 0) {
+        const client = createGeminiClient(rotateApiKey(apiKeys));
+        // We validate in batches of 30 to avoid prompt size / context limits on huge lists
+        let validatedArticles: any[] = [];
+        for (let i = 0; i < allArticles.length; i += 30) {
+          const chunk = allArticles.slice(i, i + 30);
+          const validChunk = await validateNewsBulk(client, chunk);
+          validatedArticles.push(...validChunk);
+        }
+        allArticles = validatedArticles;
+      }
+    } catch (e) {
+      console.warn("[AEGIS AI] AI Validation failed in news route, continuing with raw feed", e);
     }
 
     const newsItems = allArticles.map(article => {

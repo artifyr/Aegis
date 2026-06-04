@@ -326,3 +326,51 @@ Generate the briefing now.`;
   const response = result.response;
   return response.text();
 }
+
+/* ─────────────────────────────────────────────────────────────
+   News / Intel Validation
+   ───────────────────────────────────────────────────────────── */
+
+export async function validateNewsBulk(
+  client: GoogleGenerativeAI,
+  items: any[]
+): Promise<any[]> {
+  if (items.length === 0) return [];
+
+  const model = client.getGenerativeModel({
+    model: 'gemini-2.5-flash',
+    systemInstruction: `You are an automated OSINT curation AI.
+Your job is to filter a list of newly ingested Telegram and RSS items. 
+You must strictly EXCLUDE:
+- Telegram auto-generated messages (e.g. "Channel photo updated", "Channel name was changed", "Channel created")
+- Fragment/auction spam (e.g. "Will be selling on fragment", "Имя @... выставлено на аукцион")
+- Purely administrative or empty posts
+- Spam, ads, and irrelevant channel chat.
+
+Return ONLY a JSON array containing the boolean \`true\` if the corresponding item is valid news/intel, or \`false\` if it is junk.
+The array length must EXACTLY match the number of input items provided. Do not include markdown code blocks like \`\`\`json, just the raw array.`,
+  });
+
+  const payload = items.map((it, idx) => `[${idx}] Title: ${it.title} | Content: ${it.description}`).join('\n');
+
+  try {
+    const prompt = `Validate these items:\n${payload}\n\nReturn JSON boolean array only.`;
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim().replace(/^```json/i, '').replace(/```$/i, '').trim();
+    const boolArray = JSON.parse(text);
+
+    if (Array.isArray(boolArray) && boolArray.length === items.length) {
+      return items.filter((_, idx) => boolArray[idx] === true);
+    }
+  } catch (e) {
+    console.error('[AEGIS AI] Validation failed, falling back to heuristic filter:', e);
+  }
+
+  // Fallback heuristic filter
+  return items.filter(it => {
+    const lower = (it.title + ' ' + it.description).toLowerCase();
+    const junk = ['channel photo updated', 'channel created', 'channel name was changed', 'selling on fragment', 'выставлено на аукцион', 'минимальную ставку'];
+    return !junk.some(j => lower.includes(j));
+  });
+}
+
