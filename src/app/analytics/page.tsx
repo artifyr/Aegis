@@ -161,6 +161,7 @@ export default function AnalyticsPage() {
   const [chatInput, setChatInput] = useState('');
   const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]);
   const [statusMsg, setStatusMsg] = useState('COGNITIVE CORE IDLE');
+  const [aiMaximized, setAiMaximized] = useState(false);
 
   const getIntelligenceContext = () => {
     // Map earthquakes from store to EarthquakeEvent[]
@@ -649,132 +650,159 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Aegis AI Analyst */}
-          <div className="fui-border bg-black/40 p-6 relative flex flex-col h-[380px]">
-            <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-[10px] font-label text-white/60 uppercase tracking-widest flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-xs text-[#0ea5e9] animate-pulse">psychology</span>
-                Aegis Tactical AI Analyst
-              </h3>
-              <span className={`text-[8px] font-mono border px-1.5 py-0.5 tracking-wider uppercase ${
-                loading ? 'text-yellow-400 border-yellow-400/30 animate-pulse' : 'text-secondary border-secondary/30'
-              }`}>
-                {statusMsg}
-              </span>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex gap-2 mb-3 border-b border-white/10 pb-2">
-              <button
-                onClick={() => setAiTab('briefing')}
-                className={`flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-wider px-3 py-1.5 border transition-all ${
-                  aiTab === 'briefing'
-                    ? 'bg-secondary/10 border-secondary text-secondary font-bold'
-                    : 'bg-transparent border-white/5 text-white/60 hover:text-white hover:border-white/20'
-                }`}
-              >
-                <span className="material-symbols-outlined text-xs">description</span>
-                Briefing
-              </button>
-              <button
-                onClick={() => setAiTab('chat')}
-                className={`flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-wider px-3 py-1.5 border transition-all ${
-                  aiTab === 'chat'
-                    ? 'bg-secondary/10 border-secondary text-secondary font-bold'
-                    : 'bg-transparent border-white/5 text-white/60 hover:text-white hover:border-white/20'
-                }`}
-              >
-                <span className="material-symbols-outlined text-xs">terminal</span>
-                Ask Aegis
-              </button>
-            </div>
-
-            {/* Tab content */}
-            <div className="flex-1 min-h-0 flex flex-col justify-between">
-              {aiTab === 'briefing' ? (
-                <div className="flex flex-col h-full justify-between">
-                  <div className="flex-1 bg-black/60 border border-white/5 p-3 font-mono text-[9px] text-white/80 overflow-y-auto leading-relaxed custom-scrollbar mb-3 select-text">
-                    {loading && briefingText === '' ? (
-                      <div className="flex flex-col items-center justify-center h-full gap-2">
-                        <span className="material-symbols-outlined text-xl text-secondary animate-spin">sync</span>
-                        <span className="text-[8px] uppercase tracking-widest text-white/40">Fusing Datalink Streams...</span>
-                      </div>
-                    ) : briefingText ? (
-                      <div className="select-text pr-1">{parseMarkdown(briefingText)}</div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-full text-center text-white/40 px-4">
-                        <span className="material-symbols-outlined text-3xl mb-2 text-white/20">satellite_alt</span>
-                        <p className="uppercase tracking-widest text-[8px] mb-1">Datalink Ready</p>
-                        <p className="text-[8px] text-white/30 lowercase">click generate to run a tactical assessment of active threats</p>
-                      </div>
-                    )}
+          {(() => {
+            const renderAiPanel = (isMaximized: boolean = false) => (
+              <div className={`fui-border relative flex flex-col ${isMaximized ? 'bg-[#0b0c10] w-full max-w-5xl h-[85vh] p-6 md:p-10 shadow-2xl shadow-black/80' : 'bg-black/40 p-6 h-[380px]'}`} onClick={(e) => isMaximized && e.stopPropagation()}>
+                <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+                
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className={`font-label text-white/60 uppercase tracking-widest flex items-center gap-2 ${isMaximized ? 'text-xs md:text-sm' : 'text-[10px]'}`}>
+                    <span className={`material-symbols-outlined text-[#0ea5e9] animate-pulse ${isMaximized ? 'text-sm md:text-base' : 'text-xs'}`}>psychology</span>
+                    Aegis Tactical AI Analyst {isMaximized && <span className="text-white/30 ml-2 hidden sm:inline">// EXPANDED VIEW</span>}
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    <span className={`text-[8px] md:text-[10px] font-mono border px-2 py-1 tracking-wider uppercase ${
+                      loading ? 'text-yellow-400 border-yellow-400/30 animate-pulse' : 'text-secondary border-secondary/30'
+                    }`}>
+                      {statusMsg}
+                    </span>
+                    <button 
+                      onClick={() => setAiMaximized(!isMaximized)} 
+                      className="text-white/40 hover:text-white transition-colors bg-white/5 hover:bg-white/10 p-1.5 flex items-center justify-center border border-white/10"
+                      title={isMaximized ? "Minimize" : "Maximize"}
+                    >
+                      <span className="material-symbols-outlined text-[14px]">{isMaximized ? 'close' : 'open_in_full'}</span>
+                    </button>
                   </div>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex gap-2 mb-4 border-b border-white/10 pb-2">
                   <button
-                    onClick={generateBriefing}
-                    disabled={loading}
-                    className="w-full bg-secondary/10 hover:bg-secondary/20 active:bg-secondary/30 disabled:bg-white/5 disabled:text-white/20 text-secondary border border-secondary/50 font-mono text-[10px] py-2.5 font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all select-none"
+                    onClick={() => setAiTab('briefing')}
+                    className={`flex items-center gap-2 font-mono uppercase tracking-wider px-4 py-2 border transition-all ${isMaximized ? 'text-[10px] md:text-xs' : 'text-[9px]'} ${
+                      aiTab === 'briefing'
+                        ? 'bg-secondary/10 border-secondary text-secondary font-bold shadow-[0_0_10px_rgba(56,189,248,0.2)]'
+                        : 'bg-transparent border-white/5 text-white/60 hover:text-white hover:border-white/20'
+                    }`}
                   >
-                    <span className="material-symbols-outlined text-sm">bolt</span>
-                    Generate Strategic Briefing
+                    <span className="material-symbols-outlined text-[14px]">description</span>
+                    Briefing
+                  </button>
+                  <button
+                    onClick={() => setAiTab('chat')}
+                    className={`flex items-center gap-2 font-mono uppercase tracking-wider px-4 py-2 border transition-all ${isMaximized ? 'text-[10px] md:text-xs' : 'text-[9px]'} ${
+                      aiTab === 'chat'
+                        ? 'bg-secondary/10 border-secondary text-secondary font-bold shadow-[0_0_10px_rgba(56,189,248,0.2)]'
+                        : 'bg-transparent border-white/5 text-white/60 hover:text-white hover:border-white/20'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[14px]">terminal</span>
+                    Ask Aegis
                   </button>
                 </div>
-              ) : (
-                <div className="flex flex-col h-full justify-between">
-                  <div className="flex-1 bg-black/60 border border-white/5 p-3 overflow-y-auto custom-scrollbar mb-3 flex flex-col gap-2 select-text">
-                    {chatHistory.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full text-center text-white/40 px-4 select-none">
-                        <span className="material-symbols-outlined text-3xl mb-2 text-white/20">quick_reference_all</span>
-                        <p className="uppercase tracking-widest text-[8px] mb-1">Cognitive Terminal Ready</p>
-                        <p className="text-[8px] text-white/30 lowercase">ask anything regarding live flights, sea ships, or severe weather</p>
+
+                {/* Tab content */}
+                <div className="flex-1 min-h-0 flex flex-col justify-between">
+                  {aiTab === 'briefing' ? (
+                    <div className="flex flex-col h-full justify-between gap-4">
+                      <div className={`flex-1 bg-black/60 border border-white/5 p-4 font-mono text-white/80 overflow-y-auto leading-relaxed custom-scrollbar select-text ${isMaximized ? 'text-[11px] md:text-sm' : 'text-[9px]'}`}>
+                        {loading && briefingText === '' ? (
+                          <div className="flex flex-col items-center justify-center h-full gap-3">
+                            <span className="material-symbols-outlined text-2xl text-secondary animate-spin">sync</span>
+                            <span className="text-[10px] md:text-xs uppercase tracking-widest text-white/40">Fusing Datalink Streams...</span>
+                          </div>
+                        ) : briefingText ? (
+                          <div className="select-text pr-2 pb-4">{parseMarkdown(briefingText)}</div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center h-full text-center text-white/40 px-4">
+                            <span className="material-symbols-outlined text-4xl md:text-5xl mb-4 text-white/20">satellite_alt</span>
+                            <p className="uppercase tracking-widest text-[10px] md:text-xs mb-2 text-white/60">Datalink Ready</p>
+                            <p className="text-[9px] md:text-[10px] text-white/30 lowercase max-w-xs">click generate to run a tactical assessment of active threats</p>
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      chatHistory.map((msg, i) => (
-                        <div key={i} className={`flex flex-col gap-1 border-b border-white/5 pb-2 last:border-0 ${
-                          msg.role === 'user' ? 'items-end' : 'items-start'
-                        }`}>
-                          <span className={`text-[8px] font-mono font-bold tracking-wider uppercase ${
-                            msg.role === 'user' ? 'text-secondary' : 'text-purple-400'
-                          }`}>
-                            {msg.role === 'user' ? 'OPERATOR' : 'AEGIS AI'}
-                          </span>
-                          <span className="text-[9px] font-mono text-white/95 leading-relaxed break-words max-w-full">
-                            {msg.role === 'user' ? (
-                              <div className="whitespace-pre-wrap">{msg.text}</div>
-                            ) : (
-                              parseMarkdown(msg.text)
-                            )}
-                          </span>
-                        </div>
-                      ))
-                    )}
-                    {loading && aiTab === 'chat' && (
-                      <div className="flex items-center gap-2 py-1">
-                        <span className="material-symbols-outlined text-xs text-secondary animate-spin">sync</span>
-                        <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest">Processing request...</span>
+                      <button
+                        onClick={generateBriefing}
+                        disabled={loading}
+                        className={`w-full bg-secondary/10 hover:bg-secondary/20 active:bg-secondary/30 disabled:bg-white/5 disabled:text-white/20 text-secondary border border-secondary/50 font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all select-none ${isMaximized ? 'py-4 text-xs md:text-sm' : 'py-2.5 text-[10px]'}`}
+                      >
+                        <span className="material-symbols-outlined text-base">bolt</span>
+                        Generate Strategic Briefing
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col h-full justify-between gap-4">
+                      <div className={`flex-1 bg-black/60 border border-white/5 p-4 overflow-y-auto custom-scrollbar flex flex-col gap-3 select-text ${isMaximized ? 'text-[11px] md:text-sm' : 'text-[9px]'}`}>
+                        {chatHistory.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-full text-center text-white/40 px-4 select-none">
+                            <span className="material-symbols-outlined text-4xl md:text-5xl mb-4 text-white/20">quick_reference_all</span>
+                            <p className="uppercase tracking-widest text-[10px] md:text-xs mb-2 text-white/60">Cognitive Terminal Ready</p>
+                            <p className="text-[9px] md:text-[10px] text-white/30 lowercase max-w-xs">ask anything regarding live flights, sea ships, or severe weather</p>
+                          </div>
+                        ) : (
+                          chatHistory.map((msg, i) => (
+                            <div key={i} className={`flex flex-col gap-1 border-b border-white/5 pb-3 last:border-0 ${
+                              msg.role === 'user' ? 'items-end' : 'items-start'
+                            }`}>
+                              <span className={`font-mono font-bold tracking-wider uppercase ${isMaximized ? 'text-[9px] md:text-[10px]' : 'text-[8px]'} ${
+                                msg.role === 'user' ? 'text-secondary' : 'text-purple-400'
+                              }`}>
+                                {msg.role === 'user' ? 'OPERATOR' : 'AEGIS AI'}
+                              </span>
+                              <span className={`font-mono text-white/95 leading-relaxed break-words max-w-full ${isMaximized ? 'text-[11px] md:text-sm' : 'text-[9px]'}`}>
+                                {msg.role === 'user' ? (
+                                  <div className="whitespace-pre-wrap">{msg.text}</div>
+                                ) : (
+                                  parseMarkdown(msg.text)
+                                )}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                        {loading && aiTab === 'chat' && (
+                          <div className="flex items-center gap-3 py-2">
+                            <span className="material-symbols-outlined text-sm text-secondary animate-spin">sync</span>
+                            <span className={`font-mono text-white/30 uppercase tracking-widest ${isMaximized ? 'text-[9px] md:text-[10px]' : 'text-[8px]'}`}>Processing request...</span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <form onSubmit={handleSendMessage} className="flex gap-2 select-none">
-                    <input
-                      type="text"
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      placeholder={loading ? "CORE PROCESSING..." : "ASK AEGIS ANYTHING..."}
-                      disabled={loading}
-                      className="flex-1 bg-black/60 border border-white/10 hover:border-white/25 focus:border-secondary focus:outline-none px-3 py-2 font-mono text-[9px] text-white placeholder-white/30 uppercase tracking-wider"
-                    />
-                    <button
-                      type="submit"
-                      disabled={loading || !chatInput.trim()}
-                      className="bg-secondary/15 hover:bg-secondary/25 border border-secondary/50 disabled:bg-white/5 disabled:border-white/5 disabled:text-white/20 text-secondary px-4 flex items-center justify-center transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-sm">send</span>
-                    </button>
-                  </form>
+                      <form onSubmit={handleSendMessage} className="flex gap-2 select-none">
+                        <input
+                          type="text"
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          placeholder={loading ? "CORE PROCESSING..." : "ASK AEGIS ANYTHING..."}
+                          disabled={loading}
+                          className={`flex-1 bg-black/60 border border-white/10 hover:border-white/25 focus:border-secondary focus:outline-none px-4 py-3 font-mono text-white placeholder-white/30 uppercase tracking-wider ${isMaximized ? 'text-[11px] md:text-[13px]' : 'text-[9px]'}`}
+                        />
+                        <button
+                          type="submit"
+                          disabled={loading || !chatInput.trim()}
+                          className="bg-secondary/15 hover:bg-secondary/25 border border-secondary/50 disabled:bg-white/5 disabled:border-white/5 disabled:text-white/20 text-secondary px-6 flex items-center justify-center transition-colors"
+                        >
+                          <span className={`material-symbols-outlined ${isMaximized ? 'text-xl' : 'text-sm'}`}>send</span>
+                        </button>
+                      </form>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            );
+
+            return (
+              <>
+                {renderAiPanel(false)}
+                
+                {/* Modal Overlay for Expanded AEGIS AI */}
+                {aiMaximized && (
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-black/80 backdrop-blur-md" onClick={() => setAiMaximized(false)}>
+                    {renderAiPanel(true)}
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       </div>
     </main>
