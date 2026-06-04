@@ -107,7 +107,30 @@ function parseRSSItems(xml: string, sourceName: string): any[] {
   return items;
 }
 
+// Global cache variables to persist across requests in a long-running instance
+let globalNewsCache: any[] = [];
+let lastFetchTime = 0;
+let lastAIFilterTime = 0;
+const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
+const AI_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
 export async function GET() {
+  const now = Date.now();
+
+  // Return from 4-hour cache if fresh
+  if (now - lastFetchTime < CACHE_TTL && globalNewsCache.length > 0) {
+    return NextResponse.json({
+      news: globalNewsCache,
+      total: globalNewsCache.length,
+      timestamp: new Date().toISOString(),
+      cached: true,
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=86400',
+      },
+    });
+  }
+
   try {
     const feedPromises = TELEGRAM_CHANNELS.map(async (channel) => {
       try {
@@ -145,26 +168,43 @@ export async function GET() {
       }
     }
 
-    // AI Validation Step: Filter out spam, ads, and channel updates
-    try {
-      const apiKeys = [];
-      for (let i = 1; i <= 8; i++) {
-        const k = process.env[`GEMINI_API_KEY_${i}`];
-        if (k && k.trim().length > 0) apiKeys.push(k.trim());
-      }
-      if (apiKeys.length > 0) {
-        const client = createGeminiClient(rotateApiKey(apiKeys));
-        // We validate in batches of 30 to avoid prompt size / context limits on huge lists
-        let validatedArticles: any[] = [];
-        for (let i = 0; i < allArticles.length; i += 30) {
-          const chunk = allArticles.slice(i, i + 30);
-          const validChunk = await validateNewsBulk(client, chunk);
-          validatedArticles.push(...validChunk);
+    // AI Validation Step: Only run once per day to save quota
+    if (now - lastAIFilterTime > AI_TTL) {
+      try {
+        const apiKeys = [];
+        for (let i = 1; i <= 8; i++) {
+          const k = process.env[`GEMINI_API_KEY_${i}`];
+          if (k && k.trim().length > 0) apiKeys.push(k.trim());
         }
-        allArticles = validatedArticles;
+        if (apiKeys.length > 0) {
+          const client = createGeminiClient(rotateApiKey(apiKeys));
+          let validatedArticles: any[] = [];
+          for (let i = 0; i < allArticles.length; i += 30) {
+            const chunk = allArticles.slice(i, i + 30);
+            const validChunk = await validateNewsBulk(client, chunk);
+            validatedArticles.push(...validChunk);
+          }
+          allArticles = validatedArticles;
+          lastAIFilterTime = now; // Mark AI filter as run
+        } else {
+          throw new Error("No API keys");
+        }
+      } catch (e) {
+        console.warn("[AEGIS AI] AI Validation failed, falling back to logic filter", e);
+        // Fallback to logic if AI fails
+        allArticles = allArticles.filter(it => {
+          const lower = (it.title + ' ' + it.description).toLowerCase();
+          const junk = ['channel photo updated', 'channel created', 'channel name was changed', 'selling on fragment', 'выставлено на аукцион', 'минимальную ставку'];
+          return !junk.some(j => lower.includes(j));
+        });
       }
-    } catch (e) {
-      console.warn("[AEGIS AI] AI Validation failed in news route, continuing with raw feed", e);
+    } else {
+      // 4-Hour logic-based fallback filter
+      allArticles = allArticles.filter(it => {
+        const lower = (it.title + ' ' + it.description).toLowerCase();
+        const junk = ['channel photo updated', 'channel created', 'channel name was changed', 'selling on fragment', 'выставлено на аукцион', 'минимальную ставку'];
+        return !junk.some(j => lower.includes(j));
+      });
     }
 
     const newsItems = allArticles.map(article => {
@@ -195,13 +235,17 @@ export async function GET() {
 
     newsItems.sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime());
 
+    // Update global cache
+    globalNewsCache = newsItems;
+    lastFetchTime = now;
+
     return NextResponse.json({
       news: newsItems,
       total: newsItems.length,
       timestamp: new Date().toISOString(),
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+        'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=86400',
       },
     });
   } catch (error) {
