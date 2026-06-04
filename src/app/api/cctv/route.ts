@@ -439,13 +439,33 @@ export async function GET(request: Request) {
       regionsToFetch.map(r => REGION_FETCHERS[r]())
     );
 
+    const ensureHttps = (url?: string): string | undefined => {
+      if (!url) return undefined;
+      if (url.startsWith('pics/')) {
+        return `https://free-webcambg.com/${url}`;
+      }
+      if (url.startsWith('http://')) {
+        if (url.includes('localhost') || url.includes('127.0.0.1')) {
+          return url;
+        }
+        return 'https://' + url.substring(7);
+      }
+      return url;
+    };
+
     const allCameras: any[] = [];
     const sources: Record<string, number> = {};
 
     for (const result of results) {
       if (result.status === 'fulfilled') {
         for (const cam of result.value) {
-          allCameras.push(cam);
+          const securedCam = {
+            ...cam,
+            feed_url: ensureHttps(cam.feed_url),
+            stream_url: ensureHttps(cam.stream_url),
+            external_url: ensureHttps(cam.external_url),
+          };
+          allCameras.push(securedCam);
           sources[cam.source] = (sources[cam.source] || 0) + 1;
         }
       }

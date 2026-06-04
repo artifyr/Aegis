@@ -406,6 +406,13 @@ export function TacticalMap({
     <div className="absolute inset-0">
       <Map
         ref={mapRef}
+        transformRequest={(url: string) => {
+          if (url.includes('api.mapbox.com') || url.includes('mapbox.com') || url.includes('cartocdn.com')) {
+            const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+            return { url: `${baseUrl}/api/proxy-tiles?url=${encodeURIComponent(url)}` };
+          }
+          return { url };
+        }}
         initialViewState={{
           longitude: 0,
           latitude: 20,
