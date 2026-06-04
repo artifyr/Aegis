@@ -99,6 +99,25 @@ export function AnalyticsPanel({
   const changeReport = propChangeReport || infChangeReport;
   const isScanning = propIsScanning ?? infIsScanning;
   const { cameras, mobileActiveTab, setMobileActiveTab, news, setMapCommand, setActiveEntityId, layers, toggleLayer } = useTacticalStore();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    setIsCollapsed(window.innerWidth < 1200);
+
+    let prevWidth = window.innerWidth;
+    const handleResize = () => {
+      const currentWidth = window.innerWidth;
+      if ((prevWidth >= 1200 && currentWidth < 1200) || (prevWidth < 1200 && currentWidth >= 1200)) {
+        setIsCollapsed(currentWidth < 1200);
+      }
+      prevWidth = currentWidth;
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const isFetchingNews = false; // We can let GlobalDataLoader handle the loading state or just keep it simple.
   // Merge static placeholder alerts with dynamic ones
   const staticAlerts: Alert[] = [
@@ -160,10 +179,35 @@ export function AnalyticsPanel({
         ? 'fixed inset-x-0 bottom-[64px] top-[20%] bg-[#0a0a0c]/95 backdrop-blur-xl border-t border-white/20 rounded-t-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.8)] translate-y-0' 
         : `fixed inset-x-0 bottom-[64px] top-[20%] translate-y-[150%] ${desktopHidden ? 'md:hidden' : 'md:translate-y-0 md:flex'}`
       }
-      md:static md:inset-auto md:w-[340px] md:h-full md:bg-transparent md:border-t-0 md:rounded-none md:shadow-none md:border-l border-white/10
-      flex flex-col gap-4 z-[90] p-4 overflow-hidden flex-shrink-0 transition-transform duration-300
+      md:relative md:inset-auto md:h-full md:bg-transparent md:border-t-0 md:rounded-none md:shadow-none border-white/10
+      ${desktopHidden 
+        ? 'md:hidden' 
+        : isCollapsed 
+          ? 'md:w-0 md:p-0 md:border-l-0' 
+          : 'md:w-[340px] md:p-4 md:border-l'
+      }
+      flex flex-col gap-4 z-[90] p-4 overflow-visible flex-shrink-0 transition-all duration-300 ease-in-out
     `}>
-      {/* Mobile Drag Handle */}
+      {/* Toggle Handle Button */}
+      {!desktopHidden && (
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="hidden md:flex absolute top-1/2 -translate-y-1/2 left-[-16px] z-[100] w-4 h-16 bg-black/80 hover:bg-black border border-white/20 hover:border-secondary text-slate-400 hover:text-white items-center justify-center cursor-pointer transition-all duration-200 group shadow-[0_0_10px_rgba(0,0,0,0.5)] hover:shadow-[0_0_15px_rgba(123,214,209,0.2)]"
+          title={isCollapsed ? "Expand Panel" : "Collapse Panel"}
+        >
+          <span className="material-symbols-outlined text-[14px] select-none font-bold group-hover:scale-y-110 transition-transform">
+            {isCollapsed ? 'chevron_left' : 'chevron_right'}
+          </span>
+          <div className="absolute inset-y-2 left-[2px] w-[1px] bg-white/10 group-hover:bg-secondary/40 transition-colors"></div>
+          <div className="absolute inset-y-2 right-[2px] w-[1px] bg-white/10 group-hover:bg-secondary/40 transition-colors"></div>
+        </button>
+      )}
+
+      {/* Inner Content Wrapper */}
+      <div className={`w-full md:w-[308px] md:min-w-[308px] h-full flex flex-col gap-4 overflow-hidden transition-opacity duration-300 ${
+        isCollapsed ? 'md:opacity-0 md:pointer-events-none' : 'opacity-100'
+      }`}>
+        {/* Mobile Drag Handle */}
       <div 
         className="md:hidden w-full h-6 -mt-4 mb-2 flex justify-center items-center cursor-grab active:cursor-grabbing"
         onTouchStart={(e) => {
@@ -391,6 +435,7 @@ export function AnalyticsPanel({
           <span className="text-white/50">LOAD:</span>
           <span className="text-secondary">1.43%</span>
         </div>
+      </div>
       </div>
     </aside>
   );

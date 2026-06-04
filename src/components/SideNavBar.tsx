@@ -15,7 +15,7 @@ const getRegionFromCoords = (lat: number, lng: number) => {
   return "International Waters";
 };
 
-export function SideNavBar() {
+export function SideNavBar({ desktopHidden = false }: { desktopHidden?: boolean }) {
   const { setDiveTarget, layers, toggleLayer, cameras, flights, gpsJamming, ports, chokepoints, ships, satellites, earthquakes, nuclearFacilities, strategicBases, incidents, news, weatherEvents, setMapCommand, activeEntityId, setActiveEntityId, activeCamera, nukeSimMode, setNukeSimMode, mobileActiveTab, setMobileActiveTab } = useTacticalStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAssetEvent, setSelectedAssetEvent] = useState<any>(null);
@@ -27,6 +27,28 @@ export function SideNavBar() {
   });
   const router = useRouter();
   const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isOverlayMode, setIsOverlayMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    setIsCollapsed(window.innerWidth < 1200);
+    setIsOverlayMode(window.innerWidth < 1200);
+
+    let prevWidth = window.innerWidth;
+    const handleResize = () => {
+      const currentWidth = window.innerWidth;
+      setIsOverlayMode(currentWidth < 1200);
+      if ((prevWidth >= 1200 && currentWidth < 1200) || (prevWidth < 1200 && currentWidth >= 1200)) {
+        setIsCollapsed(currentWidth < 1200);
+      }
+      prevWidth = currentWidth;
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const fetchExternal = async () => {
@@ -277,161 +299,188 @@ export function SideNavBar() {
     <aside className={`
       ${mobileActiveTab === 'layers' 
         ? 'fixed inset-x-0 bottom-[64px] top-[20%] bg-[#0a0a0c]/95 backdrop-blur-xl border-t border-white/20 rounded-t-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.8)] translate-y-0' 
-        : 'fixed inset-x-0 bottom-[64px] top-[20%] translate-y-[150%] md:translate-y-0 md:flex'
+        : `fixed inset-x-0 bottom-[64px] top-[20%] translate-y-[150%] ${desktopHidden ? 'md:hidden' : 'md:translate-y-0 md:flex'}`
       }
-      md:static md:inset-auto md:w-80 md:h-full md:bg-transparent md:border-t-0 md:rounded-none md:shadow-none md:border-r border-white/10
-      flex flex-col gap-4 z-[90] p-4 overflow-hidden flex-shrink-0 transition-transform duration-300
+      ${desktopHidden ? 'md:hidden' : isOverlayMode ? 'md:absolute md:left-0 md:top-0 md:bottom-0 md:z-[90] bg-[#0a0a0c]/95 backdrop-blur-xl' : 'md:relative md:inset-auto md:h-full md:bg-transparent z-[90]'}
+      md:border-t-0 md:rounded-none md:shadow-none border-white/10
+      ${desktopHidden 
+        ? 'md:hidden' 
+        : isCollapsed 
+        ? 'md:w-0 md:p-0 md:border-r-0' 
+        : 'md:w-80 md:p-4 md:border-r'
+      }
+      flex flex-col gap-4 z-[90] p-4 overflow-visible flex-shrink-0 transition-all duration-300 ease-in-out
     `}>
-      {/* Mobile Drag Handle */}
-      <div 
-        className="md:hidden w-full h-6 -mt-4 mb-2 flex justify-center items-center cursor-grab active:cursor-grabbing"
-        onTouchStart={(e) => {
-          const target = e.target as HTMLDivElement;
-          target.dataset.touchY = e.touches[0].clientY.toString();
-        }}
-        onTouchEnd={(e) => {
-          const startY = parseFloat((e.target as HTMLDivElement).dataset.touchY || '0');
-          if (e.changedTouches[0].clientY - startY > 50) {
-            setMobileActiveTab('none');
-          }
-        }}
-      >
-        <div className="w-12 h-1.5 bg-white/20 rounded-full pointer-events-none" />
-      </div>
-
-      {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between -mt-2 mb-2 pb-2 border-b border-white/10">
-        <h2 className="text-white font-headline font-bold tracking-widest text-sm uppercase">Layers & Stats</h2>
-        <button onClick={() => setMobileActiveTab('none')} className="text-white/50 hover:text-white transition-colors">
-          <span className="material-symbols-outlined text-[20px]">close</span>
-        </button>
-      </div>
-
-      {/* Box 1: AEGIS SDK */}
-      <div className="fui-border p-3 flex gap-4 items-center">
-        <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
-        <div className="w-20 h-16 bg-white/10 flex items-center justify-center border border-white/20 relative">
-          <span className="material-symbols-outlined text-3xl text-secondary">
-            {!selectedAsset ? 'satellite_alt'
-              : selectedAsset.type === 'flight' || selectedAsset.category === 'commercial' || selectedAsset.category === 'military' || selectedAsset.category === 'private' ? 'flight'
-                : selectedAsset.type === 'maritime' || selectedAsset.type === 'port' || selectedAsset.type === 'chokepoint' ? 'directions_boat'
-                  : selectedAsset.type === 'camera' ? 'videocam'
-                    : selectedAsset.type === 'earthquake' ? 'waves'
-                      : selectedAsset.type === 'nuclear' ? 'science'
-                        : selectedAsset.type === 'strategic' ? 'security'
-                          : selectedAsset.type === 'incident' ? 'warning'
-                            : selectedAsset.type === 'satellite' ? 'satellite_alt'
-                              : selectedAsset.type === 'weather' ? 'cyclone'
-                                : 'radar'}
+      {/* Toggle Handle Button */}
+      {!desktopHidden && (
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="hidden md:flex absolute top-1/2 -translate-y-1/2 right-[-16px] z-[100] w-4 h-16 bg-black/80 hover:bg-black border border-white/20 hover:border-secondary text-slate-400 hover:text-white items-center justify-center cursor-pointer transition-all duration-200 group shadow-[0_0_10px_rgba(0,0,0,0.5)] hover:shadow-[0_0_15px_rgba(123,214,209,0.2)]"
+          title={isCollapsed ? "Expand Panel" : "Collapse Panel"}
+        >
+          <span className="material-symbols-outlined text-[14px] select-none font-bold group-hover:scale-y-110 transition-transform">
+            {isCollapsed ? 'chevron_right' : 'chevron_left'}
           </span>
-          <div className="absolute top-0 left-0 w-1 h-1 border-t border-l border-white"></div>
-        </div>
-        <div className="flex-1 grid grid-cols-2 gap-2 text-[10px] font-mono text-white">
-          <div>
-            <div className="text-white/60 mb-1">TOTAL ASSETS</div>
-            <div className="text-lg font-bold">{totalEntities}</div>
-          </div>
-          <div>
-            <div className="text-white/60 mb-1">LIVE STREAMS</div>
-            <div className="text-lg font-bold">{cameras.length}</div>
-          </div>
-          <div>
-            <div className="text-white/60 mb-1">ACTIVE FLIGHTS</div>
-            <div className="text-lg font-bold">{flights.length}</div>
-          </div>
-          <div>
-            <div className="text-white/60 mb-1">NAVAL PORTS</div>
-            <div className="text-lg font-bold">{ports.length}</div>
-          </div>
-        </div>
-      </div>
+          <div className="absolute inset-y-2 left-[2px] w-[1px] bg-white/10 group-hover:bg-secondary/40 transition-colors"></div>
+          <div className="absolute inset-y-2 right-[2px] w-[1px] bg-white/10 group-hover:bg-secondary/40 transition-colors"></div>
+        </button>
+      )}
 
-      {/* Watchlist Input */}
-      <div className="hidden md:block fui-border p-2 z-50">
-        <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
-        <div className="relative">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleSearch}
-            placeholder="CMD: LOCATE"
-            className="w-full bg-transparent border-b border-white/30 focus:border-white rounded-none text-[11px] font-mono py-1 px-1 placeholder:text-white/30 outline-none text-white transition-colors"
-          />
-          <span className="material-symbols-outlined absolute right-1 top-0.5 text-[14px] text-white/50">search</span>
+      {/* Inner Content Wrapper */}
+      <div className={`w-full md:w-[288px] md:min-w-[288px] h-full flex flex-col gap-4 overflow-hidden transition-opacity duration-300 ${
+        isCollapsed ? 'md:opacity-0 md:pointer-events-none' : 'opacity-100'
+      }`}>
+        {/* Mobile Drag Handle */}
+        <div 
+          className="md:hidden w-full h-6 -mt-4 mb-2 flex justify-center items-center cursor-grab active:cursor-grabbing"
+          onTouchStart={(e) => {
+            const target = e.target as HTMLDivElement;
+            target.dataset.touchY = e.touches[0].clientY.toString();
+          }}
+          onTouchEnd={(e) => {
+            const startY = parseFloat((e.target as HTMLDivElement).dataset.touchY || '0');
+            if (e.changedTouches[0].clientY - startY > 50) {
+              setMobileActiveTab('none');
+            }
+          }}
+        >
+          <div className="w-12 h-1.5 bg-white/20 rounded-full pointer-events-none" />
         </div>
-        {searchQuery.trim() && searchResults.length > 0 && (
-          <div className="absolute top-[100%] left-0 right-0 mt-1 bg-black/80 border border-white/30 z-[999] max-h-64 overflow-y-auto">
-            {searchResults.map((res, i) => (
-              <button
-                key={`${res.type}-${res.id}-${i}`}
-                className="w-full text-left px-2 py-1 hover:bg-white/10 border-b border-white/10 flex items-center justify-between group"
-                onClick={() => {
-                  setMapCommand({ type: 'flyTo', lat: res.lat, lng: res.lng, zoom: 17 });
-                  if (res.type !== 'location') setActiveEntityId(res.id);
-                  setSearchQuery('');
-                  if (pathname !== '/') router.push('/');
-                }}
-              >
-                <div className="flex flex-col overflow-hidden">
-                  <span className="text-white text-[11px] tracking-wide uppercase truncate">{res.name}</span>
-                  <span className="text-white/50 text-[9px] tracking-widest uppercase truncate">{res.type} {res.sub ? `// ${res.sub}` : ''}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
 
-      <div className="flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-1">
-        {/* Box 2: AVIATION */}
-        <div className="fui-border p-3 flex flex-col gap-2">
+        {/* Mobile Header */}
+        <div className="md:hidden flex items-center justify-between -mt-2 mb-2 pb-2 border-b border-white/10">
+          <h2 className="text-white font-headline font-bold tracking-widest text-sm uppercase">Layers & Stats</h2>
+          <button onClick={() => setMobileActiveTab('none')} className="text-white/50 hover:text-white transition-colors">
+            <span className="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+
+        {/* Box 1: AEGIS SDK */}
+        <div className="fui-border p-3 flex gap-4 items-center">
           <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-white font-bold tracking-widest text-sm">AVIATION TRAFFIC</h3>
-            <span className="text-white/40 text-[9px] uppercase">Live airborne assets</span>
+          <div className="w-20 h-16 bg-white/10 flex items-center justify-center border border-white/20 relative">
+            <span className="material-symbols-outlined text-3xl text-secondary">
+              {!selectedAsset ? 'satellite_alt'
+                : selectedAsset.type === 'flight' || selectedAsset.category === 'commercial' || selectedAsset.category === 'military' || selectedAsset.category === 'private' ? 'flight'
+                  : selectedAsset.type === 'maritime' || selectedAsset.type === 'port' || selectedAsset.type === 'chokepoint' ? 'directions_boat'
+                    : selectedAsset.type === 'camera' ? 'videocam'
+                      : selectedAsset.type === 'earthquake' ? 'waves'
+                        : selectedAsset.type === 'nuclear' ? 'science'
+                          : selectedAsset.type === 'strategic' ? 'security'
+                            : selectedAsset.type === 'incident' ? 'warning'
+                              : selectedAsset.type === 'satellite' ? 'satellite_alt'
+                                : selectedAsset.type === 'weather' ? 'cyclone'
+                                  : 'radar'}
+            </span>
+            <div className="absolute top-0 left-0 w-1 h-1 border-t border-l border-white"></div>
           </div>
-
-          <div className="flex flex-col gap-1.5">
-            <LayerSwitch label="COMMERCIAL" active={layers.aviation_commercial} count={flights.filter(f => f.category === 'commercial').length} dotColor="bg-white" onClick={() => toggleLayer('aviation_commercial')} />
-            <LayerSwitch label="MILITARY" active={layers.aviation_military} count={flights.filter(f => f.category === 'military').length} dotColor="bg-red-500" onClick={() => toggleLayer('aviation_military')} />
-            <LayerSwitch label="PRIVATE" active={layers.aviation_private} count={flights.filter(f => f.category === 'private').length} dotColor="bg-green-500" onClick={() => toggleLayer('aviation_private')} />
+          <div className="flex-1 grid grid-cols-2 gap-2 text-[10px] font-mono text-white">
+            <div>
+              <div className="text-white/60 mb-1">TOTAL ASSETS</div>
+              <div className="text-lg font-bold">{totalEntities}</div>
+            </div>
+            <div>
+              <div className="text-white/60 mb-1">LIVE STREAMS</div>
+              <div className="text-lg font-bold">{cameras.length}</div>
+            </div>
+            <div>
+              <div className="text-white/60 mb-1">ACTIVE FLIGHTS</div>
+              <div className="text-lg font-bold">{flights.length}</div>
+            </div>
+            <div>
+              <div className="text-white/60 mb-1">NAVAL PORTS</div>
+              <div className="text-lg font-bold">{ports.length}</div>
+            </div>
           </div>
         </div>
 
-        {/* Box 3: MARITIME & SURVEILLANCE */}
-        <div className="fui-border p-3 flex flex-col gap-2">
+        {/* Watchlist Input */}
+        <div className="hidden md:block fui-border p-2 z-50">
           <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-white font-bold tracking-widest text-sm">SURFACE & LEO</h3>
-            <span className="text-white/40 text-[9px] uppercase">Maritime and Space</span>
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearch}
+              placeholder="CMD: LOCATE"
+              className="w-full bg-transparent border-b border-white/30 focus:border-white rounded-none text-[11px] font-mono py-1 px-1 placeholder:text-white/30 outline-none text-white transition-colors"
+            />
+            <span className="material-symbols-outlined absolute right-1 top-0.5 text-[14px] text-white/50">search</span>
           </div>
-
-          <div className="flex flex-col gap-1.5">
-            <LayerSwitch label="MARITIME NAVAL" active={layers.maritime} count={ports.length + chokepoints.length} dotColor="bg-white" onClick={() => toggleLayer('maritime')} />
-            <LayerSwitch label="SUBSEA CABLES" active={layers.maritime_cables} count={717} dotColor="bg-blue-400" onClick={() => toggleLayer('maritime_cables')} />
-            <LayerSwitch label="SATELLITES" active={layers.space_satellites} count={satellites.length} dotColor="bg-white" onClick={() => toggleLayer('space_satellites')} />
-            <LayerSwitch label="CCTV NODES" active={layers.cctv} count={cameras.length} dotColor="bg-white" onClick={() => toggleLayer('cctv')} />
-          </div>
+          {searchQuery.trim() && searchResults.length > 0 && (
+            <div className="absolute top-[100%] left-0 right-0 mt-1 bg-black/80 border border-white/30 z-[999] max-h-64 overflow-y-auto">
+              {searchResults.map((res, i) => (
+                <button
+                  key={`${res.type}-${res.id}-${i}`}
+                  className="w-full text-left px-2 py-1 hover:bg-white/10 border-b border-white/10 flex items-center justify-between group"
+                  onClick={() => {
+                    setMapCommand({ type: 'flyTo', lat: res.lat, lng: res.lng, zoom: 17 });
+                    if (res.type !== 'location') setActiveEntityId(res.id);
+                    setSearchQuery('');
+                    if (pathname !== '/') router.push('/');
+                  }}
+                >
+                  <div className="flex flex-col overflow-hidden">
+                    <span className="text-white text-[11px] tracking-wide uppercase truncate">{res.name}</span>
+                    <span className="text-white/50 text-[9px] tracking-widest uppercase truncate">{res.type} {res.sub ? `// ${res.sub}` : ''}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Box 4: THREATS */}
-        <div className="fui-border p-3 flex flex-col gap-2 flex-1">
-          <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-white font-bold tracking-widest text-sm">THREAT MATRIX</h3>
-            <span className="text-white/40 text-[9px] uppercase">Hazards and Targets</span>
+        <div className="flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-1">
+          {/* Box 2: AVIATION */}
+          <div className="fui-border p-3 flex flex-col gap-2">
+            <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-white font-bold tracking-widest text-sm">AVIATION TRAFFIC</h3>
+              <span className="text-white/40 text-[9px] uppercase">Live airborne assets</span>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <LayerSwitch label="COMMERCIAL" active={layers.aviation_commercial} count={flights.filter(f => f.category === 'commercial').length} dotColor="bg-white" onClick={() => toggleLayer('aviation_commercial')} />
+              <LayerSwitch label="MILITARY" active={layers.aviation_military} count={flights.filter(f => f.category === 'military').length} dotColor="bg-red-500" onClick={() => toggleLayer('aviation_military')} />
+              <LayerSwitch label="PRIVATE" active={layers.aviation_private} count={flights.filter(f => f.category === 'private').length} dotColor="bg-green-500" onClick={() => toggleLayer('aviation_private')} />
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <LayerSwitch label="NUCLEAR FACILITIES" active={layers.threats_nuclear} count={nuclearFacilities.length} dotColor="bg-red-500" onClick={() => toggleLayer('threats_nuclear')} />
-            <LayerSwitch label="STRAT BASES" active={layers.threats_strategic} count={strategicBases.length} dotColor="bg-red-500" onClick={() => toggleLayer('threats_strategic')} />
-            <LayerSwitch label="INCIDENTS" active={layers.threats_incidents} count={incidents.length} dotColor="bg-orange-500" onClick={() => toggleLayer('threats_incidents')} />
-            <LayerSwitch label="LIVE NEWS" active={layers.threats_news} count={news.length} dotColor="bg-yellow-500" onClick={() => toggleLayer('threats_news')} />
-            <LayerSwitch label="GPS JAMMING" active={layers.threats_jamming} count={gpsJamming?.length || 0} dotColor="bg-red-500" onClick={() => toggleLayer('threats_jamming')} />
-            <LayerSwitch label="SEISMIC 24H" active={layers.hazards_earthquakes} count={earthquakes.length} dotColor="bg-yellow-500" onClick={() => toggleLayer('hazards_earthquakes')} />
-            <LayerSwitch label="SEVERE WEATHER" active={layers.hazards_weather} count={weatherEvents?.length || 0} dotColor="bg-cyan-500" onClick={() => toggleLayer('hazards_weather')} />
-            <LayerSwitch label="ACTIVE FIRES" active={layers.hazards_fires} count={useTacticalStore((state) => state.fires).length} dotColor="bg-orange-500" onClick={() => toggleLayer('hazards_fires')} />
+          {/* Box 3: MARITIME & SURVEILLANCE */}
+          <div className="fui-border p-3 flex flex-col gap-2">
+            <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-white font-bold tracking-widest text-sm">SURFACE & LEO</h3>
+              <span className="text-white/40 text-[9px] uppercase">Maritime and Space</span>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <LayerSwitch label="MARITIME NAVAL" active={layers.maritime} count={ports.length + chokepoints.length} dotColor="bg-white" onClick={() => toggleLayer('maritime')} />
+              <LayerSwitch label="SUBSEA CABLES" active={layers.maritime_cables} count={717} dotColor="bg-blue-400" onClick={() => toggleLayer('maritime_cables')} />
+              <LayerSwitch label="SATELLITES" active={layers.space_satellites} count={satellites.length} dotColor="bg-white" onClick={() => toggleLayer('space_satellites')} />
+              <LayerSwitch label="CCTV NODES" active={layers.cctv} count={cameras.length} dotColor="bg-white" onClick={() => toggleLayer('cctv')} />
+            </div>
+          </div>
+
+          {/* Box 4: THREATS */}
+          <div className="fui-border p-3 flex flex-col gap-2 flex-1">
+            <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-white font-bold tracking-widest text-sm">THREAT MATRIX</h3>
+              <span className="text-white/40 text-[9px] uppercase">Hazards and Targets</span>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <LayerSwitch label="NUCLEAR FACILITIES" active={layers.threats_nuclear} count={nuclearFacilities.length} dotColor="bg-red-500" onClick={() => toggleLayer('threats_nuclear')} />
+              <LayerSwitch label="STRAT BASES" active={layers.threats_strategic} count={strategicBases.length} dotColor="bg-red-500" onClick={() => toggleLayer('threats_strategic')} />
+              <LayerSwitch label="INCIDENTS" active={layers.threats_incidents} count={incidents.length} dotColor="bg-orange-500" onClick={() => toggleLayer('threats_incidents')} />
+              <LayerSwitch label="LIVE NEWS" active={layers.threats_news} count={news.length} dotColor="bg-yellow-500" onClick={() => toggleLayer('threats_news')} />
+              <LayerSwitch label="GPS JAMMING" active={layers.threats_jamming} count={gpsJamming?.length || 0} dotColor="bg-red-500" onClick={() => toggleLayer('threats_jamming')} />
+              <LayerSwitch label="SEISMIC 24H" active={layers.hazards_earthquakes} count={earthquakes.length} dotColor="bg-yellow-500" onClick={() => toggleLayer('hazards_earthquakes')} />
+              <LayerSwitch label="SEVERE WEATHER" active={layers.hazards_weather} count={weatherEvents?.length || 0} dotColor="bg-cyan-500" onClick={() => toggleLayer('hazards_weather')} />
+              <LayerSwitch label="ACTIVE FIRES" active={layers.hazards_fires} count={useTacticalStore((state) => state.fires).length} dotColor="bg-orange-500" onClick={() => toggleLayer('hazards_fires')} />
+            </div>
           </div>
         </div>
       </div>

@@ -25,9 +25,9 @@ export function NavigationWrapper({ children }: { children: React.ReactNode }) {
       <TopNavBar />
       <GlobalDataLoader />
       <div className="flex pt-16 pb-16 md:pb-0 h-screen w-screen overflow-hidden tactical-grid bg-black relative">
-        <SideNavBar />
+        <SideNavBar desktopHidden={!isMapPage} />
         {children}
-        <AnalyticsPanel desktopHidden={!isMapPage} />
+        <AnalyticsPanel />
 
         {/* Mobile Backdrop Overlay */}
         {mobileActiveTab !== 'none' && (
