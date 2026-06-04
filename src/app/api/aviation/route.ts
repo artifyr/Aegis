@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 // Force reload cache
+export const dynamic = 'force-dynamic';
 import { stealthFetch } from '@/lib/stealthFetch';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
