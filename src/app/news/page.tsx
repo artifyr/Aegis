@@ -10,6 +10,7 @@ export default function NewsPage() {
   const { news, setMapCommand, setActiveEntityId } = useTacticalStore();
   const [mounted, setMounted] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
+  const [selectedItem, setSelectedItem] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -92,15 +93,7 @@ export default function NewsPage() {
                   } ${
                     isCritical ? 'bg-red-950/20 hover:bg-red-950/40' : 'bg-black/40 hover:bg-black/60'
                   } transition-colors p-5`}
-                  onClick={() => {
-                    if (item.coords) {
-                      setMapCommand({ type: 'flyTo', lat: item.coords[0], lng: item.coords[1], zoom: 14 });
-                      setActiveEntityId(item.id);
-                      router.push('/');
-                    } else if (item.link) {
-                      window.open(item.link, '_blank');
-                    }
-                  }}
+                  onClick={() => setSelectedItem(item)}
                 >
                   <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
                   
@@ -153,6 +146,91 @@ export default function NewsPage() {
           </div>
         )}
       </div>
+
+      {/* Modal for full news article */}
+      {selectedItem && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" 
+          onClick={() => setSelectedItem(null)}
+        >
+          <div 
+            className="fui-border bg-[#0b0c10] w-full max-w-2xl max-h-[85vh] flex flex-col relative p-6 shadow-2xl shadow-black"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>
+            
+            <div className="flex justify-between items-start border-b border-white/10 pb-4 mb-4">
+              <div className="pr-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`w-2 h-2 rounded-full bg-${selectedItem.risk_score >= 8 ? 'red' : selectedItem.risk_score >= 5 ? 'yellow' : 'emerald'}-500 ${selectedItem.risk_score >= 8 ? 'animate-pulse' : ''}`}></div>
+                  <span className={`text-[10px] font-mono tracking-widest uppercase text-${selectedItem.risk_score >= 8 ? 'red' : selectedItem.risk_score >= 5 ? 'yellow' : 'emerald'}-500`}>
+                    {selectedItem.risk_score >= 8 ? 'CRITICAL ALERT' : 'INTEL'}
+                  </span>
+                </div>
+                <h2 className="font-headline font-bold text-white text-xl md:text-2xl leading-tight">
+                  {selectedItem.title}
+                </h2>
+              </div>
+              <button onClick={() => setSelectedItem(null)} className="text-white/50 hover:text-white transition-colors flex-shrink-0 pt-1">
+                <span className="material-symbols-outlined text-2xl">close</span>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar mb-6 pr-2">
+              <p className="font-mono text-white/80 leading-relaxed text-sm whitespace-pre-wrap">
+                {selectedItem.description}
+              </p>
+              
+              {selectedItem.machine_assessment && (
+                <div className="mt-6 bg-red-500/10 border border-red-500/20 p-4 font-mono text-red-400 text-xs leading-relaxed">
+                  <span className="font-bold block mb-1">AI ASSESSMENT:</span>
+                  {selectedItem.machine_assessment}
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-white/10 pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-xs font-mono">
+              <div className="flex items-center gap-6 text-white/50 w-full sm:w-auto">
+                <div>
+                  <span className="uppercase tracking-wider opacity-50 block text-[9px]">Source</span>
+                  <span className="text-white/80 truncate max-w-[150px] inline-block">{selectedItem.source}</span>
+                </div>
+                <div>
+                  <span className="uppercase tracking-wider opacity-50 block text-[9px]">Date</span>
+                  <span className="text-white/80 whitespace-nowrap">
+                    {new Date(selectedItem.published).toLocaleDateString()} {new Date(selectedItem.published).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}Z
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex gap-2 w-full sm:w-auto">
+                {selectedItem.coords && (
+                  <button 
+                    onClick={() => {
+                      setMapCommand({ type: 'flyTo', lat: selectedItem.coords[0], lng: selectedItem.coords[1], zoom: 14 });
+                      setActiveEntityId(selectedItem.id);
+                      router.push('/');
+                    }}
+                    className="flex-1 sm:flex-none border border-secondary/50 text-secondary hover:bg-secondary hover:text-black transition-colors px-4 py-2 flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">travel_explore</span>
+                    MAP
+                  </button>
+                )}
+                {selectedItem.link && (
+                  <button 
+                    onClick={() => window.open(selectedItem.link, '_blank')}
+                    className="flex-1 sm:flex-none border border-white/20 text-white hover:bg-white hover:text-black transition-colors px-4 py-2 flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                    SOURCE
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
