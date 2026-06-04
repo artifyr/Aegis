@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,6 +89,7 @@ export async function GET() {
 
           // Try to geo-map
           let coords: [number, number] | null = null;
+          let matchedCountry = 'GLOBAL FEED';
           for (const [location, point] of Object.entries(GEO_DICT)) {
             // using word boundary regex
             const regex = new RegExp(`\\b${location}\\b`, 'i');
@@ -95,6 +98,7 @@ export async function GET() {
               const jitterLng = ((eventId * 137.5) % 200 - 100) / 100 * 1.5;
               const jitterLat = ((eventId * 251.3) % 200 - 100) / 100 * 1.5;
               coords = [point[0] + jitterLng, point[1] + jitterLat];
+              matchedCountry = location.toUpperCase();
               break;
             }
           }
@@ -108,12 +112,41 @@ export async function GET() {
               url: link,
               html: `<a href="${link}" target="_blank">${title}</a><br/><i>Source: ${feed.source}</i>`,
               type: 'conflict',
+              description: desc,
+              country: matchedCountry
             });
           }
         }
       } catch (e) {
         console.warn(`Failed to fetch ${feed.source}`);
       }
+    }
+
+    // Fire and forget archive to Supabase
+    try {
+      const cookieStore = await cookies();
+      const supabase = createClient(cookieStore);
+      
+      const archiveRecords = allEvents.map((i: any) => ({
+        id: i.id,
+        type: 'INCIDENT',
+        name: i.name || i.title || 'UNCLASSIFIED INCIDENT',
+        location: `${i.lat?.toFixed(5)}, ${i.lng?.toFixed(5)}`,
+        lat: i.lat,
+        lng: i.lng,
+        classification: 'CLASSIFIED',
+        date: i.date || new Date().toISOString().split('T')[0],
+        detail: i.description || i.severity || 'SECURITY EVENT',
+        status: 'CRITICAL',
+        country: i.country || 'GLOBAL FEED',
+        raw_data: i
+      }));
+      
+      if (archiveRecords.length > 0) {
+        await supabase.from('archive_records').upsert(archiveRecords, { onConflict: 'id' });
+      }
+    } catch (e) {
+      console.error('Failed to archive incidents:', e);
     }
 
     return NextResponse.json({

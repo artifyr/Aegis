@@ -1,6 +1,8 @@
-
 import { NextResponse } from 'next/server';
+// Force reload cache
 import { stealthFetch } from '@/lib/stealthFetch';
+import { createClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
 
 /**
  * AEGIS — Flight Data API
@@ -230,6 +232,33 @@ export async function GET() {
     cachedData = data;
     lastFetchTime = Date.now();
     fetchPromise = null;
+
+    // Fire and forget archive to Supabase
+    try {
+      if (data.gps_jamming && data.gps_jamming.length > 0) {
+        const cookieStore = await cookies();
+        const supabase = createClient(cookieStore);
+        
+        const archiveRecords = data.gps_jamming.map((z: any, idx: number) => ({
+          id: `JAM-${idx}-${z.lat.toFixed(2)}-${z.lng.toFixed(2)}`,
+          type: 'GPS_JAMMING',
+          name: `GPS JAMMING SECTOR ${idx + 1}`,
+          location: `${z.lat?.toFixed(5)}, ${z.lng?.toFixed(5)}`,
+          lat: z.lat,
+          lng: z.lng,
+          classification: z.severity >= 50 ? 'TOP_SECRET' : 'CLASSIFIED',
+          date: new Date().toISOString().split('T')[0],
+          detail: `Degraded GPS accuracy (Severity ${z.severity}%)`,
+          status: z.severity >= 50 ? 'CRITICAL' : 'ELEVATED',
+          country: 'INTL AIRSPACE',
+          raw_data: z
+        }));
+        
+        await supabase.from('archive_records').upsert(archiveRecords, { onConflict: 'id' });
+      }
+    } catch (e) {
+      console.error('Failed to archive jamming:', e);
+    }
 
     const cacheControl = data.total < 100 
       ? 'no-store, max-age=0' 

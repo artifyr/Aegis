@@ -1,5 +1,7 @@
 
 import { NextResponse } from 'next/server';
+import { createClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
 
 /**
  * AEGIS — Earthquake Data API
@@ -40,6 +42,38 @@ export async function GET() {
       };
     });
 
+    // Fire and forget archive to Supabase
+    try {
+      const cookieStore = await cookies();
+      const supabase = createClient(cookieStore);
+      
+      const archiveRecords = earthquakes.map((e: any) => ({
+        id: e.id,
+        type: 'SEISMIC_EVENT',
+        name: e.place || 'SEISMIC ANOMALY',
+        location: `${e.lat?.toFixed(5)}, ${e.lng?.toFixed(5)}`,
+        lat: e.lat,
+        lng: e.lng,
+        classification: 'UNCLASSIFIED',
+        date: e.time ? new Date(e.time).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        detail: `Magnitude ${e.magnitude || '?'}`,
+        status: (e.magnitude || 0) >= 6.0 ? 'CRITICAL' : 'MONITORED',
+        country: 'TECTONIC BOUNDARY',
+        raw_data: e
+      }));
+      
+      if (archiveRecords.length > 0) {
+        await supabase.from('archive_records').upsert(archiveRecords, { onConflict: 'id' });
+        
+        // Delete records older than 7 days
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        await supabase.from('archive_records').delete().lt('created_at', sevenDaysAgo.toISOString());
+      }
+    } catch (e) {
+      console.error('Failed to archive earthquakes:', e);
+    }
+
     return NextResponse.json({
       earthquakes,
       total: earthquakes.length,
@@ -54,4 +88,3 @@ export async function GET() {
     return NextResponse.json({ earthquakes: [], error: 'Failed to fetch earthquake data' }, { status: 500 });
   }
 }
-

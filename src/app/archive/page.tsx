@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTacticalStore } from '@/store/tactical-store';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,87 +41,28 @@ export default function ArchivePage() {
   const [sortColumn, setSortColumn] = useState<string>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  // Consolidate all records into a single uniform array
-  const allRecords = useMemo(() => {
-    const records: any[] = [];
+  // Store fetched records
+  const [allRecords, setAllRecords] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-    store.strategicBases.forEach(b => records.push({
-      id: b.id || Math.random().toString(),
-      type: 'STRATEGIC_BASE',
-      name: b.name || b.codename || b.callsign || 'UNKNOWN BASE',
-      location: `${b.lat?.toFixed(5)}, ${b.lng?.toFixed(5)}`,
-      lat: b.lat,
-      lng: b.lng,
-      classification: b.status === 'INACTIVE' ? 'RESTRICTED' : 'TOP_SECRET',
-      date: new Date().toISOString().split('T')[0],
-      detail: b.type?.replace('_', ' ') || 'MILITARY INSTALLATION',
-      status: b.status || 'ACTIVE',
-      country: b.country || 'UNKNOWN',
-      raw: b
-    }));
-
-    store.nuclearFacilities.forEach(n => records.push({
-      id: n.id || Math.random().toString(),
-      type: 'NUCLEAR_FACILITY',
-      name: n.name || n.facility || 'UNKNOWN FACILITY',
-      location: `${n.lat?.toFixed(5)}, ${n.lng?.toFixed(5)}`,
-      lat: n.lat,
-      lng: n.lng,
-      classification: n.status?.includes('SEISMIC') ? 'TOP_SECRET' : 'RESTRICTED',
-      date: new Date().toISOString().split('T')[0],
-      detail: `${n.reactors} Reactors · ${n.capacityMW} MW`,
-      status: n.status || 'OPERATIONAL',
-      country: n.country || 'UNKNOWN',
-      raw: n
-    }));
-
-    store.incidents.forEach(i => records.push({
-      id: i.id || Math.random().toString(),
-      type: 'INCIDENT',
-      name: i.name || i.title || 'UNCLASSIFIED INCIDENT',
-      location: `${i.lat?.toFixed(5)}, ${i.lng?.toFixed(5)}`,
-      lat: i.lat,
-      lng: i.lng,
-      classification: 'CLASSIFIED',
-      date: i.date || new Date().toISOString().split('T')[0],
-      detail: i.description || i.severity || 'SECURITY EVENT',
-      status: 'CRITICAL',
-      country: 'GLOBAL FEED',
-      raw: i
-    }));
-
-    store.earthquakes.forEach(e => records.push({
-      id: e.id || Math.random().toString(),
-      type: 'SEISMIC_EVENT',
-      name: e.place || 'SEISMIC ANOMALY',
-      location: `${e.lat?.toFixed(5)}, ${e.lng?.toFixed(5)}`,
-      lat: e.lat,
-      lng: e.lng,
-      classification: 'UNCLASSIFIED',
-      date: e.time ? new Date(e.time).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-      detail: `Magnitude ${e.mag || e.magnitude || '?'}`,
-      status: (e.mag || 0) >= 6.0 ? 'CRITICAL' : 'MONITORED',
-      country: 'TECTONIC BOUNDARY',
-      raw: e
-    }));
-
-    (store.gpsJamming || []).forEach((z, idx) => records.push({
-      id: `JAM-${idx}-${z.lat.toFixed(2)}-${z.lng.toFixed(2)}`,
-      type: 'GPS_JAMMING',
-      name: `GPS JAMMING SECTOR ${idx + 1}`,
-      location: `${z.lat?.toFixed(5)}, ${z.lng?.toFixed(5)}`,
-      lat: z.lat,
-      lng: z.lng,
-      classification: z.severity >= 50 ? 'TOP_SECRET' : 'CLASSIFIED',
-      date: new Date().toISOString().split('T')[0],
-      detail: `Degraded GPS accuracy (Severity ${z.severity}%)`,
-      status: z.severity >= 50 ? 'CRITICAL' : 'ELEVATED',
-      country: 'INTL AIRSPACE',
-      raw: z
-    }));
-
-    return records;
-  }, [store.strategicBases, store.nuclearFacilities, store.incidents, store.earthquakes, store.gpsJamming]);
+  // Fetch all records on mount
+  useEffect(() => {
+    async function fetchArchive() {
+      setIsLoading(true);
+      try {
+        const res = await fetch('/api/archive');
+        if (res.ok) {
+          const data = await res.json();
+          setAllRecords(data.records || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch archive:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchArchive();
+  }, []);
 
   // Unique country listing for the country filter
   const countries = useMemo(() => {
@@ -505,7 +446,14 @@ export default function ArchivePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {sortedRecords.map((rec, i) => (
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={10} className="p-10 text-center text-white/50 font-mono text-xs">
+                        <Database className="w-5 h-5 mx-auto mb-2 animate-bounce text-[#3cdcd1]" />
+                        QUERYING DATABASE...
+                      </td>
+                    </tr>
+                  ) : sortedRecords.map((rec, i) => (
                     <tr
                       key={rec.id + '-' + i}
                       onClick={() => setSelectedRecord(rec)}
@@ -582,7 +530,7 @@ export default function ArchivePage() {
                 </tbody>
               </table>
 
-              {sortedRecords.length === 0 && (
+              {sortedRecords.length === 0 && !isLoading && (
                 <div className="h-full flex flex-col items-center justify-center text-center py-20">
                   <Database className="w-10 h-10 text-white/10 mb-4 animate-pulse" />
                   <span className="text-[10px] font-mono text-white/30 tracking-widest">NO DIRECTIVES OR ARCHIVES LOCATED</span>
