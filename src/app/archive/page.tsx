@@ -64,6 +64,25 @@ export default function ArchivePage() {
     fetchArchive();
   }, []);
 
+  const isRecordActiveOnMap = useMemo(() => {
+    if (!selectedRecord) return false;
+    const id = String(selectedRecord.id);
+    switch (selectedRecord.type) {
+      case 'STRATEGIC_BASE':
+        return store.strategicBases.some(b => String(b.id) === id);
+      case 'NUCLEAR_FACILITY':
+        return store.nuclearFacilities.some(b => String(b.id) === id);
+      case 'INCIDENT':
+        return store.incidents.some(b => String(b.id) === id);
+      case 'SEISMIC_EVENT':
+        return store.earthquakes.some(b => String(b.id) === id);
+      case 'GPS_JAMMING':
+        return store.gpsJamming.some(b => String(b.id) === id);
+      default:
+        return false;
+    }
+  }, [selectedRecord, store]);
+
   // Unique country listing for the country filter
   const countries = useMemo(() => {
     const list = new Set<string>();
@@ -705,20 +724,37 @@ export default function ArchivePage() {
                 </div>
 
                 {/* Tactical Actions Card */}
-                <div className="bg-red-950/10 border border-red-500/15 p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-[8px] font-mono text-red-400 font-bold tracking-widest">
-                    <AlertTriangle className="w-3.5 h-3.5" /> OVERRIDE CONFIRMATION REQUIRED
+                {isRecordActiveOnMap ? (
+                  <div className="bg-red-950/10 border border-red-500/15 p-4 space-y-3">
+                    <div className="flex items-center gap-2 text-[8px] font-mono text-red-400 font-bold tracking-widest">
+                      <AlertTriangle className="w-3.5 h-3.5" /> OVERRIDE CONFIRMATION REQUIRED
+                    </div>
+                    <p className="text-[8.5px] font-mono text-white/55 leading-relaxed">
+                      Deploying satellite tracking parameters will redirect live camera grids, orbit feeds, and sensor arrays directly to this sector.
+                    </p>
+                    <button
+                      onClick={() => locateOnMap(selectedRecord)}
+                      className="w-full bg-[#3cdcd1] hover:bg-[#2cbcb1] text-black font-bold font-mono py-2.5 px-4 text-[10px] tracking-wider transition-colors flex items-center justify-center gap-2 rounded-none"
+                    >
+                      <Globe className="w-4 h-4" /> DEPLOY TELEMETRY OVERRIDE
+                    </button>
                   </div>
-                  <p className="text-[8.5px] font-mono text-white/55 leading-relaxed">
-                    Deploying satellite tracking parameters will redirect live camera grids, orbit feeds, and sensor arrays directly to this sector.
-                  </p>
-                  <button
-                    onClick={() => locateOnMap(selectedRecord)}
-                    className="w-full bg-[#3cdcd1] hover:bg-[#2cbcb1] text-black font-bold font-mono py-2.5 px-4 text-[10px] tracking-wider transition-colors flex items-center justify-center gap-2 rounded-none"
-                  >
-                    <Globe className="w-4 h-4" /> DEPLOY TELEMETRY OVERRIDE
-                  </button>
-                </div>
+                ) : (
+                  <div className="bg-white/5 border border-white/10 p-4 space-y-3">
+                    <div className="flex items-center gap-2 text-[8px] font-mono text-white/40 font-bold tracking-widest">
+                      <Database className="w-3.5 h-3.5" /> RECORD ARCHIVED
+                    </div>
+                    <p className="text-[8.5px] font-mono text-white/30 leading-relaxed">
+                      This entity is no longer active in the live telemetry grid. Direct coordinate deployment is unavailable for cold-storage records.
+                    </p>
+                    <button
+                      disabled
+                      className="w-full bg-white/5 text-white/20 font-bold font-mono py-2.5 px-4 text-[10px] tracking-wider flex items-center justify-center gap-2 rounded-none cursor-not-allowed border border-white/5"
+                    >
+                      <Globe className="w-4 h-4 opacity-50" /> TELEMETRY UNAVAILABLE
+                    </button>
+                  </div>
+                )}
 
               </div>
             </motion.div>
