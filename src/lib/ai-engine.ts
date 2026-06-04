@@ -339,31 +339,50 @@ export async function validateNewsBulk(
 
   const model = client.getGenerativeModel({
     model: 'gemini-2.5-flash',
-    systemInstruction: `You are an automated OSINT curation AI.
-Your job is to filter a list of newly ingested Telegram and RSS items. 
-You must strictly EXCLUDE:
+    systemInstruction: `You are an automated OSINT curation and translation AI.
+Your job is to filter a list of newly ingested Telegram and RSS items AND translate them to English.
+You must strictly EXCLUDE (set valid: false):
 - Telegram auto-generated messages (e.g. "Channel photo updated", "Channel name was changed", "Channel created")
 - Fragment/auction spam (e.g. "Will be selling on fragment", "Имя @... выставлено на аукцион")
 - Purely administrative or empty posts
 - Spam, ads, and irrelevant channel chat.
 
-Return ONLY a JSON array containing the boolean \`true\` if the corresponding item is valid news/intel, or \`false\` if it is junk.
+For items that ARE valid news/intel (valid: true):
+- If the original text (title or description) is NOT in English, translate it accurately to English.
+- If it IS in English, return it exactly as is.
+
+Return ONLY a JSON array of objects with this structure:
+[
+  { "valid": true, "title": "Translated or original English title", "description": "Translated or original English description" },
+  { "valid": false }
+]
+
 The array length must EXACTLY match the number of input items provided. Do not include markdown code blocks like \`\`\`json, just the raw array.`,
   });
 
   const payload = items.map((it, idx) => `[${idx}] Title: ${it.title} | Content: ${it.description}`).join('\n');
 
   try {
-    const prompt = `Validate these items:\n${payload}\n\nReturn JSON boolean array only.`;
+    const prompt = `Validate and translate these items:\n${payload}\n\nReturn JSON object array only.`;
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim().replace(/^```json/i, '').replace(/```$/i, '').trim();
-    const boolArray = JSON.parse(text);
+    const parsedArray = JSON.parse(text);
 
-    if (Array.isArray(boolArray) && boolArray.length === items.length) {
-      return items.filter((_, idx) => boolArray[idx] === true);
+    if (Array.isArray(parsedArray) && parsedArray.length === items.length) {
+      const processedItems: any[] = [];
+      for (let idx = 0; idx < items.length; idx++) {
+        if (parsedArray[idx] && parsedArray[idx].valid === true) {
+          processedItems.push({
+            ...items[idx],
+            title: parsedArray[idx].title || items[idx].title,
+            description: parsedArray[idx].description || items[idx].description
+          });
+        }
+      }
+      return processedItems;
     }
   } catch (e) {
-    console.error('[AEGIS AI] Validation failed, falling back to heuristic filter:', e);
+    console.error('[AEGIS AI] Validation/Translation failed, falling back to heuristic filter:', e);
   }
 
   // Fallback heuristic filter
