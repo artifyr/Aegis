@@ -219,10 +219,29 @@ export async function GET() {
         ];
       }
 
+      // Consistently clean up title and description (especially if bypassing the AI-agent)
+      let title = (article.title || '').trim();
+      if (title.length > 80) {
+        title = title.substring(0, 77) + '...';
+      }
+
+      let description = (article.description || '').trim();
+      // Heuristic fallback: if description is too long (e.g. from non-AI fallback path), shorten it nicely
+      if (description.length > 280) {
+        const truncated = description.substring(0, 250);
+        const lastPeriod = truncated.lastIndexOf('.');
+        if (lastPeriod > 100) {
+          description = truncated.substring(0, lastPeriod + 1);
+        } else {
+          const lastSpace = truncated.lastIndexOf(' ');
+          description = truncated.substring(0, lastSpace > 0 ? lastSpace : 250) + '...';
+        }
+      }
+
       return {
         id: crypto.createHash('md5').update((article.link || '') + (article.pubDate || '') + index.toString()).digest('hex'),
-        title: article.title,
-        description: article.description,
+        title,
+        description,
         link: article.link,
         published: article.pubDate,
         source: article.source,

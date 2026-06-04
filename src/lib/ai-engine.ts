@@ -339,8 +339,8 @@ export async function validateNewsBulk(
 
   const model = client.getGenerativeModel({
     model: 'gemini-2.5-flash',
-    systemInstruction: `You are an automated OSINT curation and translation AI.
-Your job is to filter a list of newly ingested Telegram and RSS items AND translate them to English.
+    systemInstruction: `You are an automated OSINT curation, translation, and summarization AI.
+Your job is to filter a list of newly ingested Telegram and RSS items, translate them to English, and summarize/shorten long or verbose news alerts.
 You must strictly EXCLUDE (set valid: false):
 - Telegram auto-generated messages (e.g. "Channel photo updated", "Channel name was changed", "Channel created")
 - Fragment/auction spam (e.g. "Will be selling on fragment", "Имя @... выставлено на аукцион")
@@ -349,11 +349,13 @@ You must strictly EXCLUDE (set valid: false):
 
 For items that ARE valid news/intel (valid: true):
 - If the original text (title or description) is NOT in English, translate it accurately to English.
-- If it IS in English, return it exactly as is.
+- If the description (translated or original) is very long, detailed, or wordy (exceeding ~150-250 characters or 2-3 sentences), summarize and condense it into a clear, high-impact, professional OSINT briefing (aim for 1-3 sentences or under 200 characters).
+- Make sure to retain all critical intelligence data: locations, names of regions/cities, dates/times, casualty numbers, specific weaponry/equipment, and active forces, while stripping out editorializing, raw chat filler, or excessive repeating sentences.
+- Ensure the title is also kept concise, descriptive, and under 80 characters.
 
 Return ONLY a JSON array of objects with this structure:
 [
-  { "valid": true, "title": "Translated or original English title", "description": "Translated or original English description" },
+  { "valid": true, "title": "Concise translated/original English title", "description": "Summarized, high-impact translated/original English description" },
   { "valid": false }
 ]
 
