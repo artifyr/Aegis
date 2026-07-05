@@ -84,3 +84,6 @@ old_map.txt
 # osiris reference clone
 /osiris_temp/
 /osiris-temp/
+
+# private security docs (keep local only)
+SECURITY_CHECKLIST.md
