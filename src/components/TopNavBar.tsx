@@ -114,6 +114,7 @@ export function TopNavBar() {
         <button 
           onClick={async () => {
             await fetch('/api/auth/logout', { method: 'POST' });
+            localStorage.removeItem('aegis_role');
             window.location.href = '/login';
           }}
           className="font-mono text-[10px] tracking-widest text-white/50 hover:text-white transition-colors"

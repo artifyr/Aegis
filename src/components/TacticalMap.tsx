@@ -402,8 +402,21 @@ export function TacticalMap({
     );
   }
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    const observer = new ResizeObserver(() => {
+      if (mapRef.current) {
+        mapRef.current.resize();
+      }
+    });
+    observer.observe(wrapperRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="absolute inset-0">
+    <div className="absolute inset-0" ref={wrapperRef}>
       <Map
         ref={mapRef}
         transformRequest={(url: string) => {

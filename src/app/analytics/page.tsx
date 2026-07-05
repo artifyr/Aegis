@@ -149,6 +149,7 @@ function renderInlineMarkdown(text: string) {
 
 export default function AnalyticsPage() {
   const [mounted, setMounted] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const store = useTacticalStore();
   
   // Rolling data for graphs
@@ -338,6 +339,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     setMounted(true);
+    setUserRole(localStorage.getItem('aegis_role'));
 
     // Load cached AI state from localStorage
     const cachedBriefing = localStorage.getItem('aegis_ai_briefing');
@@ -650,7 +652,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Aegis AI Analyst */}
-          {(() => {
+          {userRole !== 'guest' && (() => {
             const renderAiPanel = (isMaximized: boolean = false) => (
               <div className={`fui-border relative flex flex-col ${isMaximized ? 'bg-[#0b0c10] w-full max-w-5xl h-[85vh] p-6 md:p-10 shadow-2xl shadow-black/80' : 'bg-black/40 p-6 h-[380px]'}`} onClick={(e) => isMaximized && e.stopPropagation()}>
                 <div className="fui-corner-tl"></div><div className="fui-corner-tr"></div><div className="fui-corner-bl"></div><div className="fui-corner-br"></div>

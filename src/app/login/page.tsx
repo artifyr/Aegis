@@ -61,6 +61,7 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (data.success) {
+        localStorage.setItem('aegis_role', data.role);
         // Force a hard reload to clear any cached states and load the fresh app
         window.location.href = '/';
       } else {

@@ -6,6 +6,8 @@ export async function POST(request: Request) {
 
     const validUsername = process.env.AUTH_USER;
     const validPassword = process.env.AUTH_PASS;
+    const guestUsername = process.env.GUEST_USER || 'guest';
+    const guestPassword = process.env.GUEST_PASS || 'guest';
     
     const isEnvConfigured = !!(validUsername && validPassword);
 
@@ -17,15 +19,18 @@ export async function POST(request: Request) {
     }
 
     const isPrimaryValid = username === validUsername && password === validPassword;
+    const isGuestValid = username === guestUsername && password === guestPassword;
 
-    if (isPrimaryValid) {
+    if (isPrimaryValid || isGuestValid) {
+      const role = isPrimaryValid ? 'admin' : 'guest';
       // Create response and set cookie
       const response = NextResponse.json({ 
-        success: true
+        success: true,
+        role: role
       });
       response.cookies.set({
         name: 'aegis_auth_token',
-        value: 'authenticated_aegis_session',
+        value: `authenticated_aegis_session_${role}`,
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
