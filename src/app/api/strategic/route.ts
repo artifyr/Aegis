@@ -1,8 +1,12 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
+import { getAuthRole } from '@/lib/auth';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 
 export async function GET() {
+  const role = await getAuthRole();
+  if (!role) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
@@ -24,3 +28,4 @@ export async function GET() {
     }
   });
 }
+

@@ -1,6 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { getAuthRole } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
+  const role = await getAuthRole();
+  if (!role) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const url = request.nextUrl.searchParams.get('url');
 
   if (!url) {
@@ -52,3 +56,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

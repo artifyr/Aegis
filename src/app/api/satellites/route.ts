@@ -1,9 +1,10 @@
-
+﻿
 import { NextResponse } from 'next/server';
+import { getAuthRole } from '@/lib/auth';
 import { stealthFetch } from '@/lib/stealthFetch';
 
 /**
- * AEGIS — Satellite Tracking API
+ * AEGIS â€” Satellite Tracking API
  * Fetches TLE data from multiple sources with fallbacks
  * Computes real-time positions using simplified SGP4
  */
@@ -137,6 +138,9 @@ let globalCachedSats: any[] = [];
 let globalCacheTime = 0;
 
 export async function GET() {
+  const role = await getAuthRole();
+  if (!role) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const nowTime = Date.now();
     let allSats: any[] = globalCachedSats;
@@ -224,4 +228,5 @@ export async function GET() {
     return NextResponse.json({ satellites: [], error: 'Failed to fetch satellite data' }, { status: 500 });
   }
 }
+
 

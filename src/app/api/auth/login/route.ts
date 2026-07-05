@@ -10,8 +10,8 @@ export async function POST(request: Request) {
 
     const validUsername = process.env.AUTH_USER;
     const validPassword = process.env.AUTH_PASS;
-    const guestUsername = process.env.GUEST_USER || 'guest';
-    const guestPassword = process.env.GUEST_PASS || 'guest';
+    const guestUsername = process.env.GUEST_USER;
+    const guestPassword = process.env.GUEST_PASS;
     
     const isEnvConfigured = !!(validUsername && validPassword);
 

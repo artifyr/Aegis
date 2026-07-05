@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getAuthRole } from '@/lib/auth';
 import { stealthFetch } from '@/lib/stealthFetch';
 import { fetchAsfinagCameras } from './asfinag';
 import { fetchBulgariaCameras } from './bulgaria';
@@ -415,6 +416,9 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
 }
 
 export async function GET(request: Request) {
+  const role = await getAuthRole();
+  if (!role) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const { searchParams } = new URL(request.url);
     const region = searchParams.get('region');
@@ -445,7 +449,7 @@ export async function GET(request: Request) {
         return `https://free-webcambg.com/${url}`;
       }
       if (url.startsWith('http://')) {
-        if (url.includes('localhost') || url.includes('127.0.0.1')) {
+        if (process.env.NODE_ENV === 'development' && (url.includes('localhost') || url.includes('127.0.0.1'))) {
           return url;
         }
         return 'https://' + url.substring(7);

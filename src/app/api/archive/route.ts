@@ -1,10 +1,14 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
+import { getAuthRole } from '@/lib/auth';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const role = await getAuthRole();
+  if (!role) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
@@ -91,7 +95,7 @@ export async function GET() {
         lng: n.lng,
         classification: n.status?.includes('SEISMIC') ? 'TOP_SECRET' : 'RESTRICTED',
         date: new Date().toISOString().split('T')[0],
-        detail: `${n.reactors} Reactors · ${n.capacity_mw} MW`,
+        detail: `${n.reactors} Reactors Â· ${n.capacity_mw} MW`,
         status: n.status || 'OPERATIONAL',
         country: n.country || 'UNKNOWN',
         raw: { ...n, capacityMW: n.capacity_mw } // Bridge the gap between db schema and frontend expectations
@@ -104,3 +108,4 @@ export async function GET() {
     return NextResponse.json({ records: [], error: 'Failed to fetch archive data' }, { status: 500 });
   }
 }
+

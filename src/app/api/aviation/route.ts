@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
+import { getAuthRole } from '@/lib/auth';
 // Force reload cache
 export const dynamic = 'force-dynamic';
 import { stealthFetch } from '@/lib/stealthFetch';
@@ -6,7 +7,7 @@ import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 
 /**
- * AEGIS — Flight Data API
+ * AEGIS â€” Flight Data API
  * Fetches real-time aircraft positions from adsb.lol (no API key required)
  * Covers 6 global regions for maximum coverage
  */
@@ -139,6 +140,9 @@ const CACHE_TTL = 45000; // 45 seconds cache window
 let fetchPromise: Promise<any> | null = null;
 
 export async function GET() {
+  const role = await getAuthRole();
+  if (!role) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const now = Date.now();
 
   // Return cached data if within TTL
@@ -307,3 +311,4 @@ function aggregateJamming(points: any[], threshold: number) {
       count: z.count,
     }));
 }
+

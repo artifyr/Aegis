@@ -1,11 +1,12 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
+import { getAuthRole } from '@/lib/auth';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * AEGIS — Global Incidents API (GDELT Fallback / RSS OSINT Mapper)
+ * AEGIS â€” Global Incidents API (GDELT Fallback / RSS OSINT Mapper)
  * Since GDELT v2 Geo is frequently down (404/Timeout), this fallback
  * aggregates global news RSS (BBC, Al Jazeera, etc.) and performs
  * lightweight keyword geo-mapping to generate incident points.
@@ -57,6 +58,9 @@ const GEO_DICT: Record<string, [number, number]> = {
 const CONFLICT_KEYWORDS = ['attack', 'strike', 'missile', 'drone', 'war', 'troops', 'military', 'protest', 'riot', 'police', 'clash', 'bomb', 'killed', 'forces'];
 
 export async function GET() {
+  const role = await getAuthRole();
+  if (!role) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const allEvents: any[] = [];
     let eventId = 0;
@@ -164,3 +168,4 @@ export async function GET() {
     return NextResponse.json({ events: [], error: 'Failed to fetch OSINT data' }, { status: 500 });
   }
 }
+

@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
+import { getAuthRole } from '@/lib/auth';
 import crypto from 'crypto';
 import { createGeminiClient, rotateApiKey, validateNewsBulk } from '@/lib/ai-engine';
 
 /**
- * AEGIS — Military-Grade Intelligence API
+ * AEGIS â€” Military-Grade Intelligence API
  * Fetches Telegram OSINT feeds directly, with a failsafe fallback 
  * to traditional intelligence sources if Telegram blocks the IP.
  */
@@ -115,6 +116,9 @@ const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
 const AI_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 export async function GET() {
+  const role = await getAuthRole();
+  if (!role) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const now = Date.now();
 
   // Return from 4-hour cache if fresh
@@ -194,7 +198,7 @@ export async function GET() {
         // Fallback to logic if AI fails
         allArticles = allArticles.filter(it => {
           const lower = (it.title + ' ' + it.description).toLowerCase();
-          const junk = ['channel photo updated', 'channel created', 'channel name was changed', 'selling on fragment', 'выставлено на аукцион', 'минимальную ставку'];
+          const junk = ['channel photo updated', 'channel created', 'channel name was changed', 'selling on fragment', 'Ð²Ñ‹ÑÑ‚Ð°Ð²Ð»ÐµÐ½Ð¾ Ð½Ð° Ð°ÑƒÐºÑ†Ð¸Ð¾Ð½', 'Ð¼Ð¸Ð½Ð¸Ð¼Ð°Ð»ÑŒÐ½ÑƒÑŽ ÑÑ‚Ð°Ð²ÐºÑƒ'];
           return !junk.some(j => lower.includes(j));
         });
       }
@@ -202,7 +206,7 @@ export async function GET() {
       // 4-Hour logic-based fallback filter
       allArticles = allArticles.filter(it => {
         const lower = (it.title + ' ' + it.description).toLowerCase();
-        const junk = ['channel photo updated', 'channel created', 'channel name was changed', 'selling on fragment', 'выставлено на аукцион', 'минимальную ставку'];
+        const junk = ['channel photo updated', 'channel created', 'channel name was changed', 'selling on fragment', 'Ð²Ñ‹ÑÑ‚Ð°Ð²Ð»ÐµÐ½Ð¾ Ð½Ð° Ð°ÑƒÐºÑ†Ð¸Ð¾Ð½', 'Ð¼Ð¸Ð½Ð¸Ð¼Ð°Ð»ÑŒÐ½ÑƒÑŽ ÑÑ‚Ð°Ð²ÐºÑƒ'];
         return !junk.some(j => lower.includes(j));
       });
     }
@@ -271,3 +275,4 @@ export async function GET() {
     return NextResponse.json({ news: [], error: 'Failed to fetch intel' }, { status: 500 });
   }
 }
+

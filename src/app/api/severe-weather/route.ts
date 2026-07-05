@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
+import { getAuthRole } from '@/lib/auth';
 import { stealthFetch } from '@/lib/stealthFetch';
 
 /**
- * AEGIS — Severe Weather & Anomalies API
+ * AEGIS â€” Severe Weather & Anomalies API
  * Fetches active natural events from NASA EONET and NOAA/NWS active alerts.
  * Tracks: Severe storms, volcanoes, sea ice, and U.S. active weather alerts.
  */
@@ -80,6 +81,9 @@ type NwsResponse = {
 };
 
 export async function GET() {
+  const role = await getAuthRole();
+  if (!role) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const [eonetRes, nwsRes] = await Promise.allSettled([
       stealthFetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=100', {
@@ -246,3 +250,4 @@ function averageCoordinates(coords?: number[][]) {
     lng: totals.lng / coords.length,
   };
 }
+

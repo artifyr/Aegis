@@ -1,13 +1,14 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
+import { getAuthRole } from '@/lib/auth';
 import WebSocket from 'ws';
 
 /**
- * AEGIS — Maritime Intelligence
+ * AEGIS â€” Maritime Intelligence
  * Real-time AIS vessel tracking via aisstream.io + Static global ports.
  */
 
 const PORTS = [
-  // ── Top Container Ports ──
+  // â”€â”€ Top Container Ports â”€â”€
   { name: 'Shanghai', country: 'CN', lat: 31.23, lng: 121.47, type: 'container', volume: '47.3M TEU', rank: 1 },
   { name: 'Singapore', country: 'SG', lat: 1.26, lng: 103.84, type: 'container', volume: '37.2M TEU', rank: 2 },
   { name: 'Ningbo-Zhoushan', country: 'CN', lat: 29.87, lng: 121.55, type: 'container', volume: '33.3M TEU', rank: 3 },
@@ -42,7 +43,7 @@ const PORTS = [
   { name: 'Santos', country: 'BR', lat: -23.95, lng: -46.31, type: 'container', volume: '4.2M TEU', rank: 22 },
   { name: 'Colombo', country: 'LK', lat: 6.94, lng: 79.84, type: 'container', volume: '7.2M TEU', rank: 17 },
 
-  // ── Energy/Oil Ports ──
+  // â”€â”€ Energy/Oil Ports â”€â”€
   { name: 'Ras Tanura', country: 'SA', lat: 26.64, lng: 50.16, type: 'energy', volume: '6.5M bpd' },
   { name: 'Fujairah', country: 'AE', lat: 25.14, lng: 56.35, type: 'energy', volume: '3.5M bpd' },
   { name: 'Novorossiysk', country: 'RU', lat: 44.72, lng: 37.77, type: 'energy', volume: '2.8M bpd' },
@@ -50,7 +51,7 @@ const PORTS = [
   { name: 'Kharg Island', country: 'IR', lat: 29.24, lng: 50.33, type: 'energy', volume: '2.0M bpd' },
   { name: 'Primorsk', country: 'RU', lat: 60.35, lng: 28.70, type: 'energy', volume: '1.6M bpd' },
 
-  // ── Major Naval Bases ──
+  // â”€â”€ Major Naval Bases â”€â”€
   { name: 'Norfolk Naval Station', country: 'US', lat: 36.95, lng: -76.33, type: 'naval', fleet: 'US Atlantic Fleet' },
   { name: 'San Diego Naval Base', country: 'US', lat: 32.69, lng: -117.15, type: 'naval', fleet: 'US Pacific Fleet' },
   { name: 'Pearl Harbor', country: 'US', lat: 21.35, lng: -157.97, type: 'naval', fleet: 'US Pacific Fleet' },
@@ -277,6 +278,9 @@ async function fetchVesselApiFallback() {
 }
 
 export async function GET() {
+  const role = await getAuthRole();
+  if (!role) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   // Ensure stream connects if it hasn't already (e.g., if API key was missing on startup)
   if (!globalForAis.wsConnected && !globalForAis.isAisConnecting) {
     connectAisStream();
@@ -410,3 +414,4 @@ export async function GET() {
     },
   });
 }
+

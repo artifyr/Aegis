@@ -1,15 +1,19 @@
-
+﻿
 import { NextResponse } from 'next/server';
+import { getAuthRole } from '@/lib/auth';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 
 /**
- * AEGIS — Earthquake Data API
+ * AEGIS â€” Earthquake Data API
  * Fetches real-time seismic events from USGS (last 24h, M2.5+)
  * No API key required
  */
 
 export async function GET() {
+  const role = await getAuthRole();
+  if (!role) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const url = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson';
     const res = await fetch(url, {
@@ -88,3 +92,4 @@ export async function GET() {
     return NextResponse.json({ earthquakes: [], error: 'Failed to fetch earthquake data' }, { status: 500 });
   }
 }
+

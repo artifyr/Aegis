@@ -1,13 +1,17 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
+import { getAuthRole } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * OSIRIS — Active Fire & Wildfire Tracking
+ * OSIRIS â€” Active Fire & Wildfire Tracking
  * Multi-source: NASA FIRMS Open Data (primary for global fires), NASA EONET (volcanoes)
  */
 
 export async function GET() {
+  const role = await getAuthRole();
+  if (!role) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     let fires: any[] = [];
     let source = '';
@@ -119,3 +123,4 @@ function parseCSV(csv: string): any[] {
 
   return fires;
 }
+
