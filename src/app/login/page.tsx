@@ -74,6 +74,35 @@ export default function LoginPage() {
     }
   };
 
+  const handleGuestLogin = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isGuest: true }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        localStorage.setItem('aegis_role', data.role);
+        window.location.href = '/';
+      } else {
+        setError(data.message || 'Invalid credentials');
+      }
+    } catch (err) {
+      setError('An error occurred during authentication.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black flex text-white overflow-hidden relative">
 
@@ -199,6 +228,15 @@ export default function LoginPage() {
               ) : (
                 'Enter'
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleGuestLogin}
+              disabled={isLoading}
+              className="w-full bg-transparent text-white border border-white/50 font-medium text-[11px] uppercase tracking-widest rounded-full py-4 mt-2 hover:bg-white/5 active:scale-[0.98] transition-all flex items-center justify-center"
+            >
+              LOGIN WITH GUEST ACCESS
             </button>
 
             <div className="hidden text-center mt-4">

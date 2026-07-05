@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createClient } from '@/utils/supabase/middleware';
 
+// API routes that do NOT require authentication
+const PUBLIC_API_ROUTES = ['/api/auth/login', '/api/auth/logout'];
+
 export function middleware(request: NextRequest) {
   // Sync Supabase cookies and refresh sessions
   const supabaseResponse = createClient(request);
@@ -15,12 +18,20 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
+  const isStaticFile = pathname.includes('.');
+  const isAuthApiRoute = PUBLIC_API_ROUTES.some(r => pathname.startsWith(r));
+
+  // Block unauthenticated access to API routes (except public auth endpoints)
+  if (!token && pathname.startsWith('/api') && !isAuthApiRoute) {
+    return NextResponse.json(
+      { error: 'Unauthorized', code: 'UNAUTHORIZED' },
+      { status: 401 }
+    );
+  }
+
   // If the user is NOT authenticated and tries to access protected pages,
   // redirect them to the login page.
-  const isApiRoute = pathname.startsWith('/api');
-  const isStaticFile = pathname.includes('.'); // e.g. /favicon.ico, /aegislogo.png
-
-  if (!token && !isApiRoute && !isStaticFile && pathname !== '/login') {
+  if (!token && !pathname.startsWith('/api') && !isStaticFile && pathname !== '/login') {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
@@ -29,7 +40,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all paths except api, _next/static, _next/image, and favicon.ico
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    // Match all paths except _next/static, _next/image, and favicon.ico
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

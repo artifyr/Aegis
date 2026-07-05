@@ -1,12 +1,27 @@
 import { NextResponse } from 'next/server';
+import { getAuthRole } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  const role = await getAuthRole();
+  if (!role) {
+    return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
-  const yieldKt = parseFloat(searchParams.get('yield') || '100'); // in kilotons
-  const lat = parseFloat(searchParams.get('lat') || '0');
-  const lng = parseFloat(searchParams.get('lng') || '0');
+  let yieldKt = parseFloat(searchParams.get('yield') || '100');
+  let lat = parseFloat(searchParams.get('lat') || '0');
+  let lng = parseFloat(searchParams.get('lng') || '0');
+
+  // Clamp/validate inputs to prevent abuse
+  if (isNaN(yieldKt) || !isFinite(yieldKt)) yieldKt = 100;
+  if (isNaN(lat) || !isFinite(lat)) lat = 0;
+  if (isNaN(lng) || !isFinite(lng)) lng = 0;
+  yieldKt = Math.max(0.1, Math.min(50000, yieldKt)); // between 0.1kt and 50Mt
+  lat = Math.max(-90, Math.min(90, lat));
+  lng = Math.max(-180, Math.min(180, lng));
+
 
   // Simple approximations based on scaling laws for surface bursts
   // These are very rough estimates for the game/sim, not real scientific models

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getAuthRole } from '@/lib/auth';
 
 /**
  * AEGIS — Region Dossier API
@@ -7,6 +8,11 @@ import { NextResponse } from 'next/server';
  */
 
 export async function GET(request: Request) {
+  const role = await getAuthRole();
+  if (!role) {
+    return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const lat = parseFloat(searchParams.get('lat') || '0');
   const lng = parseFloat(searchParams.get('lng') || '0');

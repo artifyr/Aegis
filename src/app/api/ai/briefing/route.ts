@@ -13,6 +13,7 @@ import {
   generateBriefing,
   type IntelligenceContext,
 } from '@/lib/ai-engine';
+import { getAuthRole } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -95,6 +96,16 @@ interface ErrorResponse {
 export async function POST(
   request: NextRequest
 ): Promise<NextResponse<BriefingResponse | ErrorResponse>> {
+  // Auth check — only admin role may access AI endpoints
+  const role = await getAuthRole();
+  if (role !== 'admin') {
+    return NextResponse.json(
+      { error: 'Unauthorized', code: 'UNAUTHORIZED' },
+      { status: 401 }
+    );
+  }
+
+  // Extract client IP
   const ip =
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     request.headers.get('x-real-ip') ||

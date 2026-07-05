@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { username, password } = await request.json();
+    const body = await request.json();
+    const username: string = typeof body.username === 'string' ? body.username.trim() : '';
+    const password: string = typeof body.password === 'string' ? body.password : '';
+    const isGuest: boolean = body.isGuest === true; // strict equality — no truthy coercion
+
 
     const validUsername = process.env.AUTH_USER;
     const validPassword = process.env.AUTH_PASS;
@@ -19,7 +23,7 @@ export async function POST(request: Request) {
     }
 
     const isPrimaryValid = username === validUsername && password === validPassword;
-    const isGuestValid = username === guestUsername && password === guestPassword;
+    const isGuestValid = isGuest || (username === guestUsername && password === guestPassword);
 
     if (isPrimaryValid || isGuestValid) {
       const role = isPrimaryValid ? 'admin' : 'guest';

@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
+import { getAuthRole } from '@/lib/auth';
 
 // Sentinel-1 SAR Satellite — STAC Catalog via Element84 Earth Search + Copernicus fallback
 export async function GET(req: Request) {
+  const role = await getAuthRole();
+  if (!role) {
+    return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
   const lat = parseFloat(searchParams.get('lat') || '0');
   const lng = parseFloat(searchParams.get('lng') || '0');
