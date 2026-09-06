@@ -23,7 +23,7 @@ const INITIAL_VIEW = {
 };
 
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+const STATIC_MAPBOX_TOKEN = (process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '').trim();
 
 const CRITICAL_HOTSPOTS = [
   { id: 'hotspot-ukraine', name: 'UKRAINE WAR', severity: 'CRITICAL', lat: 48.5, lng: 31.2, html: 'Active conflict zone and military operations in Ukraine.' },
@@ -101,6 +101,30 @@ export function TacticalMap({
   const mapCommand = useTacticalStore(state => state.mapCommand);
   const setMapCommand = useTacticalStore(state => state.setMapCommand);
 
+  const [mapboxToken, setMapboxToken] = useState<string>(STATIC_MAPBOX_TOKEN);
+  const [isLoadingToken, setIsLoadingToken] = useState<boolean>(!STATIC_MAPBOX_TOKEN);
+
+  useEffect(() => {
+    if (!mapboxToken) {
+      let isMounted = true;
+      fetch('/api/config/mapbox')
+        .then((res) => res.json())
+        .then((data) => {
+          if (isMounted) {
+            if (data.token) {
+              setMapboxToken(data.token);
+            }
+            setIsLoadingToken(false);
+          }
+        })
+        .catch(() => {
+          if (isMounted) setIsLoadingToken(false);
+        });
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [mapboxToken]);
   const [status, setStatus] = useState('AWAITING_MAP');
   const [isDived, setIsDived] = useState(false);
   const [isZoomedIn, setIsZoomedIn] = useState(false);
@@ -388,14 +412,24 @@ export function TacticalMap({
     };
   }, [cameraDive, cameraReset]);
 
-  if (!MAPBOX_TOKEN) {
+  if (!mapboxToken) {
+    if (isLoadingToken) {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center bg-surface-container-lowest">
+          <div className="flex flex-col items-center gap-2 font-mono text-[10px] text-secondary tracking-widest animate-pulse">
+            <span className="material-symbols-outlined text-lg animate-spin">sync</span>
+            INITIALIZING TACTICAL MAPBOX GLOBE...
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="absolute inset-0 flex items-center justify-center bg-surface-container-lowest">
         <div className="text-center p-8">
           <div className="font-mono text-[10px] text-on-tertiary-container tracking-widest mb-2">⚠ MAPBOX_TOKEN NOT SET</div>
           <p className="font-mono text-[9px] text-on-surface-variant leading-relaxed max-w-sm">
-            Create a <span className="text-secondary">.env.local</span> file in the project root with:<br />
-            <code className="text-secondary">NEXT_PUBLIC_MAPBOX_TOKEN=pk.your_token_here</code>
+            Set <code className="text-secondary font-bold">NEXT_PUBLIC_MAPBOX_TOKEN</code> in your Vercel Project Settings &gt; Environment Variables and redeploy.<br />
+            Locally, add it to <span className="text-secondary font-bold">.env.local</span>.
           </p>
         </div>
       </div>
@@ -575,7 +609,7 @@ export function TacticalMap({
             }
           }
         }}
-        mapboxAccessToken={MAPBOX_TOKEN}
+        mapboxAccessToken={mapboxToken}
         mapStyle={mapStyle}
         projection={{ name: 'globe' }}
         fog={{
