@@ -102,11 +102,11 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
             : 'top-4 left-2 right-2 md:top-6 md:right-6 md:left-auto md:w-[420px]'
         }`}
       >
-        <div className="glass-panel osiris-glow overflow-hidden h-full flex flex-col" style={{ borderColor: 'rgba(60, 220, 209, 0.3)' }}>
+        <div className="glass-panel overflow-hidden h-full flex flex-col" style={{ borderColor: 'rgba(60, 220, 209, 0.3)' }}>
           {/* Header */}
           <div className="flex items-center justify-between px-3 md:px-4 py-2 md:py-3 border-b border-[var(--border-secondary)] bg-black/40">
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <div className="w-2 h-2 rounded-full bg-[#3cdcd1] animate-osiris-pulse flex-shrink-0" />
+              <div className="w-2 h-2 rounded-full bg-[#3cdcd1] animate-pulse flex-shrink-0" />
               <Camera className="w-3.5 h-3.5 text-[#3cdcd1] flex-shrink-0" />
               <div className="min-w-0">
                 <h3 className="text-[10px] md:text-[11px] font-mono font-bold text-[#3cdcd1] tracking-wider truncate">{camera.name}</h3>
@@ -197,7 +197,7 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
             {/* Live indicator */}
             {!error && !loading && !externalOnly && (
               <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/70 backdrop-blur-sm px-2 py-1 rounded">
-                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-osiris-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                 <span className="text-[7px] font-mono text-white tracking-widest">
                   {streamType === 'jpg' ? 'LIVE SNAPSHOT' : 'LIVE VIDEO'}
                 </span>

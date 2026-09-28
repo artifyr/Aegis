@@ -22,6 +22,6 @@ graphify-out/
 # other unnecessary files
 old_map.txt
 
-# osiris reference clone
-/osiris_temp/
-/osiris-temp/
+# temporary reference clones
+/*_temp/
+/*-temp/
