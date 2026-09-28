@@ -30,8 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files (allow .env.example as template)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -55,7 +56,18 @@ __pycache__/
 
 # misc
 *.log
+# IDE & editors
 .vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.antigravity/
+.agents/
+.cursor/
+
+# OS metadata
+.DS_Store
+Thumbs.db
 
 # next.js
 /.next/
