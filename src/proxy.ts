@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/middleware';
 // API routes that do NOT require authentication
 const PUBLIC_API_ROUTES = ['/api/auth/login', '/api/auth/logout'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // Sync Supabase cookies and refresh sessions
   const supabaseResponse = createClient(request);
 
