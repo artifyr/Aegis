@@ -10,11 +10,12 @@ export function proxy(request: NextRequest) {
   const supabaseResponse = createClient(request);
 
   const token = request.cookies.get('aegis_auth_token')?.value;
+  const isAuthenticated = Boolean(token && token.startsWith('authenticated_aegis_session'));
   const { pathname } = request.nextUrl;
 
   // If the user is authenticated and tries to access the login page,
   // redirect them to the homepage.
-  if (token && pathname === '/login') {
+  if (isAuthenticated && pathname === '/login') {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
@@ -22,7 +23,7 @@ export function proxy(request: NextRequest) {
   const isAuthApiRoute = PUBLIC_API_ROUTES.some(r => pathname.startsWith(r));
 
   // Block unauthenticated access to API routes (except public auth endpoints)
-  if (!token && pathname.startsWith('/api') && !isAuthApiRoute) {
+  if (!isAuthenticated && pathname.startsWith('/api') && !isAuthApiRoute) {
     return NextResponse.json(
       { error: 'Unauthorized', code: 'UNAUTHORIZED' },
       { status: 401 }
@@ -31,7 +32,7 @@ export function proxy(request: NextRequest) {
 
   // If the user is NOT authenticated and tries to access protected pages,
   // redirect them to the login page.
-  if (!token && !pathname.startsWith('/api') && !isStaticFile && pathname !== '/login') {
+  if (!isAuthenticated && !pathname.startsWith('/api') && !isStaticFile && pathname !== '/login') {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

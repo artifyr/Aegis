@@ -37,7 +37,7 @@ export async function POST(request: Request) {
         value: `authenticated_aegis_session_${role}`,
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7, // 1 week
         path: '/',
       });
@@ -52,6 +52,7 @@ export async function POST(request: Request) {
       { status: 401 }
     );
   } catch (error) {
+    console.error('Login error:', error);
     return NextResponse.json(
       { success: false, message: 'Server error' },
       { status: 500 }
