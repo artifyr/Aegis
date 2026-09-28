@@ -85,5 +85,10 @@ old_map.txt
 /osiris_temp/
 /osiris-temp/
 
-# private security docs (keep local only)
+# private docs & checklists (keep local only)
 SECURITY_CHECKLIST.md
+roadmap.md
+PROGRESS.md
+TASKLIST.md
+.antigravityignore
+/docs/
